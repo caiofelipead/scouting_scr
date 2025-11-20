@@ -1,0 +1,23 @@
+# Dependências do Sistema de Scouting
+# Versão FLEXÍVEL (recomendada) - instala últimas versões compatíveis
+
+# Dashboard e Visualização
+streamlit>=1.28.0
+plotly>=5.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Google Sheets API
+gspread>=5.0.0
+google-auth>=2.0.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.0
+
+# Requisições HTTP (download de fotos)
+requests>=2.31.0
+
+# Agendamento (sincronização automática)
+schedule>=1.2.0
+
+# Utilitários
+python-dateutil>=2.8.0
