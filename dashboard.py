@@ -587,17 +587,20 @@ def main():
 
         st.markdown("---")
 
-        # Escolher visualização
+       # Escolher visualização
         if visualizacao == 'Cards':
             # Exibir como cards com fotos
             exibir_lista_com_fotos(df_display, db)
         else:
-            # Exibir como tabela (formato antigo)
+            # Se não for Cards, é Tabela (entra aqui no else)
             df_display_formatted = df_display.copy()
+
+            # --- CORREÇÃO: Lista com 12 colunas e aspas corretas ---
             df_display_formatted.columns = [
-                'ID', 'Nome', 'Nacionalidade', 'Idade', 'Altura', 'Pé',
-                'Clube', 'Liga', 'Posição', 'Fim Contrato', 'Status'
+                'ID', 'Nome', 'Nacionalidade', 'Idade', 'Altura', 'Pé', 
+                'TM ID', 'Clube', 'Liga', 'Posição', 'Fim Contrato', 'Status'
             ]
+            # -------------------------------------------------------
 
             # Estilização condicional
             def highlight_status(row):
