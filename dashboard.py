@@ -593,10 +593,9 @@ def main():
             exibir_lista_com_fotos(df_display, db)
         else:
             # Exibir como tabela (formato antigo)
-            df_display_formatted = df_display.copy()
             df_display_formatted.columns = [
-                'ID', 'Nome', 'Nacionalidade', 'Idade', 'Altura', 'Pé',
-                'Clube', 'Liga', 'Posição', 'Fim Contrato', 'Status'
+                'ID', 'Nome', 'Nacionalidade', 'Idade', 'Altura', 'Pé', 
+                'TM ID', 'Clube', 'Liga', 'Posição', 'Fim Contrato', 'Status'
             ]
 
             # Estilização condicional
