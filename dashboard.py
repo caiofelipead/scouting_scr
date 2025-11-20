@@ -592,7 +592,11 @@ def main():
             # Exibir como cards com fotos
             exibir_lista_com_fotos(df_display, db)
         else:
-            # Exibir como tabela (formato antigo)
+            # Exibir como tabela
+        if visualizacao == 'Tabela':
+            df_display_formatted = df_display.copy()
+            
+            # Bloco de colunas corrigido (12 colunas com aspas em todas)
             df_display_formatted.columns = [
                 'ID', 'Nome', 'Nacionalidade', 'Idade', 'Altura', 'Pé', 
                 'TM ID', 'Clube', 'Liga', 'Posição', 'Fim Contrato', 'Status'
