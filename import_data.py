@@ -18,8 +18,8 @@ def processar_importacao():
     # Criar sincronizador
     syncer = GoogleSheetsSyncer(SHEET_URL)
     
-    # Executar sincronização completa
-    sucesso = syncer.sincronizar_banco(baixar_fotos=True)
+    # Executar sincronização completa (sem baixar fotos)
+    sucesso = syncer.sincronizar_banco(baixar_fotos=False)
     
     if sucesso:
         print("\n" + "="*60)
