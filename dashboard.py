@@ -307,6 +307,7 @@ def exibir_perfil_jogador(db, id_jogador):
         "📈 Evolução"
     ])
 
+    # ==================== TAB 1: NOVA AVALIAÇÃO ====================
     with tab_avaliacao:
         st.markdown("### 📝 Registrar Nova Avaliação")
         st.markdown("Avalie o jogador nas dimensões principais:")
@@ -412,7 +413,7 @@ def exibir_perfil_jogador(db, id_jogador):
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Erro ao salvar avaliação: {str(e)}")
-                        st.error("Execute: python fix_avaliacoes.py")
+                        st.error("Execute: python corrigir_banco.py")
         
         with col2:
             st.markdown("#### 📊 Preview do Radar")
@@ -433,18 +434,31 @@ def exibir_perfil_jogador(db, id_jogador):
                 help="Avaliação geral de potencial"
             )
 
-    # ============== FIM DA SEÇÃO DE AVALIAÇÕES ==============
-    with col1:
-                # ADICIONE ISTO NO INÍCIO
+    # ==================== TAB 2: HISTÓRICO ====================
+    with tab_historico:
+        st.markdown("### 📊 Histórico de Avaliações")
+        
+        # ✅ AQUI BUSCA AS AVALIAÇÕES E DEFINE 'ultima'
+        avaliacoes = db.get_avaliacoes_jogador(id_busca)
+        
+        if len(avaliacoes) == 0:
+            st.info("📝 Nenhuma avaliação registrada ainda. Use a aba 'Nova Avaliação' para começar.")
+        else:
+            # ✅ AQUI DEFINE A VARIÁVEL 'ultima'
+            ultima = avaliacoes.iloc[0]
+            
+            col1, col2 = st.columns([1, 2])
+            
+            with col1:
+                # ✅ AGORA O CÓDIGO FUNCIONA PORQUE 'ultima' ESTÁ DEFINIDA
                 st.markdown("---")
                 nota_pot = ultima.get('nota_potencial')
-    if nota_pot is not None and pd.notna(nota_pot):
-                st.markdown(f"### ⭐ Potencial: {float(nota_pot):.1f}/5.0")
-                st.progress(float(nota_pot) / 5.0)
-    else:
-                st.markdown("### ⭐ Potencial: Não avaliado")
-                st.caption("Avaliação antiga sem nota de potencial")
-                st.progress(ultima['nota_potencial'] / 5.0)
+                if nota_pot is not None and pd.notna(nota_pot):
+                    st.markdown(f"### ⭐ Potencial: {float(nota_pot):.1f}/5.0")
+                    st.progress(float(nota_pot) / 5.0)
+                else:
+                    st.markdown("### ⭐ Potencial: Não avaliado")
+                    st.caption("Avaliação antiga sem nota de potencial")
                 st.markdown("---")
                 
                 st.markdown(f"""
@@ -462,7 +476,97 @@ def exibir_perfil_jogador(db, id_jogador):
                     st.metric("Físico", f"{ultima['nota_fisico']:.1f}")
                 with col_d:
                     st.metric("Mental", f"{ultima['nota_mental']:.1f}")
+            
+            with col2:
+                # Radar da última avaliação
+                notas_radar = {
+                    'Tático': ultima['nota_tatico'],
+                    'Técnico': ultima['nota_tecnico'],
+                    'Físico': ultima['nota_fisico'],
+                    'Mental': ultima['nota_mental']
+                }
+                fig_radar = criar_radar_avaliacao(notas_radar, "Última Avaliação")
+                st.plotly_chart(fig_radar, use_container_width=True)
+                
+                if pd.notna(ultima['observacoes']) and ultima['observacoes']:
+                    st.markdown("**Observações:**")
+                    st.info(ultima['observacoes'])
+            
+            # Lista completa de avaliações
+            st.markdown("---")
+            st.markdown("#### 📜 Todas as Avaliações")
+            
+            for idx, aval in avaliacoes.iterrows():
+                with st.expander(
+                    f"📅 {pd.to_datetime(aval['data_avaliacao']).strftime('%d/%m/%Y')} - "
+                    f"Tático: {aval['nota_tatico']:.1f} | "
+                    f"Técnico: {aval['nota_tecnico']:.1f} | "
+                    f"Físico: {aval['nota_fisico']:.1f} | "
+                    f"Mental: {aval['nota_mental']:.1f}"
+                ):
+                    col_exp1, col_exp2 = st.columns([3, 1])
                     
+                    with col_exp1:
+                        # Exibir potencial se existir
+                        nota_pot_aval = aval.get('nota_potencial')
+                        if nota_pot_aval is not None and pd.notna(nota_pot_aval):
+                            st.metric("⭐ Potencial", f"{float(nota_pot_aval):.1f}/5.0")
+                        
+                        if pd.notna(aval['observacoes']) and aval['observacoes']:
+                            st.markdown("**Observações:**")
+                            st.write(aval['observacoes'])
+                        
+                        if pd.notna(aval['avaliador']) and aval['avaliador']:
+                            st.caption(f"Avaliador: {aval['avaliador']}")
+                    
+                    with col_exp2:
+                        if st.button("🗑️ Deletar", key=f"del_{aval['id_avaliacao']}"):
+                            db.deletar_avaliacao(aval['id_avaliacao'])
+                            st.success("Avaliação deletada!")
+                            time.sleep(0.5)
+                            st.rerun()
+
+    # ==================== TAB 3: EVOLUÇÃO ====================
+    with tab_evolucao:
+        st.markdown("### 📈 Evolução das Notas")
+        
+        avaliacoes = db.get_avaliacoes_jogador(id_busca)
+        
+        if len(avaliacoes) < 2:
+            st.info("📊 Necessário pelo menos 2 avaliações para visualizar a evolução.")
+        else:
+            fig_evolucao = criar_grafico_evolucao(avaliacoes)
+            if fig_evolucao:
+                st.plotly_chart(fig_evolucao, use_container_width=True)
+            
+            # Estatísticas de evolução
+            st.markdown("---")
+            st.markdown("#### 📊 Análise de Evolução")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            primeira = avaliacoes.iloc[-1]
+            ultima = avaliacoes.iloc[0]
+            
+            categorias = [
+                ('Tático', 'nota_tatico', col1),
+                ('Técnico', 'nota_tecnico', col2),
+                ('Físico', 'nota_fisico', col3),
+                ('Mental', 'nota_mental', col4)
+            ]
+            
+            for nome, campo, col in categorias:
+                with col:
+                    diff = ultima[campo] - primeira[campo]
+                    st.metric(
+                        nome,
+                        f"{ultima[campo]:.1f}",
+                        delta=f"{diff:+.1f}",
+                        delta_color="normal"
+                    )
+
+    # ============== FIM DA SEÇÃO DE AVALIAÇÕES ==============
+    
     st.markdown("---")
     st.markdown("### 📊 Informações Adicionais")
 
