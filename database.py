@@ -33,16 +33,21 @@ class ScoutingDatabase:
         except sqlite3.OperationalError:
             # Tabela não existe, será criada
             pass
-
+        
+        # ========= NOVO: Verificar se nota_potencial existe na tabela avaliacoes =========
         try:
             cursor.execute("PRAGMA table_info(avaliacoes)")
             colunas_aval = [col[1] for col in cursor.fetchall()]
-    
+            
             if 'nota_potencial' not in colunas_aval:
+                print("⚠️  Adicionando coluna nota_potencial na tabela avaliacoes...")
                 cursor.execute("ALTER TABLE avaliacoes ADD COLUMN nota_potencial REAL CHECK(nota_potencial >= 1 AND nota_potencial <= 5)")
                 conn.commit()
+                print("✅ Coluna nota_potencial adicionada com sucesso!")
         except sqlite3.OperationalError:
+            # Tabela não existe, será criada
             pass
+        # ===============================================================================
         
         conn.close()
     
@@ -93,7 +98,7 @@ class ScoutingDatabase:
         )
         """)
         
-        # Tabela de avaliações
+        # Tabela de avaliações - CORRIGIDA COM nota_potencial
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS avaliacoes (
             id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -143,8 +148,8 @@ class ScoutingDatabase:
         conn.close()
     
     def salvar_avaliacao(self, id_jogador, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico, 
-                     nota_fisico, nota_mental, observacoes="", avaliador=""):
-        """Salva uma nova avaliação"""
+                         nota_fisico, nota_mental, observacoes="", avaliador=""):
+        """Salva uma nova avaliação - CORRIGIDA com nota_potencial"""
         conn = self.connect()
         cursor = conn.cursor()
         
