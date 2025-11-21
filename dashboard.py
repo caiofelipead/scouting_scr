@@ -309,10 +309,10 @@ def exibir_perfil_jogador(db, id_jogador):
 
     with tab_avaliacao:
         st.markdown("### 📝 Registrar Nova Avaliação")
-        st.markdown("Avalie o jogador nas quatro dimensões principais:")
-
+        st.markdown("Avalie o jogador nas dimensões principais:")
+        
         col1, col2 = st.columns([2, 1])
-
+        
         with col1:
             # Formulário de avaliação
             with st.form("form_avaliacao"):
@@ -321,10 +321,23 @@ def exibir_perfil_jogador(db, id_jogador):
                     value=datetime.now(),
                     format="DD/MM/YYYY"
                 )
-
-                st.markdown("#### Notas (1 a 5)")
+                
+                # NOTA DE POTENCIAL EM DESTAQUE
+                st.markdown("---")
+                st.markdown("#### ⭐ Avaliação Geral de Potencial")
+                nota_potencial = st.slider(
+                    "Potencial do Jogador",
+                    min_value=1.0,
+                    max_value=5.0,
+                    value=3.0,
+                    step=0.5,
+                    help="Avaliação geral do potencial do atleta considerando projeção futura e capacidade de desenvolvimento"
+                )
+                
+                st.markdown("---")
+                st.markdown("#### 📊 Notas por Dimensão (1 a 5)")
                 col_a, col_b = st.columns(2)
-
+                
                 with col_a:
                     nota_tatico = st.slider(
                         "⚙️ Tático",
@@ -334,7 +347,7 @@ def exibir_perfil_jogador(db, id_jogador):
                         step=0.5,
                         help="Posicionamento, leitura de jogo, decisões táticas"
                     )
-
+                    
                     nota_tecnico = st.slider(
                         "⚽ Técnico",
                         min_value=1.0,
@@ -343,7 +356,7 @@ def exibir_perfil_jogador(db, id_jogador):
                         step=0.5,
                         help="Domínio, passe, finalização, controle de bola"
                     )
-
+                
                 with col_b:
                     nota_fisico = st.slider(
                         "💪 Físico",
@@ -353,7 +366,7 @@ def exibir_perfil_jogador(db, id_jogador):
                         step=0.5,
                         help="Velocidade, força, resistência, explosão"
                     )
-
+                    
                     nota_mental = st.slider(
                         "🧠 Mental",
                         min_value=1.0,
@@ -362,29 +375,30 @@ def exibir_perfil_jogador(db, id_jogador):
                         step=0.5,
                         help="Concentração, liderança, inteligência emocional"
                     )
-
+                
                 observacoes = st.text_area(
                     "Observações",
                     placeholder="Adicione comentários sobre a avaliação, pontos fortes, áreas de desenvolvimento...",
                     height=100
                 )
-
+                
                 avaliador = st.text_input(
                     "Avaliador",
                     placeholder="Seu nome (opcional)"
                 )
-
+                
                 submitted = st.form_submit_button(
                     "💾 Salvar Avaliação",
                     use_container_width=True,
                     type="primary"
                 )
-
+                
                 if submitted:
                     try:
                         db.salvar_avaliacao(
                             id_jogador=id_busca,
                             data_avaliacao=data_avaliacao.strftime('%Y-%m-%d'),
+                            nota_potencial=nota_potencial,
                             nota_tatico=nota_tatico,
                             nota_tecnico=nota_tecnico,
                             nota_fisico=nota_fisico,
@@ -398,10 +412,10 @@ def exibir_perfil_jogador(db, id_jogador):
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Erro ao salvar avaliação: {str(e)}")
-
+                        st.error("Execute: python fix_avaliacoes.py")
+        
         with col2:
             st.markdown("#### 📊 Preview do Radar")
-            # Preview do radar com as notas atuais do formulário
             notas_preview = {
                 'Tático': 3.0,
                 'Técnico': 3.0,
@@ -410,28 +424,28 @@ def exibir_perfil_jogador(db, id_jogador):
             }
             fig_preview = criar_radar_avaliacao(notas_preview, "Preview")
             st.plotly_chart(fig_preview, use_container_width=True)
+            
+            # Mostrar potencial em destaque
+            st.markdown("---")
+            st.metric(
+                "⭐ Potencial",
+                f"{3.0:.1f}",
+                help="Avaliação geral de potencial"
+            )
 
-    with tab_historico:
-        st.markdown("### 📊 Histórico de Avaliações")
-
-        # Buscar avaliações do jogador
-        avaliacoes = db.get_avaliacoes_jogador(id_busca)
-
-        if len(avaliacoes) == 0:
-            st.info("ℹ️ Nenhuma avaliação registrada ainda para este jogador.")
-        else:
-            # Mostrar última avaliação em destaque
-            ultima = avaliacoes.iloc[0]
-
-            st.markdown("#### 🎯 Última Avaliação")
-            col1, col2 = st.columns([1, 1])
-
-            with col1:
+    # ============== FIM DA SEÇÃO DE AVALIAÇÕES ==============
+    with col1:
+                # ADICIONE ISTO NO INÍCIO
+                st.markdown("---")
+                st.markdown(f"### ⭐ Potencial: {ultima['nota_potencial']:.1f}/5.0")
+                st.progress(ultima['nota_potencial'] / 5.0)
+                st.markdown("---")
+                
                 st.markdown(f"""
                 **Data:** {pd.to_datetime(ultima['data_avaliacao']).strftime('%d/%m/%Y')}  
                 **Avaliador:** {ultima['avaliador'] if ultima['avaliador'] else 'Não informado'}
                 """)
-
+                
                 # Métricas
                 col_a, col_b, col_c, col_d = st.columns(4)
                 with col_a:
@@ -442,109 +456,7 @@ def exibir_perfil_jogador(db, id_jogador):
                     st.metric("Físico", f"{ultima['nota_fisico']:.1f}")
                 with col_d:
                     st.metric("Mental", f"{ultima['nota_mental']:.1f}")
-
-                if ultima['observacoes']:
-                    with st.expander("📝 Ver Observações"):
-                        st.write(ultima['observacoes'])
-
-            with col2:
-                # Radar da última avaliação
-                notas_ultima = {
-                    'Tático': ultima['nota_tatico'],
-                    'Técnico': ultima['nota_tecnico'],
-                    'Físico': ultima['nota_fisico'],
-                    'Mental': ultima['nota_mental']
-                }
-                fig_ultima = criar_radar_avaliacao(
-                    notas_ultima,
-                    f"Avaliação de {pd.to_datetime(ultima['data_avaliacao']).strftime('%d/%m/%Y')}"
-                )
-                st.plotly_chart(fig_ultima, use_container_width=True)
-
-            # Lista completa de avaliações
-            if len(avaliacoes) > 1:
-                st.markdown("---")
-                st.markdown("#### 📋 Todas as Avaliações")
-
-                for idx, aval in avaliacoes.iterrows():
-                    with st.expander(
-                        f"📅 {pd.to_datetime(aval['data_avaliacao']).strftime('%d/%m/%Y')} - "
-                        f"Média: {((aval['nota_tatico'] + aval['nota_tecnico'] + aval['nota_fisico'] + aval['nota_mental']) / 4):.2f}"
-                    ):
-                        col1, col2 = st.columns([2, 1])
-
-                        with col1:
-                            col_a, col_b, col_c, col_d = st.columns(4)
-                            with col_a:
-                                st.metric("Tático", f"{aval['nota_tatico']:.1f}")
-                            with col_b:
-                                st.metric("Técnico", f"{aval['nota_tecnico']:.1f}")
-                            with col_c:
-                                st.metric("Físico", f"{aval['nota_fisico']:.1f}")
-                            with col_d:
-                                st.metric("Mental", f"{aval['nota_mental']:.1f}")
-
-                            if aval['observacoes']:
-                                st.markdown("**Observações:**")
-                                st.write(aval['observacoes'])
-
-                            if aval['avaliador']:
-                                st.caption(f"Avaliador: {aval['avaliador']}")
-
-                        with col2:
-                            if st.button("🗑️ Deletar", key=f"del_{aval['id_avaliacao']}", type="secondary"):
-                                if st.session_state.get(f'confirm_del_{aval["id_avaliacao"]}', False):
-                                    db.deletar_avaliacao(aval['id_avaliacao'])
-                                    st.success("Avaliação deletada!")
-                                    time.sleep(0.5)
-                                    st.rerun()
-                                else:
-                                    st.session_state[f'confirm_del_{aval["id_avaliacao"]}'] = True
-                                    st.warning("Clique novamente para confirmar")
-
-    with tab_evolucao:
-        st.markdown("### 📈 Evolução das Avaliações")
-
-        avaliacoes = db.get_avaliacoes_jogador(id_busca)
-
-        if len(avaliacoes) < 2:
-            st.info("ℹ️ São necessárias pelo menos 2 avaliações para visualizar a evolução.")
-        else:
-            # Gráfico de evolução
-            fig_evolucao = criar_grafico_evolucao(avaliacoes)
-            if fig_evolucao:
-                st.plotly_chart(fig_evolucao, use_container_width=True)
-
-            # Estatísticas gerais
-            st.markdown("---")
-            st.markdown("#### 📊 Estatísticas Gerais")
-
-            col1, col2, col3, col4 = st.columns(4)
-
-            categorias = ['nota_tatico', 'nota_tecnico', 'nota_fisico', 'nota_mental']
-            nomes = ['Tático', 'Técnico', 'Físico', 'Mental']
-
-            for col, cat, nome in zip([col1, col2, col3, col4], categorias, nomes):
-                with col:
-                    media = avaliacoes[cat].mean()
-                    maxima = avaliacoes[cat].max()
-                    minima = avaliacoes[cat].min()
-
-                    st.markdown(f"**{nome}**")
-                    st.metric("Média", f"{media:.2f}")
-                    st.caption(f"↑ {maxima:.1f} | ↓ {minima:.1f}")
-
-            # Média geral
-            st.markdown("---")
-            media_geral = avaliacoes[categorias].mean().mean()
-            st.metric(
-                "🎯 Média Geral do Jogador",
-                f"{media_geral:.2f}",
-                help="Média de todas as avaliações em todas as dimensões"
-            )
-
-    # ============== FIM DA SEÇÃO DE AVALIAÇÕES ==============
-
+                    
     st.markdown("---")
     st.markdown("### 📊 Informações Adicionais")
 
