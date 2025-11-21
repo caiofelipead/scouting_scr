@@ -33,6 +33,16 @@ class ScoutingDatabase:
         except sqlite3.OperationalError:
             # Tabela não existe, será criada
             pass
+
+        try:
+            cursor.execute("PRAGMA table_info(avaliacoes)")
+            colunas_aval = [col[1] for col in cursor.fetchall()]
+    
+            if 'nota_potencial' not in colunas_aval:
+                cursor.execute("ALTER TABLE avaliacoes ADD COLUMN nota_potencial REAL CHECK(nota_potencial >= 1 AND nota_potencial <= 5)")
+                conn.commit()
+        except sqlite3.OperationalError:
+            pass
         
         conn.close()
     
@@ -89,6 +99,7 @@ class ScoutingDatabase:
             id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
             id_jogador INTEGER NOT NULL,
             data_avaliacao DATE NOT NULL,
+            nota_potencial REAL CHECK(nota_potencial >= 1 AND nota_potencial <= 5),
             nota_tatico REAL CHECK(nota_tatico >= 1 AND nota_tatico <= 5),
             nota_tecnico REAL CHECK(nota_tecnico >= 1 AND nota_tecnico <= 5),
             nota_fisico REAL CHECK(nota_fisico >= 1 AND nota_fisico <= 5),
@@ -116,6 +127,7 @@ class ScoutingDatabase:
             id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
             id_jogador INTEGER NOT NULL,
             data_avaliacao DATE NOT NULL,
+            nota_potencial REAL CHECK(nota_potencial >= 1 AND nota_potencial <= 5),
             nota_tatico REAL CHECK(nota_tatico >= 1 AND nota_tatico <= 5),
             nota_tecnico REAL CHECK(nota_tecnico >= 1 AND nota_tecnico <= 5),
             nota_fisico REAL CHECK(nota_fisico >= 1 AND nota_fisico <= 5),
@@ -130,17 +142,17 @@ class ScoutingDatabase:
         conn.commit()
         conn.close()
     
-    def salvar_avaliacao(self, id_jogador, data_avaliacao, nota_tatico, nota_tecnico, 
-                         nota_fisico, nota_mental, observacoes="", avaliador=""):
+    def salvar_avaliacao(self, id_jogador, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico, 
+                     nota_fisico, nota_mental, observacoes="", avaliador=""):
         """Salva uma nova avaliação"""
         conn = self.connect()
         cursor = conn.cursor()
         
         cursor.execute("""
         INSERT INTO avaliacoes 
-        (id_jogador, data_avaliacao, nota_tatico, nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (id_jogador, data_avaliacao, nota_tatico, nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador))
+        (id_jogador, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (id_jogador, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador))
         
         conn.commit()
         conn.close()
