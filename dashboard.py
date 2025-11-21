@@ -145,14 +145,15 @@ def criar_grafico_evolucao(df_avaliacoes):
     cores = ['#3498db', '#e74c3c', '#f39c12', '#9b59b6']
 
     for cat, nome, cor in zip(categorias, nomes, cores):
-        fig.add_trace(go.Scatter(
-            x=df['data_avaliacao'],
-            y=df[cat],
-            mode='lines+markers',
-            name=nome,
-            line=dict(color=cor, width=2),
-            marker=dict(size=8)
-        ))
+        if cat in df.columns:
+            fig.add_trace(go.Scatter(
+                x=df['data_avaliacao'],
+                y=df[cat],
+                mode='lines+markers',
+                name=nome,
+                line=dict(color=cor, width=2),
+                marker=dict(size=8)
+            ))
 
     fig.update_layout(
         title="Evolução das Avaliações",
@@ -412,7 +413,6 @@ def exibir_perfil_jogador(db, id_jogador):
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Erro ao salvar avaliação: {str(e)}")
-                        st.error("Execute: python fix_avaliacoes.py")
         
         with col2:
             st.markdown("#### 📊 Preview do Radar")
@@ -433,30 +433,140 @@ def exibir_perfil_jogador(db, id_jogador):
                 help="Avaliação geral de potencial"
             )
 
-    # ============== FIM DA SEÇÃO DE AVALIAÇÕES ==============
-    with col1:
-                # ADICIONE ISTO NO INÍCIO
-                st.markdown("---")
-                st.markdown(f"### ⭐ Potencial: {ultima['nota_potencial']:.1f}/5.0")
-                st.progress(ultima['nota_potencial'] / 5.0)
-                st.markdown("---")
+    with tab_historico:
+        st.markdown("### 📊 Histórico de Avaliações")
+        
+        # Buscar avaliações do jogador
+        avaliacoes = db.get_avaliacoes_jogador(id_busca)
+        
+        if len(avaliacoes) > 0:
+            # Última avaliação em destaque
+            ultima = avaliacoes.iloc[0]
+            
+            st.markdown("#### 🎯 Última Avaliação")
+            
+            col1, col2 = st.columns([1, 2])
+            
+            with col1:
+                # Potencial em destaque
+                if pd.notna(ultima.get('nota_potencial')):
+                    st.markdown("---")
+                    st.markdown(f"### ⭐ Potencial: {ultima['nota_potencial']:.1f}/5.0")
+                    st.progress(ultima['nota_potencial'] / 5.0)
+                    st.markdown("---")
                 
                 st.markdown(f"""
-                **Data:** {pd.to_datetime(ultima['data_avaliacao']).strftime('%d/%m/%Y')}  
-                **Avaliador:** {ultima['avaliador'] if ultima['avaliador'] else 'Não informado'}
+                **Data:** {pd.to_datetime(ultima['data_avaliacao']).strftime('%d/%m/%Y') if pd.notna(ultima['data_avaliacao']) else 'N/A'}  
+                **Avaliador:** {ultima['avaliador'] if pd.notna(ultima.get('avaliador')) and ultima['avaliador'] else 'Não informado'}
                 """)
                 
                 # Métricas
-                col_a, col_b, col_c, col_d = st.columns(4)
+                col_a, col_b = st.columns(2)
                 with col_a:
-                    st.metric("Tático", f"{ultima['nota_tatico']:.1f}")
+                    if pd.notna(ultima.get('nota_tatico')):
+                        st.metric("Tático", f"{ultima['nota_tatico']:.1f}")
+                    if pd.notna(ultima.get('nota_tecnico')):
+                        st.metric("Técnico", f"{ultima['nota_tecnico']:.1f}")
                 with col_b:
-                    st.metric("Técnico", f"{ultima['nota_tecnico']:.1f}")
-                with col_c:
-                    st.metric("Físico", f"{ultima['nota_fisico']:.1f}")
-                with col_d:
-                    st.metric("Mental", f"{ultima['nota_mental']:.1f}")
-                    
+                    if pd.notna(ultima.get('nota_fisico')):
+                        st.metric("Físico", f"{ultima['nota_fisico']:.1f}")
+                    if pd.notna(ultima.get('nota_mental')):
+                        st.metric("Mental", f"{ultima['nota_mental']:.1f}")
+                
+                if pd.notna(ultima.get('observacoes')) and ultima['observacoes']:
+                    st.markdown("---")
+                    st.markdown("**Observações:**")
+                    st.info(ultima['observacoes'])
+            
+            with col2:
+                # Radar chart da última avaliação
+                notas_dict = {}
+                if pd.notna(ultima.get('nota_tatico')):
+                    notas_dict['Tático'] = ultima['nota_tatico']
+                if pd.notna(ultima.get('nota_tecnico')):
+                    notas_dict['Técnico'] = ultima['nota_tecnico']
+                if pd.notna(ultima.get('nota_fisico')):
+                    notas_dict['Físico'] = ultima['nota_fisico']
+                if pd.notna(ultima.get('nota_mental')):
+                    notas_dict['Mental'] = ultima['nota_mental']
+                
+                if notas_dict:
+                    fig_radar = criar_radar_avaliacao(notas_dict, "Perfil Atual")
+                    st.plotly_chart(fig_radar, use_container_width=True)
+            
+            # Histórico completo
+            st.markdown("---")
+            st.markdown("#### 📜 Todas as Avaliações")
+            
+            # Preparar DataFrame para exibição
+            df_display = avaliacoes.copy()
+            
+            # Selecionar apenas colunas que existem
+            colunas_display = []
+            colunas_desejadas = {
+                'data_avaliacao': 'Data',
+                'nota_potencial': 'Potencial',
+                'nota_tatico': 'Tático',
+                'nota_tecnico': 'Técnico',
+                'nota_fisico': 'Físico',
+                'nota_mental': 'Mental',
+                'avaliador': 'Avaliador'
+            }
+            
+            for col_original, col_nova in colunas_desejadas.items():
+                if col_original in df_display.columns:
+                    colunas_display.append(col_original)
+            
+            if colunas_display:
+                df_display = df_display[colunas_display]
+                df_display = df_display.rename(columns=colunas_desejadas)
+                st.dataframe(df_display, use_container_width=True, hide_index=True)
+        else:
+            st.info("📝 Nenhuma avaliação registrada para este jogador ainda.")
+            st.markdown("👆 Use a aba **'Nova Avaliação'** para adicionar a primeira avaliação!")
+
+    with tab_evolucao:
+        st.markdown("### 📈 Evolução das Avaliações")
+        
+        avaliacoes = db.get_avaliacoes_jogador(id_busca)
+        
+        if len(avaliacoes) > 1:
+            # Gráfico de evolução
+            fig_evolucao = criar_grafico_evolucao(avaliacoes)
+            if fig_evolucao:
+                st.plotly_chart(fig_evolucao, use_container_width=True)
+            
+            # Estatísticas de evolução
+            st.markdown("---")
+            st.markdown("#### 📊 Estatísticas")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            categorias = {
+                'nota_tatico': ('Tático', col1),
+                'nota_tecnico': ('Técnico', col2),
+                'nota_fisico': ('Físico', col3),
+                'nota_mental': ('Mental', col4)
+            }
+            
+            for col_nome, (label, col) in categorias.items():
+                if col_nome in avaliacoes.columns:
+                    notas = avaliacoes[col_nome].dropna()
+                    if len(notas) > 0:
+                        with col:
+                            media = notas.mean()
+                            delta = notas.iloc[0] - notas.iloc[-1] if len(notas) > 1 else 0
+                            st.metric(
+                                label,
+                                f"{media:.1f}",
+                                delta=f"{delta:+.1f}" if delta != 0 else None
+                            )
+        elif len(avaliacoes) == 1:
+            st.info("📊 É necessário ter pelo menos 2 avaliações para visualizar a evolução.")
+        else:
+            st.info("📝 Nenhuma avaliação registrada ainda.")
+
+    # Informações adicionais
     st.markdown("---")
     st.markdown("### 📊 Informações Adicionais")
 
@@ -472,15 +582,25 @@ def exibir_perfil_jogador(db, id_jogador):
 
     if pd.notna(jogador.get('transfermarkt_id')):
         st.markdown("---")
+        # Extrair ID numérico se for URL
+        tm_id = str(jogador['transfermarkt_id'])
+        import re
+        match = re.search(r'/spieler/(\d+)', tm_id)
+        if match:
+            tm_id = match.group(1)
+        
         st.link_button(
             "📊 Ver no Transfermarkt",
-            f"https://www.transfermarkt.com.br/player/profil/spieler/{jogador['transfermarkt_id']}",
+            f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}",
             use_container_width=True
         )
 
 def exibir_lista_com_fotos(df_display, db):
     """Exibe lista de jogadores com fotos em formato de cards"""
     st.markdown("### 👥 Jogadores")
+    
+    # Remover duplicatas
+    df_display = df_display.drop_duplicates(subset=['id_jogador'], keep='first').reset_index(drop=True)
 
     for i in range(0, len(df_display), 4):
         cols = st.columns(4)
@@ -518,7 +638,8 @@ def exibir_lista_com_fotos(df_display, db):
                     st.caption(f"{jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'}")
                     st.caption(f"{jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}")
 
-                    if st.button("Ver Perfil", key=f"perfil_{jogador['id_jogador']}", use_container_width=True):
+                    # Usar índice único para evitar duplicatas de key
+                    if st.button("Ver Perfil", key=f"perfil_{jogador['id_jogador']}_{idx}", use_container_width=True):
                         st.session_state.pagina = 'perfil'
                         st.session_state.jogador_selecionado = jogador['id_jogador']
                         st.rerun()
@@ -827,6 +948,13 @@ def main():
             exibir_lista_com_fotos(df_display, db)
         else:
             df_display_formatted = df_display.copy()
+            
+            # Selecionar e renomear colunas
+            colunas = ['id_jogador', 'nome', 'nacionalidade', 'idade_atual', 'altura', 'pe_dominante',
+                      'clube', 'liga_clube', 'posicao', 'data_fim_contrato', 'status_contrato']
+            
+            df_display_formatted = df_display_formatted[colunas]
+            
             df_display_formatted.columns = [
                 'ID', 'Nome', 'Nacionalidade', 'Idade', 'Altura', 'Pé',
                 'Clube', 'Liga', 'Posição', 'Fim Contrato', 'Status'
@@ -941,7 +1069,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: #7f8c8d;'>"
-        f"🎯 Scout Pro v1.0 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        f"🎯 Scout Pro v1.2 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         "</div>",
         unsafe_allow_html=True
     )
