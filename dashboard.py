@@ -739,6 +739,14 @@ def main():
 
     ligas = ['Todas'] + sorted(df_jogadores['liga_clube'].dropna().unique().tolist())
     liga_selecionada = st.sidebar.selectbox("Liga", ligas)
+    
+    # Filtro de Nacionalidade
+    nacionalidades = ['Todas'] + sorted(df_jogadores['nacionalidade'].dropna().unique().tolist())
+    nacionalidade_selecionada = st.sidebar.selectbox("Nacionalidade", nacionalidades)
+    
+    # Filtro de Clube
+    clubes = ['Todos'] + sorted(df_jogadores['clube'].dropna().unique().tolist())
+    clube_selecionado = st.sidebar.selectbox("Clube", clubes)
 
     # Verificar se tem idades válidas para o slider
     idades_validas = df_jogadores['idade_atual'].dropna()
@@ -772,6 +780,12 @@ def main():
 
     if liga_selecionada != 'Todas':
         df_filtrado = df_filtrado[df_filtrado['liga_clube'] == liga_selecionada]
+    
+    if nacionalidade_selecionada != 'Todas':
+        df_filtrado = df_filtrado[df_filtrado['nacionalidade'] == nacionalidade_selecionada]
+    
+    if clube_selecionado != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['clube'] == clube_selecionado]
 
     df_filtrado = df_filtrado[
         (df_filtrado['idade_atual'].notna()) &
@@ -830,9 +844,10 @@ def main():
     st.markdown("---")
 
     # Tabs principais
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📊 Visão Geral",
         "👥 Lista de Jogadores",
+        "🏆 Ranking",
         "🚨 Alertas",
         "📈 Análises"
     ])
@@ -985,6 +1000,283 @@ def main():
         )
 
     with tab3:
+        st.header("🏆 Ranking de Jogadores por Avaliações")
+        
+        # Buscar todas as avaliações do banco
+        conn = db.connect()
+        
+        # Query para pegar a última avaliação de cada jogador
+        query_avaliacoes = """
+        SELECT 
+            j.id_jogador,
+            j.nome,
+            j.nacionalidade,
+            j.idade_atual,
+            v.clube,
+            v.posicao,
+            a.nota_potencial,
+            a.nota_tatico,
+            a.nota_tecnico,
+            a.nota_fisico,
+            a.nota_mental,
+            a.data_avaliacao
+        FROM jogadores j
+        LEFT JOIN vinculos v ON j.id_jogador = v.id_jogador
+        INNER JOIN avaliacoes a ON j.id_jogador = a.id_jogador
+        INNER JOIN (
+            SELECT id_jogador, MAX(data_avaliacao) as max_data
+            FROM avaliacoes
+            GROUP BY id_jogador
+        ) ultima ON a.id_jogador = ultima.id_jogador AND a.data_avaliacao = ultima.max_data
+        """
+        
+        df_avaliacoes = pd.read_sql_query(query_avaliacoes, conn)
+        conn.close()
+        
+        if len(df_avaliacoes) == 0:
+            st.info("📝 Ainda não há avaliações cadastradas no sistema.")
+            st.markdown("""
+            **Para começar:**
+            1. Vá na aba **"Lista de Jogadores"**
+            2. Clique em **"Ver Perfil"** de um jogador
+            3. Use a aba **"Nova Avaliação"** para registrar notas
+            """)
+        else:
+            # Aplicar filtros
+            df_rank = df_avaliacoes.copy()
+            
+            # Filtros específicos do ranking
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                posicoes_rank = ['Todas'] + sorted(df_rank['posicao'].dropna().unique().tolist())
+                posicao_rank = st.selectbox("🎯 Filtrar por Posição", posicoes_rank, key="rank_pos")
+            
+            with col2:
+                ordenar_rank = st.selectbox(
+                    "📊 Ordenar por",
+                    ['Potencial', 'Média Geral', 'Tático', 'Técnico', 'Físico', 'Mental'],
+                    key="rank_ordem"
+                )
+            
+            with col3:
+                nacionalidades_rank = ['Todas'] + sorted(df_rank['nacionalidade'].dropna().unique().tolist())
+                nac_rank = st.selectbox("🌍 Nacionalidade", nacionalidades_rank, key="rank_nac")
+            
+            with col4:
+                clubes_rank = ['Todos'] + sorted(df_rank['clube'].dropna().unique().tolist())
+                clube_rank = st.selectbox("⚽ Clube", clubes_rank, key="rank_clube")
+            
+            # Aplicar filtros
+            if posicao_rank != 'Todas':
+                df_rank = df_rank[df_rank['posicao'] == posicao_rank]
+            
+            if nac_rank != 'Todas':
+                df_rank = df_rank[df_rank['nacionalidade'] == nac_rank]
+            
+            if clube_rank != 'Todos':
+                df_rank = df_rank[df_rank['clube'] == clube_rank]
+            
+            # Calcular média geral
+            df_rank['media_geral'] = df_rank[['nota_tatico', 'nota_tecnico', 'nota_fisico', 'nota_mental']].mean(axis=1)
+            
+            # Mapear ordenação
+            ordem_map = {
+                'Potencial': 'nota_potencial',
+                'Média Geral': 'media_geral',
+                'Tático': 'nota_tatico',
+                'Técnico': 'nota_tecnico',
+                'Físico': 'nota_fisico',
+                'Mental': 'nota_mental'
+            }
+            
+            # Ordenar
+            df_rank = df_rank.sort_values(by=ordem_map[ordenar_rank], ascending=False).reset_index(drop=True)
+            
+            # Adicionar posição no ranking
+            df_rank['rank'] = range(1, len(df_rank) + 1)
+            
+            st.markdown("---")
+            
+            # Opção de visualização
+            view_option = st.radio(
+                "Visualização",
+                ['Top 20', 'Por Posição', 'Tabela Completa'],
+                horizontal=True
+            )
+            
+            if view_option == 'Top 20':
+                st.markdown(f"### 🏆 Top 20 Jogadores - Ordenado por {ordenar_rank}")
+                
+                df_top20 = df_rank.head(20).copy()
+                
+                # Criar tabela formatada
+                for idx, jogador in df_top20.iterrows():
+                    rank_pos = jogador['rank']
+                    
+                    # Emoji de medalha
+                    if rank_pos == 1:
+                        emoji = "🥇"
+                    elif rank_pos == 2:
+                        emoji = "🥈"
+                    elif rank_pos == 3:
+                        emoji = "🥉"
+                    else:
+                        emoji = f"#{rank_pos}"
+                    
+                    with st.container():
+                        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([0.5, 2, 1.5, 1, 1, 1, 1, 1])
+                        
+                        with col1:
+                            st.markdown(f"### {emoji}")
+                        
+                        with col2:
+                            st.markdown(f"**{jogador['nome']}**")
+                            st.caption(f"{jogador['posicao']} | {jogador['clube']}")
+                        
+                        with col3:
+                            st.metric("⭐ Potencial", f"{jogador['nota_potencial']:.1f}")
+                        
+                        with col4:
+                            st.metric("Média", f"{jogador['media_geral']:.1f}")
+                        
+                        with col5:
+                            st.metric("Tático", f"{jogador['nota_tatico']:.1f}")
+                        
+                        with col6:
+                            st.metric("Técnico", f"{jogador['nota_tecnico']:.1f}")
+                        
+                        with col7:
+                            st.metric("Físico", f"{jogador['nota_fisico']:.1f}")
+                        
+                        with col8:
+                            st.metric("Mental", f"{jogador['nota_mental']:.1f}")
+                        
+                        st.markdown("---")
+            
+            elif view_option == 'Por Posição':
+                st.markdown("### 📊 Ranking por Posição")
+                
+                # Agrupar por posição
+                posicoes_disponiveis = df_rank['posicao'].dropna().unique()
+                
+                for posicao in sorted(posicoes_disponiveis):
+                    df_pos = df_rank[df_rank['posicao'] == posicao].head(10)
+                    
+                    with st.expander(f"⚽ {posicao} ({len(df_pos)} jogadores)", expanded=True):
+                        # Criar DataFrame para exibição
+                        df_display = df_pos[[
+                            'rank', 'nome', 'clube', 'nacionalidade', 'idade_atual',
+                            'nota_potencial', 'media_geral', 'nota_tatico', 
+                            'nota_tecnico', 'nota_fisico', 'nota_mental'
+                        ]].copy()
+                        
+                        df_display.columns = [
+                            'Rank', 'Nome', 'Clube', 'Nacionalidade', 'Idade',
+                            '⭐ Potencial', 'Média', 'Tático', 'Técnico', 'Físico', 'Mental'
+                        ]
+                        
+                        # Formatar números
+                        for col in ['⭐ Potencial', 'Média', 'Tático', 'Técnico', 'Físico', 'Mental']:
+                            df_display[col] = df_display[col].apply(lambda x: f"{x:.1f}")
+                        
+                        # Aplicar estilo
+                        def highlight_top3(row):
+                            if row['Rank'] <= 3:
+                                return ['background-color: #d4edda'] * len(row)
+                            return [''] * len(row)
+                        
+                        st.dataframe(
+                            df_display.style.apply(highlight_top3, axis=1),
+                            use_container_width=True,
+                            hide_index=True
+                        )
+            
+            else:  # Tabela Completa
+                st.markdown(f"### 📋 Tabela Completa - {len(df_rank)} jogadores")
+                
+                # Criar DataFrame para exibição
+                df_display = df_rank[[
+                    'rank', 'nome', 'posicao', 'clube', 'nacionalidade', 'idade_atual',
+                    'nota_potencial', 'media_geral', 'nota_tatico', 
+                    'nota_tecnico', 'nota_fisico', 'nota_mental', 'data_avaliacao'
+                ]].copy()
+                
+                df_display.columns = [
+                    'Rank', 'Nome', 'Posição', 'Clube', 'Nacionalidade', 'Idade',
+                    '⭐ Potencial', 'Média', 'Tático', 'Técnico', 'Físico', 'Mental', 'Última Avaliação'
+                ]
+                
+                # Formatar números
+                for col in ['⭐ Potencial', 'Média', 'Tático', 'Técnico', 'Físico', 'Mental']:
+                    df_display[col] = df_display[col].apply(lambda x: f"{x:.1f}")
+                
+                # Formatar data
+                df_display['Última Avaliação'] = pd.to_datetime(df_display['Última Avaliação']).dt.strftime('%d/%m/%Y')
+                
+                # Aplicar estilo
+                def highlight_top(row):
+                    rank = row['Rank']
+                    if rank <= 3:
+                        return ['background-color: #d4edda'] * len(row)
+                    elif rank <= 10:
+                        return ['background-color: #fff3cd'] * len(row)
+                    return [''] * len(row)
+                
+                st.dataframe(
+                    df_display.style.apply(highlight_top, axis=1),
+                    use_container_width=True,
+                    hide_index=True,
+                    height=600
+                )
+                
+                # Botão de export
+                st.markdown("---")
+                csv = df_display.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Exportar Ranking (CSV)",
+                    data=csv,
+                    file_name=f'ranking_jogadores_{datetime.now().strftime("%Y%m%d")}.csv',
+                    mime='text/csv',
+                    use_container_width=True
+                )
+            
+            # Estatísticas do ranking
+            st.markdown("---")
+            st.markdown("### 📊 Estatísticas do Ranking")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric(
+                    "Jogadores Avaliados",
+                    len(df_rank),
+                    help="Total de jogadores com avaliações"
+                )
+            
+            with col2:
+                st.metric(
+                    "Potencial Médio",
+                    f"{df_rank['nota_potencial'].mean():.2f}",
+                    help="Média de potencial de todos os jogadores"
+                )
+            
+            with col3:
+                st.metric(
+                    "Nota Geral Média",
+                    f"{df_rank['media_geral'].mean():.2f}",
+                    help="Média geral de todas as dimensões"
+                )
+            
+            with col4:
+                melhor_jogador = df_rank.iloc[0]
+                st.metric(
+                    "Melhor Jogador",
+                    melhor_jogador['nome'],
+                    help=f"Nota: {melhor_jogador[ordem_map[ordenar_rank]]:.1f}"
+                )
+
+    with tab4:
         st.header("Central de Alertas")
 
         alertas = db.get_alertas_ativos()
@@ -1008,7 +1300,7 @@ def main():
                 else:
                     st.info(f"ℹ️ **{alerta['jogador']}** - {alerta['descricao']}")
 
-    with tab4:
+    with tab5:
         st.header("Análises Avançadas")
 
         col1, col2 = st.columns(2)
@@ -1069,7 +1361,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: #7f8c8d;'>"
-        f"🎯 Scout Pro v1.2 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        f"🎯 Scout Pro v1.3 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         "</div>",
         unsafe_allow_html=True
     )
