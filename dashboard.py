@@ -437,7 +437,13 @@ def exibir_perfil_jogador(db, id_jogador):
     with col1:
                 # ADICIONE ISTO NO INÍCIO
                 st.markdown("---")
-                st.markdown(f"### ⭐ Potencial: {ultima['nota_potencial']:.1f}/5.0")
+                nota_pot = ultima.get('nota_potencial')
+    if nota_pot is not None and pd.notna(nota_pot):
+                st.markdown(f"### ⭐ Potencial: {float(nota_pot):.1f}/5.0")
+                st.progress(float(nota_pot) / 5.0)
+    else:
+                st.markdown("### ⭐ Potencial: Não avaliado")
+                st.caption("Avaliação antiga sem nota de potencial")
                 st.progress(ultima['nota_potencial'] / 5.0)
                 st.markdown("---")
                 
