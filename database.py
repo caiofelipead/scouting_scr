@@ -480,7 +480,14 @@ class ScoutingDatabase:
                 try:
                     altura_str = str(row.get('Altura', '')).strip()
                     if altura_str and altura_str != 'nan' and altura_str != '':
-                        altura = int(float(altura_str))
+                        altura_float = float(altura_str)
+
+                        # Se o valor é menor que 3, provavelmente está em metros (ex: 1.75)
+                        # Converter para centímetros
+                        if altura_float < 3:
+                            altura = int(altura_float * 100)  # 1.75 -> 175
+                        else:
+                            altura = int(altura_float)  # Já está em centímetros
                 except (ValueError, TypeError):
                     pass
 
