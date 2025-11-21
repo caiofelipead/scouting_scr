@@ -12,16 +12,35 @@ class ScoutingDatabase:
         """Inicializa conexão com banco de dados"""
         self.db_path = db_path
         self.criar_tabelas()
-
+    
     def connect(self):
         """Cria conexão com o banco"""
         return sqlite3.connect(self.db_path)
-
+    
+    def verificar_e_criar_colunas(self):
+        """Verifica e adiciona colunas faltantes em tabelas existentes"""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        try:
+            # Verificar se a coluna 'ativo' existe na tabela alertas
+            cursor.execute("PRAGMA table_info(alertas)")
+            colunas = [col[1] for col in cursor.fetchall()]
+            
+            if 'ativo' not in colunas:
+                cursor.execute("ALTER TABLE alertas ADD COLUMN ativo BOOLEAN DEFAULT 1")
+                conn.commit()
+        except sqlite3.OperationalError:
+            # Tabela não existe, será criada
+            pass
+        
+        conn.close()
+    
     def criar_tabelas(self):
         """Cria todas as tabelas necessárias"""
         conn = self.connect()
         cursor = conn.cursor()
-
+        
         # Tabela de jogadores
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS jogadores (
@@ -35,7 +54,7 @@ class ScoutingDatabase:
             transfermarkt_id TEXT
         )
         """)
-
+        
         # Tabela de vínculos
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS vinculos (
@@ -49,7 +68,7 @@ class ScoutingDatabase:
             FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador)
         )
         """)
-
+        
         # Tabela de alertas
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS alertas (
@@ -63,8 +82,8 @@ class ScoutingDatabase:
             FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador)
         )
         """)
-
-        # Tabela de avaliações (NOVA)
+        
+        # Tabela de avaliações
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS avaliacoes (
             id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,15 +99,18 @@ class ScoutingDatabase:
             FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador)
         )
         """)
-
+        
         conn.commit()
         conn.close()
-
+        
+        # Verificar e adicionar colunas faltantes em tabelas existentes
+        self.verificar_e_criar_colunas()
+    
     def criar_tabela_avaliacoes(self):
         """Cria tabela de avaliações se não existir (método adicional para compatibilidade)"""
         conn = self.connect()
         cursor = conn.cursor()
-
+        
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS avaliacoes (
             id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,48 +126,54 @@ class ScoutingDatabase:
             FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador)
         )
         """)
-
+        
         conn.commit()
         conn.close()
-
-    def salvar_avaliacao(self, id_jogador, data_avaliacao, nota_tatico, nota_tecnico,
+    
+    def salvar_avaliacao(self, id_jogador, data_avaliacao, nota_tatico, nota_tecnico, 
                          nota_fisico, nota_mental, observacoes="", avaliador=""):
         """Salva uma nova avaliação"""
         conn = self.connect()
         cursor = conn.cursor()
-
+        
         cursor.execute("""
         INSERT INTO avaliacoes 
         (id_jogador, data_avaliacao, nota_tatico, nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (id_jogador, data_avaliacao, nota_tatico, nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador))
-
+        
         conn.commit()
         conn.close()
-
+    
     def get_avaliacoes_jogador(self, id_jogador):
         """Retorna todas as avaliações de um jogador"""
         conn = self.connect()
-        df = pd.read_sql_query("""
-        SELECT * FROM avaliacoes 
-        WHERE id_jogador = ?
-        ORDER BY data_avaliacao DESC
-        """, conn, params=(id_jogador,))
+        try:
+            df = pd.read_sql_query("""
+            SELECT * FROM avaliacoes 
+            WHERE id_jogador = ?
+            ORDER BY data_avaliacao DESC
+            """, conn, params=(id_jogador,))
+        except:
+            df = pd.DataFrame()
         conn.close()
         return df
-
+    
     def get_ultima_avaliacao(self, id_jogador):
         """Retorna a última avaliação de um jogador"""
         conn = self.connect()
-        df = pd.read_sql_query("""
-        SELECT * FROM avaliacoes 
-        WHERE id_jogador = ?
-        ORDER BY data_avaliacao DESC
-        LIMIT 1
-        """, conn, params=(id_jogador,))
+        try:
+            df = pd.read_sql_query("""
+            SELECT * FROM avaliacoes 
+            WHERE id_jogador = ?
+            ORDER BY data_avaliacao DESC
+            LIMIT 1
+            """, conn, params=(id_jogador,))
+        except:
+            df = pd.DataFrame()
         conn.close()
         return df
-
+    
     def deletar_avaliacao(self, id_avaliacao):
         """Deleta uma avaliação específica"""
         conn = self.connect()
@@ -153,58 +181,73 @@ class ScoutingDatabase:
         cursor.execute("DELETE FROM avaliacoes WHERE id_avaliacao = ?", (id_avaliacao,))
         conn.commit()
         conn.close()
-
+    
     def limpar_dados(self):
         """Remove todos os dados das tabelas"""
         conn = self.connect()
         cursor = conn.cursor()
-
-        cursor.execute("DELETE FROM alertas")
-        cursor.execute("DELETE FROM vinculos")
-        cursor.execute("DELETE FROM jogadores")
-        cursor.execute("DELETE FROM avaliacoes")
-
+        
+        try:
+            cursor.execute("DELETE FROM alertas")
+        except:
+            pass
+        
+        try:
+            cursor.execute("DELETE FROM vinculos")
+        except:
+            pass
+        
+        try:
+            cursor.execute("DELETE FROM jogadores")
+        except:
+            pass
+        
+        try:
+            cursor.execute("DELETE FROM avaliacoes")
+        except:
+            pass
+        
         conn.commit()
         conn.close()
-
-    def inserir_jogador(self, id_jogador, nome, nacionalidade, ano_nascimento,
+    
+    def inserir_jogador(self, id_jogador, nome, nacionalidade, ano_nascimento, 
                        idade_atual, altura, pe_dominante, transfermarkt_id=None):
         """Insere ou atualiza um jogador"""
         conn = self.connect()
         cursor = conn.cursor()
-
+        
         cursor.execute("""
         INSERT OR REPLACE INTO jogadores 
         (id_jogador, nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (id_jogador, nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id))
-
+        
         conn.commit()
         conn.close()
-
-    def inserir_vinculo(self, id_jogador, clube, liga_clube, posicao,
+    
+    def inserir_vinculo(self, id_jogador, clube, liga_clube, posicao, 
                        data_fim_contrato, status_contrato):
         """Insere vínculo de um jogador"""
         conn = self.connect()
         cursor = conn.cursor()
-
+        
         # Primeiro remove vínculos antigos do jogador
         cursor.execute("DELETE FROM vinculos WHERE id_jogador = ?", (id_jogador,))
-
+        
         # Insere novo vínculo
         cursor.execute("""
         INSERT INTO vinculos 
         (id_jogador, clube, liga_clube, posicao, data_fim_contrato, status_contrato)
         VALUES (?, ?, ?, ?, ?, ?)
         """, (id_jogador, clube, liga_clube, posicao, data_fim_contrato, status_contrato))
-
+        
         conn.commit()
         conn.close()
-
+    
     def get_jogadores_com_vinculos(self):
         """Retorna todos os jogadores com seus vínculos"""
         conn = self.connect()
-
+        
         query = """
         SELECT 
             j.id_jogador,
@@ -221,95 +264,147 @@ class ScoutingDatabase:
         FROM jogadores j
         LEFT JOIN vinculos v ON j.id_jogador = v.id_jogador
         """
-
+        
         df = pd.read_sql_query(query, conn)
         conn.close()
-
+        
         return df
-
+    
     def get_estatisticas_gerais(self):
         """Retorna estatísticas gerais do banco de dados"""
         conn = self.connect()
         cursor = conn.cursor()
-
+        
         # Total de jogadores
-        cursor.execute("SELECT COUNT(*) FROM jogadores")
-        total_jogadores = cursor.fetchone()[0]
-
+        try:
+            cursor.execute("SELECT COUNT(*) FROM jogadores")
+            total_jogadores = cursor.fetchone()[0]
+        except:
+            total_jogadores = 0
+        
         # Vínculos ativos
-        cursor.execute("SELECT COUNT(*) FROM vinculos WHERE status_contrato = 'ativo'")
-        total_vinculos_ativos = cursor.fetchone()[0]
-
+        try:
+            cursor.execute("SELECT COUNT(*) FROM vinculos WHERE status_contrato = 'ativo'")
+            total_vinculos_ativos = cursor.fetchone()[0]
+        except:
+            total_vinculos_ativos = 0
+        
         # Contratos vencendo em 12 meses
-        data_limite = (datetime.now() + timedelta(days=365)).strftime('%Y-%m-%d')
-        cursor.execute("""
-        SELECT COUNT(*) FROM vinculos 
-        WHERE status_contrato IN ('ultimo_ano', 'ultimos_6_meses')
-        """)
-        contratos_vencendo = cursor.fetchone()[0]
-
+        try:
+            cursor.execute("""
+            SELECT COUNT(*) FROM vinculos 
+            WHERE status_contrato IN ('ultimo_ano', 'ultimos_6_meses')
+            """)
+            contratos_vencendo = cursor.fetchone()[0]
+        except:
+            contratos_vencendo = 0
+        
         # Alertas ativos
-        cursor.execute("SELECT COUNT(*) FROM alertas WHERE ativo = 1")
-        alertas_ativos = cursor.fetchone()[0]
-
+        try:
+            cursor.execute("SELECT COUNT(*) FROM alertas WHERE ativo = 1")
+            alertas_ativos = cursor.fetchone()[0]
+        except:
+            # Se a coluna ativo não existir, tenta sem ela
+            try:
+                cursor.execute("SELECT COUNT(*) FROM alertas")
+                alertas_ativos = cursor.fetchone()[0]
+            except:
+                alertas_ativos = 0
+        
         conn.close()
-
+        
         return {
             'total_jogadores': total_jogadores,
             'total_vinculos_ativos': total_vinculos_ativos,
             'contratos_vencendo': contratos_vencendo,
             'alertas_ativos': alertas_ativos
         }
-
+    
     def criar_alerta(self, id_jogador, tipo_alerta, descricao, prioridade='media'):
         """Cria um novo alerta"""
         conn = self.connect()
         cursor = conn.cursor()
-
-        cursor.execute("""
-        INSERT INTO alertas (id_jogador, tipo_alerta, descricao, prioridade)
-        VALUES (?, ?, ?, ?)
-        """, (id_jogador, tipo_alerta, descricao, prioridade))
-
+        
+        try:
+            cursor.execute("""
+            INSERT INTO alertas (id_jogador, tipo_alerta, descricao, prioridade, ativo)
+            VALUES (?, ?, ?, ?, 1)
+            """, (id_jogador, tipo_alerta, descricao, prioridade))
+        except:
+            # Se a coluna ativo não existir, insere sem ela
+            cursor.execute("""
+            INSERT INTO alertas (id_jogador, tipo_alerta, descricao, prioridade)
+            VALUES (?, ?, ?, ?)
+            """, (id_jogador, tipo_alerta, descricao, prioridade))
+        
         conn.commit()
         conn.close()
-
+    
     def get_alertas_ativos(self):
         """Retorna todos os alertas ativos"""
         conn = self.connect()
-
-        query = """
-        SELECT 
-            a.id_alerta,
-            a.id_jogador,
-            j.nome as jogador,
-            a.tipo_alerta,
-            a.descricao,
-            a.prioridade,
-            a.data_criacao
-        FROM alertas a
-        JOIN jogadores j ON a.id_jogador = j.id_jogador
-        WHERE a.ativo = 1
-        ORDER BY 
-            CASE a.prioridade
-                WHEN 'alta' THEN 1
-                WHEN 'media' THEN 2
-                WHEN 'baixa' THEN 3
-            END,
-            a.data_criacao DESC
-        """
-
-        df = pd.read_sql_query(query, conn)
+        
+        try:
+            query = """
+            SELECT 
+                a.id_alerta,
+                a.id_jogador,
+                j.nome as jogador,
+                a.tipo_alerta,
+                a.descricao,
+                a.prioridade,
+                a.data_criacao
+            FROM alertas a
+            JOIN jogadores j ON a.id_jogador = j.id_jogador
+            WHERE a.ativo = 1
+            ORDER BY 
+                CASE a.prioridade
+                    WHEN 'alta' THEN 1
+                    WHEN 'media' THEN 2
+                    WHEN 'baixa' THEN 3
+                END,
+                a.data_criacao DESC
+            """
+            df = pd.read_sql_query(query, conn)
+        except:
+            # Se a coluna ativo não existir, busca todos
+            try:
+                query = """
+                SELECT 
+                    a.id_alerta,
+                    a.id_jogador,
+                    j.nome as jogador,
+                    a.tipo_alerta,
+                    a.descricao,
+                    a.prioridade,
+                    a.data_criacao
+                FROM alertas a
+                JOIN jogadores j ON a.id_jogador = j.id_jogador
+                ORDER BY 
+                    CASE a.prioridade
+                        WHEN 'alta' THEN 1
+                        WHEN 'media' THEN 2
+                        WHEN 'baixa' THEN 3
+                    END,
+                    a.data_criacao DESC
+                """
+                df = pd.read_sql_query(query, conn)
+            except:
+                df = pd.DataFrame()
+        
         conn.close()
-
         return df
-
+    
     def desativar_alerta(self, id_alerta):
         """Desativa um alerta"""
         conn = self.connect()
         cursor = conn.cursor()
-
-        cursor.execute("UPDATE alertas SET ativo = 0 WHERE id_alerta = ?", (id_alerta,))
-
+        
+        try:
+            cursor.execute("UPDATE alertas SET ativo = 0 WHERE id_alerta = ?", (id_alerta,))
+        except:
+            # Se não conseguir desativar, deleta
+            cursor.execute("DELETE FROM alertas WHERE id_alerta = ?", (id_alerta,))
+        
         conn.commit()
         conn.close()
