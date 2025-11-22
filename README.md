@@ -1,5 +1,17 @@
-# Scout Pro - Sistema de Scouting SCR
+# 📊 Scout Pro - Sistema de Scouting SCR
 
+<div align="center">
+
+![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-1.30+-red.svg)
+![Release](https://img.shields.io/github/v/release/caiofelipead/scouting_scr)
+![Status](https://img.shields.io/badge/status-production-success)
+
+Sistema profissional de scouting com dashboard interativo e análise avançada de dados.
+
+[🚀 Quick Start](#-quick-start) • [📖 Docs](#-documentação) • [✨ Features](#-features)
+
+</div>
 > Sistema completo de scouting com dashboard interativo, sincronização automática com Google Sheets e análise de dados.
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
