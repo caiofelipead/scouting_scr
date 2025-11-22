@@ -8,6 +8,9 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+from mplsoccer import Pitch
+import random
 
 # Configuração da página (DEVE SER A PRIMEIRA CHAMADA)
 st.set_page_config(
@@ -218,6 +221,106 @@ def criar_grafico_evolucao(df_avaliacoes):
     )
 
     return fig
+
+def plotar_mapa_elenco(df_jogadores):
+    """
+    Cria um campo de futebol usando mplsoccer e plota os jogadores
+    baseado na posição aproximada.
+    """
+    if len(df_jogadores) == 0:
+        st.warning("Sem jogadores para exibir no mapa.")
+        return
+
+    # Configuração do campo (Statsbomb style: 120x80)
+    pitch = Pitch(pitch_type='statsbomb', pitch_color='#22312b', line_color='#c7d5cc')
+    fig, ax = pitch.draw(figsize=(12, 8))
+
+    # Dicionário de coordenadas aproximadas (X, Y)
+    # X: 0 (Goleiro) a 120 (Ataque)
+    # Y: 0 (Esquerda) a 80 (Direita)
+    coord_map = {
+        'goleiro': (10, 40),
+        'zagueiro': (30, 40),
+        'lateral esquerdo': (35, 10),
+        'lateral direito': (35, 70),
+        'lateral': (35, 70), # genérico cai na direita
+        'volante': (50, 40),
+        'meia': (75, 40),
+        'meia atacante': (85, 40),
+        'ponta esquerda': (95, 10),
+        'ponta direita': (95, 70),
+        'atacante': (105, 40),
+        'centroavante': (105, 40)
+    }
+
+    # Listas para plotagem
+    x_list = []
+    y_list = []
+    names = []
+    colors = []
+
+    for _, row in df_jogadores.iterrows():
+        pos_str = str(row['posicao']).lower().strip()
+        
+        # Lógica fuzzy simples para encontrar coordenadas
+        base_coord = (60, 40) # Centro por padrão
+        
+        # Tenta dar match parcial na string
+        match_found = False
+        for key, coord in coord_map.items():
+            if key in pos_str:
+                base_coord = coord
+                match_found = True
+                break
+        
+        if not match_found:
+            # Se não achou, joga nas laterais do campo (banco de reservas simbólico)
+            base_coord = (random.uniform(10, 110), -5) 
+
+        # Adicionar "ruído" (jitter) para os jogadores não ficarem um em cima do outro
+        # Zagueiros se espalham mais verticalmente
+        if 'zagueiro' in pos_str:
+            y_jitter = random.uniform(-15, 15)
+            x_jitter = random.uniform(-5, 5)
+        else:
+            y_jitter = random.uniform(-4, 4)
+            x_jitter = random.uniform(-4, 4)
+
+        x_list.append(base_coord[0] + x_jitter)
+        y_list.append(base_coord[1] + y_jitter)
+        names.append(row['nome'])
+        
+        # Cor baseada na idade (Mais jovem = verde, Mais velho = vermelho)
+        if pd.notna(row['idade_atual']):
+            if row['idade_atual'] < 23:
+                colors.append('#2ecc71') # Verde (Jovem)
+            elif row['idade_atual'] < 30:
+                colors.append('#f1c40f') # Amarelo (Auge)
+            else:
+                colors.append('#e74c3c') # Vermelho (Veterano)
+        else:
+            colors.append('#ecf0f1')
+
+    # Plotar os pontos (scatter)
+    pitch.scatter(x_list, y_list, ax=ax, c=colors, s=400, edgecolors='black', zorder=2, alpha=0.9)
+
+    # Plotar os nomes (anotações)
+    for i, name in enumerate(names):
+        ax.text(x_list[i], y_list[i] - 3, name, 
+                fontsize=9, color='white', ha='center', va='top', 
+                fontweight='bold', zorder=3)
+
+    # Legenda manual simples
+    st.pyplot(fig)
+    
+    # Legenda de cores
+    st.markdown("""
+    <div style='display: flex; justify-content: center; gap: 20px; margin-top: 10px;'>
+        <div><span style='color: #2ecc71;'>●</span> Sub-23</div>
+        <div><span style='color: #f1c40f;'>●</span> 23-29 anos</div>
+        <div><span style='color: #e74c3c;'>●</span> 30+ anos</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 def exibir_perfil_jogador(db, id_jogador):
     """Exibe perfil detalhado do jogador"""
@@ -921,11 +1024,12 @@ def main():
     st.markdown("---")
 
     # Tabs principais
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "📊 Visão Geral",
         "👥 Lista de Jogadores",
         "🏆 Ranking",
         "🆚 Comparador",
+        "⚽ Shadow Team",
         "🚨 Alertas",
         "📈 Análises"
     ])
@@ -1588,6 +1692,19 @@ def main():
                     st.warning("Um dos jogadores selecionados não possui avaliação cadastrada.")
 
     with tab5:
+        st.header("⚽ Shadow Team")
+        st.markdown("Mapa de distribuição do elenco atual no campo.")
+        
+        # Opção para filtrar apenas o elenco ou todos os observados
+        filtro_mapa = st.radio("Visualizar:", ["Todos Filtrados", "Apenas Elenco Atual (Contrato Ativo)"], horizontal=True)
+        
+        df_mapa = df_filtrado.copy()
+        if filtro_mapa == "Apenas Elenco Atual (Contrato Ativo)":
+            df_mapa = df_mapa[df_mapa['status_contrato'] == 'ativo']
+            
+        plotar_mapa_elenco(df_mapa)
+
+    with tab6:
         st.header("Central de Alertas")
 
         alertas = db.get_alertas_ativos()
@@ -1611,7 +1728,7 @@ def main():
                 else:
                     st.info(f"ℹ️ **{alerta['jogador']}** - {alerta['descricao']}")
 
-    with tab6:
+    with tab7:
         st.header("Análises Avançadas")
 
         col1, col2 = st.columns(2)
@@ -1672,7 +1789,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: #7f8c8d;'>"
-        f"🎯 Scout Pro v1.3 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        f"🎯 Scout Pro v2.0 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         "</div>",
         unsafe_allow_html=True
     )
