@@ -8,29 +8,44 @@ import pandas as pd
 from datetime import datetime, timedelta
 import streamlit as st
 import gspread
+import os
+import json
 
 class ScoutingDatabase:
     def __init__(self, db_path='scouting.db'):
         """Inicializa conexão com banco de dados SQLite e Google Sheets"""
-        self.db_path = db_path
+        
+        # --- 1. CONFIGURAÇÃO DE PERSISTÊNCIA (RAILWAY) ---
+        # Se a variável de ambiente do volume existir, salvamos o banco lá.
+        # Caso contrário, salvamos na pasta local (desenvolvimento).
+        if os.getenv("RAILWAY_VOLUME_MOUNT_PATH"):
+            self.db_path = os.path.join(os.getenv("RAILWAY_VOLUME_MOUNT_PATH"), 'scouting.db')
+        else:
+            self.db_path = db_path
+            
         self.criar_tabelas()
         
-        # --- INTEGRAÇÃO GOOGLE SHEETS (HÍBRIDA: NUVEM/LOCAL) ---
+        # --- 2. INTEGRAÇÃO GOOGLE SHEETS (HÍBRIDA: NUVEM/LOCAL) ---
         self.gc = None
         self.sh = None
         
         try:
-            # 1. Tenta conectar usando Streamlit Secrets (Nuvem)
+            # Cenário A: Streamlit Cloud (usa st.secrets)
             if hasattr(st, "secrets") and "gcp_service_account" in st.secrets:
-                creds_dict = st.secrets["gcp_service_account"]
+                creds_dict = dict(st.secrets["gcp_service_account"])
                 self.gc = gspread.service_account_from_dict(creds_dict)
             
-            # 2. Se falhar ou não tiver secrets, tenta arquivo local (PC)
+            # Cenário B: Produção Railway/Render (usa Variável de Ambiente)
+            # Você deve criar uma variável chamada GCP_CREDENTIALS com o conteúdo do JSON
+            elif os.getenv("GCP_CREDENTIALS"):
+                creds_dict = json.loads(os.getenv("GCP_CREDENTIALS"))
+                self.gc = gspread.service_account_from_dict(creds_dict)
+
+            # Cenário C: Localhost (usa arquivo físico)
             else:
                 self.gc = gspread.service_account(filename='service_account.json')
 
             # Tenta abrir a planilha pelo nome
-            # IMPORTANTE: O nome aqui deve ser igual ao título da sua planilha no Google
             self.sh = self.gc.open("Scout Database") 
             
         except Exception as e:
