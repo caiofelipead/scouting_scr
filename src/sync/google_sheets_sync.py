@@ -6,7 +6,7 @@ Sistema de atualização em tempo real do banco de dados
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
-from database import ScoutingDatabase
+from src.database.database import ScoutingDatabase
 from datetime import datetime
 import os
 import requests

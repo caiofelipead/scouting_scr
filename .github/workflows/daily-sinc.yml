@@ -1,0 +1,69 @@
+# Nome do arquivo: .github/workflows/daily-sync.yml
+
+name: Daily Data Sync
+
+on:
+  schedule:
+    # Roda todo dia às 6h (UTC)
+    - cron: '0 6 * * *'
+  workflow_dispatch:  # Permite rodar manualmente
+
+jobs:
+  sync-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+    
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: ⚙️ Configure credentials
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      run: |
+        echo "$GOOGLE_CREDENTIALS" > credentials.json
+        chmod 600 credentials.json
+    
+    - name: 🔄 Sync Google Sheets
+      env:
+        SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      run: |
+        python scripts/import_data.py --auto
+    
+    - name: 📸 Download missing photos
+      run: |
+        python scripts/maintenance/download_photos.py --missing-only --max=50
+    
+    - name: 💾 Commit changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        git add -A
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🤖 Auto-update: Daily sync $(date +'%Y-%m-%d %H:%M')"
+          git push
+        fi
+    
+    - name: 📊 Generate summary
+      if: always()
+      run: |
+        echo "### 📈 Daily Sync Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- Date: $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

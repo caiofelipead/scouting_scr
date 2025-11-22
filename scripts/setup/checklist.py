@@ -82,7 +82,7 @@ def check_folders():
 def check_database_connection():
     """Testa conexão com banco de dados"""
     try:
-        from database import ScoutingDatabase
+        from src.database.database import ScoutingDatabase
         db = ScoutingDatabase()
         return True, "Banco de dados OK"
     except Exception as e:
@@ -94,7 +94,7 @@ def check_google_sheets():
         return None, "Pule - configure credentials.json primeiro"
     
     try:
-        from google_sheets_sync import GoogleSheetsSyncer
+        from src.sync.google_sheets_sync import GoogleSheetsSyncer
         SHEET_URL = "https://docs.google.com/spreadsheets/d/1jNAxJIRoZxYH1jKwPCBrd4Na1ko04EDAYaUCVGsJdIA/edit?gid=0#gid=0"
         
         syncer = GoogleSheetsSyncer(SHEET_URL)

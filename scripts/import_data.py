@@ -3,7 +3,12 @@ Script de Importação - Google Sheets para Banco de Dados
 Converte dados da planilha para estrutura normalizada
 """
 
-from google_sheets_sync import GoogleSheetsSyncer
+
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.sync.google_sheets_sync import GoogleSheetsSyncer
 
 
 def processar_importacao():

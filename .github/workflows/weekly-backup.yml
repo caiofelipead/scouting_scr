@@ -1,0 +1,36 @@
+# Nome do arquivo: .github/workflows/weekly-backup.yml
+
+name: Weekly Backup
+
+on:
+  schedule:
+    # Todo domingo às 23h (UTC)
+    - cron: '0 23 * * 0'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: 📦 Install dependencies
+      run: pip install -r requirements.txt
+    
+    - name: 💾 Create backup
+      run: |
+        python scripts/maintenance/backup.py
+    
+    - name: 📤 Upload backup artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: backup-${{ github.run_number }}
+        path: backups/
+        retention-days: 30

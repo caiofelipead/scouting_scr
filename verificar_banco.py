@@ -1,4 +1,4 @@
-"""
+1"""
 Script de Verificação do Banco de Dados
 Verifica integridade e mostra estatísticas
 """
