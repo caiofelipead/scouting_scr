@@ -1,4 +1,16 @@
+import streamlit as st
+
+# Configuração da página (DEVE SER A PRIMEIRA COISA)
+st.set_page_config(
+    page_title="Scout Pro",
+    page_icon="⚽",
+    layout="wide"
+)
+
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -18,12 +30,7 @@ import os
 import time
 
 # Configuração da página
-st.set_page_config(
-    page_title="Scout Pro - Sistema de Monitoramento",
-    page_icon="⚽",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+
 
 # CSS customizado para melhor visual
 st.markdown("""
