@@ -1,20 +1,60 @@
 """
 Sistema de Banco de Dados para Scouting
-Gerencia conexões e operações com SQLite
+Gerencia conexões com SQLite e integração segura com Google Sheets
 """
 
 import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
+import streamlit as st
+import gspread
 
 class ScoutingDatabase:
     def __init__(self, db_path='scouting.db'):
-        """Inicializa conexão com banco de dados"""
+        """Inicializa conexão com banco de dados SQLite e Google Sheets"""
         self.db_path = db_path
         self.criar_tabelas()
+        
+        # --- INTEGRAÇÃO GOOGLE SHEETS (HÍBRIDA: NUVEM/LOCAL) ---
+        self.gc = None
+        self.sh = None
+        
+        try:
+            # 1. Tenta conectar usando Streamlit Secrets (Nuvem)
+            if hasattr(st, "secrets") and "gcp_service_account" in st.secrets:
+                creds_dict = st.secrets["gcp_service_account"]
+                self.gc = gspread.service_account_from_dict(creds_dict)
+            
+            # 2. Se falhar ou não tiver secrets, tenta arquivo local (PC)
+            else:
+                self.gc = gspread.service_account(filename='service_account.json')
+
+            # Tenta abrir a planilha pelo nome
+            # IMPORTANTE: O nome aqui deve ser igual ao título da sua planilha no Google
+            self.sh = self.gc.open("Scout Database") 
+            
+        except Exception as e:
+            # Não quebra o app se falhar, apenas avisa (o SQLite continua funcionando)
+            print(f"⚠️ Aviso: Conexão com Google Sheets não estabelecida: {e}")
     
+    def get_dados_google_sheets(self):
+        """Método auxiliar para puxar dados da planilha como DataFrame"""
+        if not self.sh:
+            return None
+        
+        try:
+            # Pega a primeira aba da planilha
+            worksheet = self.sh.sheet1 
+            # Pega todos os registros
+            dados = worksheet.get_all_records()
+            # Converte para DataFrame
+            return pd.DataFrame(dados)
+        except Exception as e:
+            print(f"Erro ao ler dados da planilha: {e}")
+            return None
+
     def connect(self):
-        """Cria conexão com o banco"""
+        """Cria conexão com o banco SQLite"""
         return sqlite3.connect(self.db_path)
     
     def verificar_e_criar_colunas(self):
@@ -31,7 +71,6 @@ class ScoutingDatabase:
                 cursor.execute("ALTER TABLE alertas ADD COLUMN ativo BOOLEAN DEFAULT 1")
                 conn.commit()
         except sqlite3.OperationalError:
-            # Tabela não existe, será criada
             pass
         
         # ========= NOVO: Verificar se nota_potencial existe na tabela avaliacoes =========
@@ -45,7 +84,6 @@ class ScoutingDatabase:
                 conn.commit()
                 print("✅ Coluna nota_potencial adicionada com sucesso!")
         except sqlite3.OperationalError:
-            # Tabela não existe, será criada
             pass
         # ===============================================================================
 
@@ -98,7 +136,7 @@ class ScoutingDatabase:
         )
         """)
 
-        # Tabela de avaliações - CORRIGIDA COM nota_potencial
+        # Tabela de avaliações
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS avaliacoes (
             id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,32 +162,12 @@ class ScoutingDatabase:
 
     def criar_tabela_avaliacoes(self):
         """Cria tabela de avaliações se não existir (método adicional para compatibilidade)"""
-        conn = self.connect()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS avaliacoes (
-            id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_jogador INTEGER NOT NULL,
-            data_avaliacao DATE NOT NULL,
-            nota_potencial REAL CHECK(nota_potencial >= 1 AND nota_potencial <= 5),
-            nota_tatico REAL CHECK(nota_tatico >= 1 AND nota_tatico <= 5),
-            nota_tecnico REAL CHECK(nota_tecnico >= 1 AND nota_tecnico <= 5),
-            nota_fisico REAL CHECK(nota_fisico >= 1 AND nota_fisico <= 5),
-            nota_mental REAL CHECK(nota_mental >= 1 AND nota_mental <= 5),
-            observacoes TEXT,
-            avaliador TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador)
-        )
-        """)
-
-        conn.commit()
-        conn.close()
+        # Redireciona para o criar_tabelas principal para evitar código duplicado
+        self.criar_tabelas()
 
     def salvar_avaliacao(self, id_jogador, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico,
-                         nota_fisico, nota_mental, observacoes="", avaliador=""):
-        """Salva uma nova avaliação - CORRIGIDA com nota_potencial"""
+                          nota_fisico, nota_mental, observacoes="", avaliador=""):
+        """Salva uma nova avaliação"""
         conn = self.connect()
         cursor = conn.cursor()
 
@@ -204,31 +222,18 @@ class ScoutingDatabase:
         conn = self.connect()
         cursor = conn.cursor()
 
-        try:
-            cursor.execute("DELETE FROM alertas")
-        except:
-            pass
-
-        try:
-            cursor.execute("DELETE FROM vinculos")
-        except:
-            pass
-
-        try:
-            cursor.execute("DELETE FROM jogadores")
-        except:
-            pass
-
-        try:
-            cursor.execute("DELETE FROM avaliacoes")
-        except:
-            pass
+        tabelas = ['alertas', 'vinculos', 'jogadores', 'avaliacoes']
+        for tabela in tabelas:
+            try:
+                cursor.execute(f"DELETE FROM {tabela}")
+            except:
+                pass
 
         conn.commit()
         conn.close()
 
     def inserir_jogador(self, id_jogador, nome, nacionalidade, ano_nascimento,
-                       idade_atual, altura, pe_dominante, transfermarkt_id=None):
+                        idade_atual, altura, pe_dominante, transfermarkt_id=None):
         """Insere ou atualiza um jogador"""
         conn = self.connect()
         cursor = conn.cursor()
@@ -243,7 +248,7 @@ class ScoutingDatabase:
         conn.close()
 
     def inserir_vinculo(self, id_jogador, clube, liga_clube, posicao,
-                       data_fim_contrato, status_contrato):
+                        data_fim_contrato, status_contrato):
         """Insere vínculo de um jogador"""
         conn = self.connect()
         cursor = conn.cursor()
@@ -292,50 +297,38 @@ class ScoutingDatabase:
         conn = self.connect()
         cursor = conn.cursor()
 
-        # Total de jogadores
+        stats = {
+            'total_jogadores': 0,
+            'total_vinculos_ativos': 0,
+            'contratos_vencendo': 0,
+            'alertas_ativos': 0
+        }
+
         try:
             cursor.execute("SELECT COUNT(*) FROM jogadores")
-            total_jogadores = cursor.fetchone()[0]
-        except:
-            total_jogadores = 0
+            stats['total_jogadores'] = cursor.fetchone()[0]
 
-        # Vínculos ativos
-        try:
             cursor.execute("SELECT COUNT(*) FROM vinculos WHERE status_contrato = 'ativo'")
-            total_vinculos_ativos = cursor.fetchone()[0]
-        except:
-            total_vinculos_ativos = 0
+            stats['total_vinculos_ativos'] = cursor.fetchone()[0]
 
-        # Contratos vencendo em 12 meses
-        try:
             cursor.execute("""
             SELECT COUNT(*) FROM vinculos 
             WHERE status_contrato IN ('ultimo_ano', 'ultimos_6_meses')
             """)
-            contratos_vencendo = cursor.fetchone()[0]
-        except:
-            contratos_vencendo = 0
+            stats['contratos_vencendo'] = cursor.fetchone()[0]
 
-        # Alertas ativos
-        try:
-            cursor.execute("SELECT COUNT(*) FROM alertas WHERE ativo = 1")
-            alertas_ativos = cursor.fetchone()[0]
-        except:
-            # Se a coluna ativo não existir, tenta sem ela
+            # Alertas
             try:
-                cursor.execute("SELECT COUNT(*) FROM alertas")
-                alertas_ativos = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM alertas WHERE ativo = 1")
             except:
-                alertas_ativos = 0
+                cursor.execute("SELECT COUNT(*) FROM alertas")
+            stats['alertas_ativos'] = cursor.fetchone()[0]
+            
+        except:
+            pass
 
         conn.close()
-
-        return {
-            'total_jogadores': total_jogadores,
-            'total_vinculos_ativos': total_vinculos_ativos,
-            'contratos_vencendo': contratos_vencendo,
-            'alertas_ativos': alertas_ativos
-        }
+        return stats
 
     def criar_alerta(self, id_jogador, tipo_alerta, descricao, prioridade='media'):
         """Cria um novo alerta"""
@@ -348,7 +341,6 @@ class ScoutingDatabase:
             VALUES (?, ?, ?, ?, 1)
             """, (id_jogador, tipo_alerta, descricao, prioridade))
         except:
-            # Se a coluna ativo não existir, insere sem ela
             cursor.execute("""
             INSERT INTO alertas (id_jogador, tipo_alerta, descricao, prioridade)
             VALUES (?, ?, ?, ?)
@@ -384,30 +376,7 @@ class ScoutingDatabase:
             """
             df = pd.read_sql_query(query, conn)
         except:
-            # Se a coluna ativo não existir, busca todos
-            try:
-                query = """
-                SELECT 
-                    a.id_alerta,
-                    a.id_jogador,
-                    j.nome as jogador,
-                    a.tipo_alerta,
-                    a.descricao,
-                    a.prioridade,
-                    a.data_criacao
-                FROM alertas a
-                JOIN jogadores j ON a.id_jogador = j.id_jogador
-                ORDER BY 
-                    CASE a.prioridade
-                        WHEN 'alta' THEN 1
-                        WHEN 'media' THEN 2
-                        WHEN 'baixa' THEN 3
-                    END,
-                    a.data_criacao DESC
-                """
-                df = pd.read_sql_query(query, conn)
-            except:
-                df = pd.DataFrame()
+            df = pd.DataFrame()
 
         conn.close()
         return df
@@ -420,7 +389,6 @@ class ScoutingDatabase:
         try:
             cursor.execute("UPDATE alertas SET ativo = 0 WHERE id_alerta = ?", (id_alerta,))
         except:
-            # Se não conseguir desativar, deleta
             cursor.execute("DELETE FROM alertas WHERE id_alerta = ?", (id_alerta,))
 
         conn.commit()
@@ -481,13 +449,10 @@ class ScoutingDatabase:
                     altura_str = str(row.get('Altura', '')).strip()
                     if altura_str and altura_str != 'nan' and altura_str != '':
                         altura_float = float(altura_str)
-
-                        # Se o valor é menor que 3, provavelmente está em metros (ex: 1.75)
-                        # Converter para centímetros
                         if altura_float < 3:
                             altura = int(altura_float * 100)  # 1.75 -> 175
                         else:
-                            altura = int(altura_float)  # Já está em centímetros
+                            altura = int(altura_float)
                 except (ValueError, TypeError):
                     pass
 
@@ -512,7 +477,6 @@ class ScoutingDatabase:
                 posicao = str(row.get('Posição', '')) if pd.notna(row.get('Posição')) else ''
                 fim_contrato = str(row.get('Fim de contrato', '')) if pd.notna(row.get('Fim de contrato')) else ''
 
-                # Determinar status do contrato
                 status_contrato = self._determinar_status_contrato(fim_contrato)
 
                 # Inserir vínculo
@@ -526,7 +490,6 @@ class ScoutingDatabase:
                         status_contrato=status_contrato
                     )
 
-                # Criar alertas automáticos
                 self._criar_alertas_automaticos(id_jogador, row, status_contrato)
 
                 sucesso += 1
@@ -549,7 +512,6 @@ class ScoutingDatabase:
             if not fim_contrato_str or fim_contrato_str == '' or fim_contrato_str == 'nan':
                 return 'indefinido'
 
-            # Tentar parsear diferentes formatos de data
             from dateutil import parser
             fim_contrato = parser.parse(fim_contrato_str)
             hoje = datetime.now()
@@ -571,7 +533,6 @@ class ScoutingDatabase:
     def _criar_alertas_automaticos(self, id_jogador, row, status_contrato):
         """Cria alertas automáticos baseados nos dados do jogador"""
 
-        # Alerta de contrato vencendo
         if status_contrato in ['ultimos_6_meses', 'ultimo_ano']:
             self.criar_alerta(
                 id_jogador=id_jogador,
@@ -580,7 +541,6 @@ class ScoutingDatabase:
                 prioridade='alta' if status_contrato == 'ultimos_6_meses' else 'media'
             )
 
-        # Alerta de potencial alto
         potencial = str(row.get('Potencial', '')).lower()
         if 'alto' in potencial or 'alta' in potencial:
             self.criar_alerta(
@@ -596,7 +556,6 @@ class ScoutingDatabase:
 
         conn = self.connect()
 
-        # Buscar todos os jogadores com vínculos
         query = """
         SELECT 
             j.id_jogador,
@@ -614,8 +573,6 @@ class ScoutingDatabase:
 
         for _, row in df.iterrows():
             status = row['status_contrato']
-
-            # Alerta de contrato vencendo
             if status in ['ultimos_6_meses', 'ultimo_ano', 'expirado']:
                 self.criar_alerta(
                     id_jogador=row['id_jogador'],
