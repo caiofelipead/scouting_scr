@@ -19,6 +19,7 @@ selenium
 plotly
 matplotlib
 seaborn
+mplsoccer
 
 # Database
 sqlalchemy
