@@ -1,36 +1,37 @@
 import streamlit as st
+import sys
+import os
+import time
+from pathlib import Path
+from datetime import datetime, timedelta
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
-# Configuração da página (DEVE SER A PRIMEIRA COISA)
+# Configuração da página (DEVE SER A PRIMEIRA CHAMADA)
 st.set_page_config(
     page_title="Scout Pro",
     page_icon="⚽",
     layout="wide"
 )
 
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Tenta importar o banco de dados de forma robusta
+try:
+    from src.database.database import ScoutingDatabase
+except ModuleNotFoundError:
+    # Adiciona o diretório atual ao path se não encontrar direto
+    sys.path.append(str(Path(__file__).parent))
+    try:
+        from src.database.database import ScoutingDatabase
+    except ImportError:
+        # Tenta importar assumindo que o arquivo está na raiz junto com a pasta src
+        from database import ScoutingDatabase
 
 """
 Dashboard Interativo de Scouting
 Sistema moderno de visualização e análise de jogadores
 """
-
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from src.database.database import ScoutingDatabase
-from datetime import datetime, timedelta
-import numpy as np
-import os
-import time
-
-# Configuração da página
-
 
 # CSS customizado para melhor visual
 st.markdown("""
@@ -107,16 +108,10 @@ def get_foto_jogador(id_jogador):
 
 def get_perfil_url(id_jogador):
     """Retorna a URL completa do perfil do jogador"""
-    # Pega a URL base do Streamlit
-    # Em produção será a URL do Streamlit Cloud
-    # Em desenvolvimento será localhost
     return f"?jogador={id_jogador}"
 
 def criar_radar_avaliacao(notas_dict, titulo="Avaliação do Atleta"):
-    """
-    Cria gráfico de radar para avaliação do jogador
-    notas_dict: {'Tático': 4.5, 'Técnico': 4.0, 'Físico': 3.5, 'Mental': 4.2}
-    """
+    """Cria gráfico de radar para avaliação do jogador"""
     categorias = list(notas_dict.keys())
     valores = list(notas_dict.values())
 
@@ -719,42 +714,6 @@ def exibir_lista_com_fotos(df_display, db):
                             unsafe_allow_html=True
                         )
 
-def criar_gauge_contrato(dias_restantes):
-    """Cria gráfico gauge para status de contrato"""
-    if dias_restantes <= 180:
-        color = "red"
-        status = "URGENTE"
-    elif dias_restantes <= 365:
-        color = "orange"
-        status = "ATENÇÃO"
-    else:
-        color = "green"
-        status = "OK"
-
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
-        value=dias_restantes,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': f"Dias até vencimento<br><span style='font-size:0.8em;color:{color}'>{status}</span>"},
-        gauge={
-            'axis': {'range': [None, 1095]},
-            'bar': {'color': color},
-            'steps': [
-                {'range': [0, 180], 'color': "rgba(255,0,0,0.3)"},
-                {'range': [180, 365], 'color': "rgba(255,165,0,0.3)"},
-                {'range': [365, 1095], 'color': "rgba(0,255,0,0.3)"}
-            ],
-            'threshold': {
-                'line': {'color': "black", 'width': 4},
-                'thickness': 0.75,
-                'value': 365
-            }
-        }
-    ))
-
-    fig.update_layout(height=250, margin=dict(l=20, r=20, t=50, b=20))
-    return fig
-
 def main():
     # Header
     st.title("⚽ Scout Pro - Sistema de Monitoramento de Jogadores")
@@ -798,7 +757,32 @@ def main():
         return
 
     # Dashboard principal continua aqui
-    # Sidebar - Filtros
+    
+    # --- BARRA LATERAL (SIDEBAR) COM SINCRONIZAÇÃO ---
+    st.sidebar.header("🔄 Sincronização")
+    
+    # Botão para puxar dados do Google Sheets
+    if st.sidebar.button("Baixar Dados da Planilha", type="primary"):
+        with st.spinner("Conectando ao Google Sheets..."):
+            # 1. Puxa os dados brutos da planilha
+            df_novos_dados = db.get_dados_google_sheets()
+            
+            if df_novos_dados is not None:
+                # 2. Salva no banco de dados SQLite
+                sucesso = db.importar_dados_planilha(df_novos_dados)
+                
+                if sucesso:
+                    st.sidebar.success("✅ Atualizado com sucesso!")
+                    time.sleep(1) # Espera 1 segundinho pra ler
+                    st.rerun()    # Recarrega a página sozinho
+                else:
+                    st.sidebar.error("❌ Falha ao salvar no banco.")
+            else:
+                st.sidebar.error("❌ Erro ao conectar na planilha.")
+    
+    st.sidebar.markdown("---")
+    
+    # Sidebar - Filtros normais
     st.sidebar.header("🔍 Filtros")
 
     # Carregar dados
@@ -807,16 +791,20 @@ def main():
     # Verificar se há dados
     if len(df_jogadores) == 0:
         st.error("⚠️ **Banco de dados vazio!**")
-        st.info("""
-        **Você precisa importar os dados primeiro:**
+        st.markdown("O sistema não encontrou jogadores cadastrados.")
         
-        1. Configure o Google Sheets API (se ainda não fez)
-        2. Execute no terminal:
-```bash
-        python import_data.py
-```
-        3. Recarregue esta página (pressione R)
-        """)
+        # Botão para importar dados se estiver vazio
+        if st.button("🔄 Importar Dados do Google Sheets Agora"):
+            with st.spinner("Importando dados..."):
+                df_novos_dados = db.get_dados_google_sheets()
+                if df_novos_dados is not None:
+                    db.importar_dados_planilha(df_novos_dados)
+                    st.success("Dados importados! Recarregando...")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Erro ao conectar na planilha. Verifique os Secrets.")
+        
         st.stop()
 
     # Limpar dados de idade (remover valores vazios e inválidos)
@@ -1005,8 +993,7 @@ def main():
                 'vencido': '#95a5a6',
                 'livre': '#34495e'
             }
-            colors = [color_map.get(status, '#3498db') for status in status_counts.index]
-
+            
             fig_status = px.bar(
                 x=status_counts.index,
                 y=status_counts.values,
@@ -1061,7 +1048,7 @@ def main():
             
             # Selecionar e renomear colunas
             colunas = ['id_jogador', 'nome', 'nacionalidade', 'idade_atual', 'altura', 'pe_dominante',
-                      'clube', 'liga_clube', 'posicao', 'data_fim_contrato', 'status_contrato']
+                       'clube', 'liga_clube', 'posicao', 'data_fim_contrato', 'status_contrato']
             
             df_display_formatted = df_display_formatted[colunas + ['acao']]
             
@@ -1076,7 +1063,7 @@ def main():
             
             # Reordenar colunas
             cols_order = ['id_jogador', 'nome_link', 'nacionalidade', 'idade_atual', 'altura', 'pe_dominante',
-                         'clube', 'liga_clube', 'posicao', 'data_fim_contrato', 'status_contrato']
+                          'clube', 'liga_clube', 'posicao', 'data_fim_contrato', 'status_contrato']
             
             df_display_formatted = df_display_formatted[cols_order]
             
@@ -1084,14 +1071,6 @@ def main():
                 'ID', 'Nome', 'Nacionalidade', 'Idade', 'Altura', 'Pé',
                 'Clube', 'Liga', 'Posição', 'Fim Contrato', 'Status'
             ]
-
-            def highlight_status(row):
-                if row['Status'] == 'ultimos_6_meses':
-                    return ['background-color: #ffcccc'] * len(row)
-                elif row['Status'] == 'ultimo_ano':
-                    return ['background-color: #fff4cc'] * len(row)
-                else:
-                    return [''] * len(row)
 
             # Exibir tabela com HTML
             st.markdown("💡 **Dica:** Clique no nome do jogador para abrir o perfil em nova aba", help="Os nomes são clicáveis!")
