@@ -12,6 +12,31 @@ from src.database.database import ScoutingDatabase
 import re
 
 
+def extrair_id_da_url(tm_value):
+    """
+    Extrai o ID numérico do Transfermarkt de uma URL ou string
+
+    Exemplos:
+    - https://www.transfermarkt.com.br/adriano/profil/spieler/1046580 -> 1046580
+    - 1046580 -> 1046580
+    """
+    if pd.isna(tm_value) or str(tm_value).strip() == '':
+        return None
+
+    tm_str = str(tm_value).strip()
+
+    # Tentar extrair ID numérico da URL
+    match = re.search(r'/spieler/(\d+)', tm_str)
+    if match:
+        return match.group(1)
+
+    # Se não encontrar na URL, verificar se já é um ID numérico
+    if tm_str.isdigit():
+        return tm_str
+
+    return None
+
+
 def extrair_url_foto_da_pagina(tm_id):
     """
     Acessa a página do jogador e extrai a URL completa da foto
@@ -63,14 +88,15 @@ def extrair_url_foto_da_pagina(tm_id):
         return None, str(e)
 
 
-def baixar_foto_com_scraping(tm_id, id_jogador, nome_jogador):
+def baixar_foto_com_scraping(tm_value, id_jogador, nome_jogador):
     """
     Baixa foto fazendo scraping da página do jogador
     """
-    if pd.isna(tm_id) or str(tm_id).strip() == '':
-        return False, "Sem TM ID"
+    # Extrair ID numérico da URL ou string
+    tm_id = extrair_id_da_url(tm_value)
 
-    tm_id = str(tm_id).strip()
+    if not tm_id:
+        return False, "ID inválido"
 
     # Extrair URL da foto da página
     url_foto, motivo = extrair_url_foto_da_pagina(tm_id)
@@ -157,11 +183,15 @@ def baixar_todas_fotos_scraping(delay=2.0, max_jogadores=None):
     for idx, (_, jogador) in enumerate(jogadores.iterrows(), 1):
         id_jog = jogador['id_jogador']
         nome = jogador['nome']
-        tm_id = jogador['transfermarkt_id']
+        tm_value = jogador['transfermarkt_id']
 
-        print(f"[{idx}/{total}] {nome} (TM: {tm_id})...", end=" ", flush=True)
+        # Extrair ID para exibição
+        tm_id = extrair_id_da_url(tm_value)
+        tm_display = tm_id if tm_id else tm_value
 
-        sucesso, motivo = baixar_foto_com_scraping(tm_id, id_jog, nome)
+        print(f"[{idx}/{total}] {nome} (TM: {tm_display})...", end=" ", flush=True)
+
+        sucesso, motivo = baixar_foto_com_scraping(tm_value, id_jog, nome)
 
         if sucesso:
             print("✅")
@@ -193,7 +223,7 @@ def baixar_todas_fotos_scraping(delay=2.0, max_jogadores=None):
     print("=" * 60 + "\n")
 
 
-def testar_um_jogador(tm_id):
+def testar_um_jogador(tm_value):
     """
     Testa o scraping para um jogador específico
     """
@@ -201,7 +231,14 @@ def testar_um_jogador(tm_id):
     print("🧪 TESTE DE SCRAPING - UM JOGADOR")
     print("=" * 60)
 
-    print(f"\n📋 Transfermarkt ID: {tm_id}")
+    # Extrair ID numérico
+    tm_id = extrair_id_da_url(tm_value)
+
+    if not tm_id:
+        print(f"\n❌ Não foi possível extrair ID de: {tm_value}\n")
+        return False
+
+    print(f"\n📋 Transfermarkt ID extraído: {tm_id}")
     print(f"🌐 URL da página: https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}\n")
 
     print("1️⃣ Acessando página do jogador...")
@@ -246,7 +283,7 @@ def menu_principal():
     print("📸 BAIXAR FOTOS - MÉTODO SCRAPING")
     print("=" * 60)
     print("\n1 - Testar com Neymar (TM ID: 68290)")
-    print("2 - Testar com outro jogador (digite o TM ID)")
+    print("2 - Testar com outro jogador (digite o TM ID ou URL)")
     print("3 - Baixar primeiras 5 fotos (teste rápido)")
     print("4 - Baixar primeiras 20 fotos (teste médio)")
     print("5 - Baixar TODAS as fotos (modo lento - 2s delay)")
@@ -260,9 +297,9 @@ def menu_principal():
         testar_um_jogador("68290")
 
     elif opcao == "2":
-        tm_id = input("\nDigite o Transfermarkt ID: ").strip()
-        if tm_id:
-            testar_um_jogador(tm_id)
+        tm_input = input("\nDigite o Transfermarkt ID ou URL: ").strip()
+        if tm_input:
+            testar_um_jogador(tm_input)
 
     elif opcao == "3":
         baixar_todas_fotos_scraping(delay=2.0, max_jogadores=5)
@@ -301,5 +338,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Erro: {e}\n")
         import traceback
-
         traceback.print_exc()
