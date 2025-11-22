@@ -19,17 +19,27 @@ st.set_page_config(
     layout="wide"
 )
 
-# Tenta importar o banco de dados de forma robusta
+# --- CORREÇÃO DE CAMINHOS (CRÍTICO) ---
+# O arquivo está em /app/dashboard.py, precisamos subir para a raiz /scouting_scr/
+# para que o Python consiga enxergar a pasta 'src'
 try:
+    # Obtém o caminho absoluto do arquivo atual
+    current_path = Path(__file__).resolve()
+    # Sobe dois níveis: app -> scouting_scr (raiz)
+    root_path = current_path.parent.parent
+    
+    # Adiciona a raiz ao sys.path se ainda não estiver lá
+    if str(root_path) not in sys.path:
+        sys.path.append(str(root_path))
+
+    # Tenta importar o banco de dados
     from src.database.database import ScoutingDatabase
-except ModuleNotFoundError:
-    # Adiciona o diretório atual ao path se não encontrar direto
-    sys.path.append(str(Path(__file__).parent))
-    try:
-        from src.database.database import ScoutingDatabase
-    except ImportError:
-        # Tenta importar assumindo que o arquivo está na raiz junto com a pasta src
-        from database import ScoutingDatabase
+
+except ImportError as e:
+    st.error(f"❌ Erro Crítico de Importação: {e}")
+    st.info(f"📂 Caminho tentado: {root_path}")
+    st.info("Verifique se a pasta 'src' contém um arquivo '__init__.py' (pode estar vazio).")
+    st.stop()
 
 """
 Dashboard Interativo de Scouting
@@ -103,9 +113,16 @@ def get_database():
 
 def get_foto_jogador(id_jogador):
     """Retorna o caminho da foto do jogador ou uma imagem placeholder"""
-    foto_path = f'fotos/{id_jogador}.jpg'
-    if os.path.exists(foto_path):
-        return foto_path
+    # Ajuste para procurar fotos na raiz se estiver rodando do app/
+    foto_path = Path(f'fotos/{id_jogador}.jpg')
+    
+    # Tenta caminho relativo da raiz
+    if not foto_path.exists():
+        # Tenta subir um nível
+        foto_path = Path(f'../fotos/{id_jogador}.jpg')
+
+    if foto_path.exists():
+        return str(foto_path)
     else:
         return None
 
@@ -1789,7 +1806,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: #7f8c8d;'>"
-        f"🎯 Scout Pro v2.0 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        f"🎯 Scout Pro v1.4 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         "</div>",
         unsafe_allow_html=True
     )
