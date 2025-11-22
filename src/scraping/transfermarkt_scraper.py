@@ -8,7 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import time
-from database import ScoutingDatabase
+from src.database.database import ScoutingDatabase
 import re
 
 

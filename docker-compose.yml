@@ -1,0 +1,61 @@
+# Nome do arquivo: docker-compose.yml
+
+version: '3.8'
+
+services:
+  dashboard:
+    build: .
+    container_name: scout-pro-dashboard
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+    volumes:
+      - ./data:/app/data
+      - ./fotos:/app/fotos
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+      - ./credentials.json:/app/credentials.json:ro
+    environment:
+      - GOOGLE_CREDENTIALS_PATH=/app/credentials.json
+      - SPREADSHEET_ID=${SPREADSHEET_ID}
+      - DB_PATH=/app/data/scouting.db
+    restart: unless-stopped
+    networks:
+      - scout-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  scheduler:
+    build: .
+    container_name: scout-pro-scheduler
+    command: python scripts/scheduler.py
+    volumes:
+      - ./data:/app/data
+      - ./fotos:/app/fotos
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+      - ./credentials.json:/app/credentials.json:ro
+    environment:
+      - GOOGLE_CREDENTIALS_PATH=/app/credentials.json
+      - SPREADSHEET_ID=${SPREADSHEET_ID}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - NOTIFY_EMAIL=${NOTIFY_EMAIL}
+    restart: unless-stopped
+    networks:
+      - scout-network
+    depends_on:
+      - dashboard
+
+networks:
+  scout-network:
+    driver: bridge
+
+volumes:
+  data:
+  fotos:
+  logs:
+  backups:

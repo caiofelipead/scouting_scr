@@ -1,0 +1,46 @@
+# Nome do arquivo: Dockerfile
+
+FROM python:3.10-slim
+
+LABEL maintainer="Caio Felipe <caiofelipead@gmail.com>"
+LABEL description="Scout Pro - Sistema de Scouting SCR"
+
+# Variáveis de ambiente
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Diretório de trabalho
+WORKDIR /app
+
+# Instala dependências do sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copia e instala dependências Python
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copia o projeto
+COPY . .
+
+# Cria diretórios necessários
+RUN mkdir -p logs backups data fotos
+
+# Expõe porta do Streamlit
+EXPOSE 8501
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+
+# Comando padrão
+CMD ["streamlit", "run", "app/dashboard.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0", \
+     "--server.headless=true"]
