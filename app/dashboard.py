@@ -36,7 +36,6 @@ try:
 except ImportError as e:
     st.error(f"❌ Erro Crítico de Importação: {e}")
     st.info(f"📂 Caminho tentado: {root_path}")
-    st.info("Verifique se a pasta 'src' contém um arquivo '__init__.py' (pode estar vazio).")
     st.stop()
 
 """
@@ -128,13 +127,11 @@ def get_perfil_url(id_jogador):
     """Retorna a URL completa do perfil do jogador"""
     return f"?jogador={id_jogador}"
 
-# --- NOVA FUNÇÃO PARA O SHADOW TEAM INTERATIVO ---
-def get_top_jogadores_por_posicao(df_jogadores, db, posicoes_filtro, top_n=10):
+def get_top_jogadores_por_posicao(df_jogadores, db, posicoes_filtro, top_n=15):
     """
     Retorna os top N jogadores para uma lista de posições, ordenados por média geral.
     """
-    # Filtrar pelo nome da posição (ex: 'Zagueiro')
-    # A busca é "contains", então 'Zagueiro' pega 'Zagueiro Central'
+    # Filtrar pelo nome da posição
     mask = df_jogadores['posicao'].astype(str).str.contains('|'.join(posicoes_filtro), case=False, na=False)
     candidatos = df_jogadores[mask].copy()
     
@@ -152,7 +149,7 @@ def get_top_jogadores_por_posicao(df_jogadores, db, posicoes_filtro, top_n=10):
                      avals['nota_fisico'].iloc[0] + 
                      avals['nota_mental'].iloc[0]) / 4
         else:
-            media = 0.0 # Sem avaliação vai pro final da fila
+            media = 0.0 
         
         medias.append(media)
     
@@ -279,10 +276,10 @@ def criar_grafico_evolucao(df_avaliacoes):
 
     return fig
 
-def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True):
+def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True, coordenadas_fixas=None):
     """
-    Cria um campo de futebol usando mplsoccer e plota os jogadores
-    baseado na posição aproximada.
+    Cria um campo de futebol usando mplsoccer e plota os jogadores.
+    Suporta coordenadas fixas para o Shadow Team Interativo.
     """
     if len(df_jogadores) == 0:
         st.warning("Sem jogadores para exibir no mapa.")
@@ -292,24 +289,14 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True):
     pitch = Pitch(pitch_type='statsbomb', pitch_color='#22312b', line_color='#c7d5cc')
     fig, ax = pitch.draw(figsize=(12, 8))
 
-    # Dicionário de coordenadas aproximadas (X, Y)
-    # X: 0 (Goleiro) a 120 (Ataque)
-    # Y: 0 (Esquerda) a 80 (Direita)
-    coord_map = {
+    # Dicionário de coordenadas aproximadas (X, Y) - Fallback
+    coord_map_fallback = {
         'goleiro': (10, 40),
         'zagueiro': (30, 40),
-        'defensor': (30, 40),
-        'lateral esquerdo': (35, 10),
-        'lateral direito': (35, 70),
-        'lateral': (35, 70), # genérico cai na direita
+        'lateral': (35, 10),
         'volante': (50, 40),
         'meia': (75, 40),
-        'meia atacante': (85, 40),
-        'ponta esquerda': (95, 10),
-        'ponta direita': (95, 70),
-        'extremo': (95, 10),
-        'atacante': (105, 40),
-        'centroavante': (105, 40)
+        'atacante': (105, 40)
     }
 
     # Listas para plotagem
@@ -319,33 +306,31 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True):
     colors = []
 
     for _, row in df_jogadores.iterrows():
-        pos_str = str(row['posicao']).lower().strip()
+        # 1. Usa coordenada fixa (Shadow Team Interativo) se existir
+        if coordenadas_fixas and row['id_jogador'] in coordenadas_fixas:
+            base_coord = coordenadas_fixas[row['id_jogador']]
+            # Jitter mínimo apenas para efeito visual
+            x_jitter = random.uniform(-1, 1)
+            y_jitter = random.uniform(-1, 1)
         
-        # Lógica fuzzy simples para encontrar coordenadas
-        base_coord = (60, 40) # Centro por padrão
-        
-        # Tenta dar match parcial na string
-        match_found = False
-        for key, coord in coord_map.items():
-            if key in pos_str:
-                base_coord = coord
-                match_found = True
-                break
-        
-        if not match_found:
-            # Se não achou, joga nas laterais do campo
-            base_coord = (random.uniform(10, 110), -5) 
+        # 2. Fallback (Visualização Geral / Mapa de Calor)
+        else:
+            pos_str = str(row['posicao']).lower().strip()
+            base_coord = (60, 40) # Centro por padrão
+            
+            match_found = False
+            for key, coord in coord_map_fallback.items():
+                if key in pos_str:
+                    base_coord = coord
+                    match_found = True
+                    break
+            
+            if not match_found:
+                base_coord = (random.uniform(10, 110), -5) 
 
-        # Adicionar "ruído" (jitter) para os jogadores não ficarem um em cima do outro
-        # Se tiver poucos jogadores (ex: shadow team selecionado), diminui o jitter
-        jitter_range = 4 if len(df_jogadores) < 15 else 8
-        y_jitter = random.uniform(-jitter_range, jitter_range)
-        x_jitter = random.uniform(-jitter_range, jitter_range)
-
-        # Ajuste específico para não sobrepor goleiros se for shadow team
-        if 'goleiro' in pos_str:
-            x_jitter = random.uniform(-2, 2)
-            y_jitter = random.uniform(-2, 2)
+            # Jitter maior para espalhar na visualização geral
+            x_jitter = random.uniform(-6, 6)
+            y_jitter = random.uniform(-6, 6)
 
         x_list.append(base_coord[0] + x_jitter)
         y_list.append(base_coord[1] + y_jitter)
@@ -363,12 +348,12 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True):
             colors.append('#ecf0f1')
 
     # Plotar os pontos (scatter)
-    pitch.scatter(x_list, y_list, ax=ax, c=colors, s=400, edgecolors='black', zorder=2, alpha=0.9)
+    pitch.scatter(x_list, y_list, ax=ax, c=colors, s=500, edgecolors='black', zorder=2, alpha=0.9)
 
-    # Plotar os nomes (anotações) - Controlado pelo parâmetro
+    # Plotar os nomes (anotações)
     if mostrar_nomes:
         for i, name in enumerate(names):
-            ax.text(x_list[i], y_list[i] - 3, name, 
+            ax.text(x_list[i], y_list[i] - 3.5, name, 
                     fontsize=9, color='white', ha='center', va='top', 
                     fontweight='bold', zorder=3)
 
@@ -1628,7 +1613,7 @@ def main():
                     help=f"Nota: {melhor_jogador[ordem_map[ordenar_rank]]:.1f}"
                 )
 
-    with tab4:
+    with tab4: # Comparador com Fotos (SEM EMOJIS)
         st.header("🆚 Comparador Head-to-Head")
         
         # Carregar jogadores para os selectboxes
@@ -1667,13 +1652,25 @@ def main():
 
                 # Jogador A
                 with col_a:
-                    st.subheader(f"🔵 {info_1['nome']}")
+                    f1 = get_foto_jogador(id_1)
+                    if f1:
+                        st.image(f1, width=150)
+                    else:
+                        st.markdown("<div style='width:150px;height:150px;background:#eee;border-radius:10px;display:flex;align-items:center;justify-content:center;'>👤</div>", unsafe_allow_html=True)
+                    
+                    st.subheader(f"{info_1['nome']}")
                     st.caption(f"{info_1['posicao']} | {info_1['clube']}")
                     st.metric("Potencial", f"{avals_1['nota_potencial'].iloc[0]:.1f}" if not avals_1.empty else "N/A")
 
                 # Jogador B
                 with col_b:
-                    st.subheader(f"🔴 {info_2['nome']}")
+                    f2 = get_foto_jogador(id_2)
+                    if f2:
+                        st.image(f2, width=150)
+                    else:
+                        st.markdown("<div style='width:150px;height:150px;background:#eee;border-radius:10px;display:flex;align-items:center;justify-content:center;'>👤</div>", unsafe_allow_html=True)
+                    
+                    st.subheader(f"{info_2['nome']}")
                     st.caption(f"{info_2['posicao']} | {info_2['clube']}")
                     st.metric("Potencial", f"{avals_2['nota_potencial'].iloc[0]:.1f}" if not avals_2.empty else "N/A",
                              delta=f"{(avals_2['nota_potencial'].iloc[0] - avals_1['nota_potencial'].iloc[0]):.1f}" if not avals_1.empty and not avals_2.empty else None)
@@ -1753,31 +1750,32 @@ def main():
                 else:
                     st.warning("Um dos jogadores selecionados não possui avaliação cadastrada.")
 
-    with tab5:
-        st.header("⚽ Shadow Team Interativo")
+    with tab5: # Shadow Team (4-2-3-1)
+        st.header("⚽ Shadow Team Interativo (4-2-3-1)")
         st.markdown("Monte o elenco ideal com base nos melhores ranqueados de cada posição.")
 
-        # Definir esquema tático básico (4-3-3) para a interface
-        # Mapeamento: Nome da Posição no Campo -> Filtros de Texto para buscar no Banco
+        # COORDENADAS AJUSTADAS PARA 4-2-3-1
         esquema_tatico = {
-            'ATA_E': {'label': 'Ponta Esquerda', 'filtros': ['Ponta Esquerda', 'Atacante', 'Extremo']},
-            'ATA_C': {'label': 'Centroavante', 'filtros': ['Centroavante', 'Atacante']},
-            'ATA_D': {'label': 'Ponta Direita', 'filtros': ['Ponta Direita', 'Atacante', 'Extremo']},
+            'ATA_E': {'label': 'Ponta Esq.', 'filtros': ['Ponta Esquerda', 'Atacante', 'Extremo'], 'coord': (105, 10)},
+            'ATA_C': {'label': 'Centroavante', 'filtros': ['Centroavante', 'Atacante'], 'coord': (110, 40)},
+            'ATA_D': {'label': 'Ponta Dir.', 'filtros': ['Ponta Direita', 'Atacante', 'Extremo'], 'coord': (105, 70)},
             
-            'MEI_E': {'label': 'Meia Esquerda', 'filtros': ['Meia', 'Volante']},
-            'MEI_C': {'label': 'Volante / Meia', 'filtros': ['Volante', 'Meia Defensivo']},
-            'MEI_D': {'label': 'Meia Direita', 'filtros': ['Meia', 'Volante']},
+            'MEI_C': {'label': 'Meia Armador', 'filtros': ['Meia', 'Meia Atacante'], 'coord': (85, 40)},
             
-            'DEF_E': {'label': 'Lateral Esq.', 'filtros': ['Lateral Esquerdo', 'Ala Esquerdo']},
-            'ZAG_E': {'label': 'Zagueiro', 'filtros': ['Zagueiro', 'Defensor']},
-            'ZAG_D': {'label': 'Zagueiro', 'filtros': ['Zagueiro', 'Defensor']},
-            'DEF_D': {'label': 'Lateral Dir.', 'filtros': ['Lateral Direito', 'Ala Direito']},
+            'VOL_E': {'label': 'Volante Esq.', 'filtros': ['Volante', 'Meia Defensivo', 'Meia'], 'coord': (55, 30)},
+            'VOL_D': {'label': 'Volante Dir.', 'filtros': ['Volante', 'Meia Defensivo', 'Meia'], 'coord': (55, 50)},
             
-            'GOL': {'label': 'Goleiro', 'filtros': ['Goleiro']}
+            'DEF_E': {'label': 'Lateral Esq.', 'filtros': ['Lateral Esquerdo', 'Ala Esquerdo', 'Lateral'], 'coord': (35, 5)},
+            'ZAG_E': {'label': 'Zagueiro Esq.', 'filtros': ['Zagueiro', 'Defensor'], 'coord': (25, 28)},
+            'ZAG_D': {'label': 'Zagueiro Dir.', 'filtros': ['Zagueiro', 'Defensor'], 'coord': (25, 52)},
+            'DEF_D': {'label': 'Lateral Dir.', 'filtros': ['Lateral Direito', 'Ala Direito', 'Lateral'], 'coord': (35, 75)},
+            
+            'GOL': {'label': 'Goleiro', 'filtros': ['Goleiro'], 'coord': (5, 40)}
         }
 
         # Container do Time Selecionado
         elenco_selecionado = []
+        coords_fixas = {}
 
         # --- INTERFACE DE SELEÇÃO (Visual de Formação) ---
         
@@ -1786,69 +1784,72 @@ def main():
         with c1:
             ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['ATA_E']['filtros'])
             sel = st.selectbox("Ponta Esq.", options=ops, format_func=lambda x: x['label'], key="s_ae") if ops else None
-            if sel: elenco_selecionado.append(sel)
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['ATA_E']['coord']
         with c2:
             ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['ATA_C']['filtros'])
             sel = st.selectbox("Centroavante", options=ops, format_func=lambda x: x['label'], key="s_ac") if ops else None
-            if sel: elenco_selecionado.append(sel)
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['ATA_C']['coord']
         with c3:
             ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['ATA_D']['filtros'])
             sel = st.selectbox("Ponta Dir.", options=ops, format_func=lambda x: x['label'], key="s_ad") if ops else None
-            if sel: elenco_selecionado.append(sel)
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['ATA_D']['coord']
 
-        # Linha de Meio
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['MEI_E']['filtros'])
-            sel = st.selectbox("Meia Esq.", options=ops, format_func=lambda x: x['label'], key="s_me") if ops else None
-            if sel: elenco_selecionado.append(sel)
+        # Meia Central
+        c1, c2, c3 = st.columns([1, 1, 1])
         with c2:
             ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['MEI_C']['filtros'])
-            sel = st.selectbox("Volante", options=ops, format_func=lambda x: x['label'], key="s_vol") if ops else None
-            if sel: elenco_selecionado.append(sel)
-        with c3:
-            ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['MEI_D']['filtros'])
-            sel = st.selectbox("Meia Dir.", options=ops, format_func=lambda x: x['label'], key="s_md") if ops else None
-            if sel: elenco_selecionado.append(sel)
+            sel = st.selectbox("Meia Armador", options=ops, format_func=lambda x: x['label'], key="s_mc") if ops else None
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['MEI_C']['coord']
+
+        # Volantes (Dupla)
+        c1, c2 = st.columns(2)
+        with c1:
+            ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['VOL_E']['filtros'])
+            sel = st.selectbox("Volante Esq.", options=ops, format_func=lambda x: x['label'], key="s_ve") if ops else None
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['VOL_E']['coord']
+        with c2:
+            ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['VOL_D']['filtros'])
+            # Tenta pegar o segundo da lista pra não repetir se for a mesma query
+            idx = 1 if len(ops) > 1 else 0
+            sel = st.selectbox("Volante Dir.", options=ops, index=idx, format_func=lambda x: x['label'], key="s_vd") if ops else None
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['VOL_D']['coord']
 
         # Linha de Defesa
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['DEF_E']['filtros'])
             sel = st.selectbox("Lat. Esq.", options=ops, format_func=lambda x: x['label'], key="s_le") if ops else None
-            if sel: elenco_selecionado.append(sel)
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['DEF_E']['coord']
         with c2:
             ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['ZAG_E']['filtros'])
-            sel = st.selectbox("Zagueiro", options=ops, format_func=lambda x: x['label'], key="s_ze") if ops else None
-            if sel: elenco_selecionado.append(sel)
+            sel = st.selectbox("Zagueiro Esq.", options=ops, format_func=lambda x: x['label'], key="s_ze") if ops else None
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['ZAG_E']['coord']
         with c3:
-            # Hack para tentar pegar o 2º melhor zagueiro por padrão, se existir
             ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['ZAG_D']['filtros'])
             idx_padrao = 1 if len(ops) > 1 else 0
-            sel = st.selectbox("Zagueiro", options=ops, index=idx_padrao, format_func=lambda x: x['label'], key="s_zd") if ops else None
-            if sel: elenco_selecionado.append(sel)
+            sel = st.selectbox("Zagueiro Dir.", options=ops, index=idx_padrao, format_func=lambda x: x['label'], key="s_zd") if ops else None
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['ZAG_D']['coord']
         with c4:
             ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['DEF_D']['filtros'])
             sel = st.selectbox("Lat. Dir.", options=ops, format_func=lambda x: x['label'], key="s_ld") if ops else None
-            if sel: elenco_selecionado.append(sel)
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['DEF_D']['coord']
 
         # Goleiro
         c1, c2, c3 = st.columns([1, 1, 1])
         with c2:
             ops = get_top_jogadores_por_posicao(df_filtrado, db, esquema_tatico['GOL']['filtros'])
             sel = st.selectbox("Goleiro", options=ops, format_func=lambda x: x['label'], key="s_gol") if ops else None
-            if sel: elenco_selecionado.append(sel)
+            if sel: elenco_selecionado.append(sel['id']); coords_fixas[sel['id']] = esquema_tatico['GOL']['coord']
 
         st.markdown("---")
 
         # --- PLOTAR O CAMPO COM OS SELECIONADOS ---
         if elenco_selecionado:
             # Criar DataFrame apenas com os selecionados para passar pro plotador
-            ids_selecionados = [s['id'] for s in elenco_selecionado]
-            df_visualizacao = df_filtrado[df_filtrado['id_jogador'].isin(ids_selecionados)].copy()
+            df_visualizacao = df_filtrado[df_filtrado['id_jogador'].isin(elenco_selecionado)].copy()
             
-            # Passamos True para mostrar nomes, pois agora são poucos e selecionados
-            plotar_mapa_elenco(df_visualizacao, mostrar_nomes=True)
+            # Passamos True para mostrar nomes e as coordenadas fixas para garantir a posição tática
+            plotar_mapa_elenco(df_visualizacao, mostrar_nomes=True, coordenadas_fixas=coords_fixas)
         else:
             st.info("Nenhum jogador encontrado com os filtros atuais.")
 
@@ -1937,7 +1938,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: #7f8c8d;'>"
-        f"🎯 Scout Pro v1.5 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        f"🎯 Scout Pro v1.7 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         "</div>",
         unsafe_allow_html=True
     )
