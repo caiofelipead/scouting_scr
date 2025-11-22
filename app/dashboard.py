@@ -921,10 +921,11 @@ def main():
     st.markdown("---")
 
     # Tabs principais
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📊 Visão Geral",
         "👥 Lista de Jogadores",
         "🏆 Ranking",
+        "🆚 Comparador",
         "🚨 Alertas",
         "📈 Análises"
     ])
@@ -1462,6 +1463,131 @@ def main():
                 )
 
     with tab4:
+        st.header("🆚 Comparador Head-to-Head")
+        
+        # Carregar jogadores para os selectboxes
+        jogadores_options = df_filtrado[['id_jogador', 'nome']].to_dict('records')
+        opcoes = {j['nome']: j['id_jogador'] for j in jogadores_options}
+        
+        if len(opcoes) < 2:
+            st.warning("⚠️ É necessário ter pelo menos 2 jogadores filtrados para comparar.")
+        else:
+            col_sel1, col_sel2 = st.columns(2)
+            
+            with col_sel1:
+                nome_1 = st.selectbox("Selecionar Jogador A", list(opcoes.keys()), index=0)
+                id_1 = opcoes[nome_1]
+                
+            with col_sel2:
+                # Tenta pegar o segundo jogador da lista como padrão
+                nome_2 = st.selectbox("Selecionar Jogador B", list(opcoes.keys()), index=1 if len(opcoes) > 1 else 0)
+                id_2 = opcoes[nome_2]
+
+            if id_1 == id_2:
+                st.info("💡 Selecione jogadores diferentes para comparar.")
+            else:
+                # Buscar dados completos
+                avals_1 = db.get_ultima_avaliacao(id_1)
+                avals_2 = db.get_ultima_avaliacao(id_2)
+                
+                # Buscar infos cadastrais (usando o df_filtrado para ser rápido)
+                info_1 = df_filtrado[df_filtrado['id_jogador'] == id_1].iloc[0]
+                info_2 = df_filtrado[df_filtrado['id_jogador'] == id_2].iloc[0]
+
+                st.markdown("---")
+
+                # --- COLUNAS DE COMPARAÇÃO ---
+                col_a, col_b = st.columns(2)
+
+                # Jogador A
+                with col_a:
+                    st.subheader(f"🔵 {info_1['nome']}")
+                    st.caption(f"{info_1['posicao']} | {info_1['clube']}")
+                    st.metric("Potencial", f"{avals_1['nota_potencial'].iloc[0]:.1f}" if not avals_1.empty else "N/A")
+
+                # Jogador B
+                with col_b:
+                    st.subheader(f"🔴 {info_2['nome']}")
+                    st.caption(f"{info_2['posicao']} | {info_2['clube']}")
+                    st.metric("Potencial", f"{avals_2['nota_potencial'].iloc[0]:.1f}" if not avals_2.empty else "N/A",
+                             delta=f"{(avals_2['nota_potencial'].iloc[0] - avals_1['nota_potencial'].iloc[0]):.1f}" if not avals_1.empty and not avals_2.empty else None)
+
+                # --- GRÁFICO DE RADAR COMPARATIVO ---
+                if not avals_1.empty and not avals_2.empty:
+                    st.markdown("### 🕸️ Radar Comparativo")
+                    
+                    categorias = ['Tático', 'Técnico', 'Físico', 'Mental']
+                    
+                    # Dados Jogador 1
+                    val_1 = [
+                        avals_1['nota_tatico'].iloc[0], avals_1['nota_tecnico'].iloc[0],
+                        avals_1['nota_fisico'].iloc[0], avals_1['nota_mental'].iloc[0]
+                    ]
+                    # Dados Jogador 2
+                    val_2 = [
+                        avals_2['nota_tatico'].iloc[0], avals_2['nota_tecnico'].iloc[0],
+                        avals_2['nota_fisico'].iloc[0], avals_2['nota_mental'].iloc[0]
+                    ]
+
+                    # Fechar o loop do radar
+                    cat_radar = categorias + [categorias[0]]
+                    val_1_radar = val_1 + [val_1[0]]
+                    val_2_radar = val_2 + [val_2[0]]
+
+                    fig_comp = go.Figure()
+
+                    fig_comp.add_trace(go.Scatterpolar(
+                        r=val_1_radar,
+                        theta=cat_radar,
+                        fill='toself',
+                        name=info_1['nome'],
+                        line_color='#1f77b4',
+                        opacity=0.6
+                    ))
+
+                    fig_comp.add_trace(go.Scatterpolar(
+                        r=val_2_radar,
+                        theta=cat_radar,
+                        fill='toself',
+                        name=info_2['nome'],
+                        line_color='#d62728',
+                        opacity=0.6
+                    ))
+
+                    fig_comp.update_layout(
+                        polar=dict(radialaxis=dict(visible=True, range=[0, 5])),
+                        showlegend=True,
+                        height=500
+                    )
+                    
+                    st.plotly_chart(fig_comp, use_container_width=True)
+                    
+                    # --- TABELA DETALHADA ---
+                    st.markdown("### 📋 Comparativo Detalhado")
+                    
+                    comp_data = {
+                        'Atributo': ['Idade', 'Altura', 'Fim de Contrato', 'Tático', 'Técnico', 'Físico', 'Mental'],
+                        info_1['nome']: [
+                            f"{info_1['idade_atual']} anos",
+                            f"{info_1['altura']} cm",
+                            f"{info_1['data_fim_contrato']}",
+                            f"{val_1[0]:.1f}", f"{val_1[1]:.1f}", f"{val_1[2]:.1f}", f"{val_1[3]:.1f}"
+                        ],
+                        info_2['nome']: [
+                            f"{info_2['idade_atual']} anos",
+                            f"{info_2['altura']} cm",
+                            f"{info_2['data_fim_contrato']}",
+                            f"{val_2[0]:.1f}", f"{val_2[1]:.1f}", f"{val_2[2]:.1f}", f"{val_2[3]:.1f}"
+                        ]
+                    }
+                    
+                    df_comp = pd.DataFrame(comp_data)
+                    st.table(df_comp)
+                    
+                else:
+                    st.warning("Um dos jogadores selecionados não possui avaliação cadastrada.")
+
+    with tab5:
         st.header("Central de Alertas")
 
         alertas = db.get_alertas_ativos()
@@ -1485,7 +1611,7 @@ def main():
                 else:
                     st.info(f"ℹ️ **{alerta['jogador']}** - {alerta['descricao']}")
 
-    with tab5:
+    with tab6:
         st.header("Análises Avançadas")
 
         col1, col2 = st.columns(2)
