@@ -1938,7 +1938,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: #7f8c8d;'>"
-        f"🎯 Scout Pro v1.7 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        f"🎯 Scout Pro v2.0 | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         "</div>",
         unsafe_allow_html=True
     )
