@@ -81,9 +81,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-@st.cache_resource
+@st.cache_resource(ttl=None)
 def get_database():
-    """Inicializa conexão com banco de dados"""
+    """Inicializa conexão com banco de dados - Cache persistente"""
     return ScoutingDatabase()
 
 def get_foto_jogador(id_jogador):
