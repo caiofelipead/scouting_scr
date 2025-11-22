@@ -45,6 +45,39 @@ st.markdown("""
         color: #2c3e50;
         padding-top: 1rem;
     }
+    
+    /* Estilos para tabelas HTML */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+    }
+    th {
+        background-color: #f0f2f6;
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+        border-bottom: 2px solid #ddd;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    tr:hover {
+        background-color: #f5f5f5 !important;
+    }
+    a {
+        color: #1f77b4;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    a:hover {
+        text-decoration: underline !important;
+        color: #0d5aa7;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -60,6 +93,13 @@ def get_foto_jogador(id_jogador):
         return foto_path
     else:
         return None
+
+def get_perfil_url(id_jogador):
+    """Retorna a URL completa do perfil do jogador"""
+    # Pega a URL base do Streamlit
+    # Em produção será a URL do Streamlit Cloud
+    # Em desenvolvimento será localhost
+    return f"?jogador={id_jogador}"
 
 def criar_radar_avaliacao(notas_dict, titulo="Avaliação do Atleta"):
     """
@@ -638,11 +678,35 @@ def exibir_lista_com_fotos(df_display, db):
                     st.caption(f"{jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'}")
                     st.caption(f"{jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}")
 
-                    # Usar índice único para evitar duplicatas de key
-                    if st.button("Ver Perfil", key=f"perfil_{jogador['id_jogador']}_{idx}", use_container_width=True):
-                        st.session_state.pagina = 'perfil'
-                        st.session_state.jogador_selecionado = jogador['id_jogador']
-                        st.rerun()
+                    # Criar link para abrir em nova aba
+                    perfil_url = get_perfil_url(jogador['id_jogador'])
+                    
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        # Botão que abre na mesma aba
+                        if st.button("Ver Perfil", key=f"perfil_{jogador['id_jogador']}_{idx}", use_container_width=True):
+                            st.session_state.pagina = 'perfil'
+                            st.session_state.jogador_selecionado = jogador['id_jogador']
+                            st.query_params['jogador'] = jogador['id_jogador']
+                            st.rerun()
+                    
+                    with col_b:
+                        # Link que abre em nova aba
+                        st.markdown(
+                            f'<a href="{perfil_url}" target="_blank" style="'
+                            'display: inline-block; '
+                            'padding: 0.25rem 0.75rem; '
+                            'background-color: #FF4B4B; '
+                            'color: white; '
+                            'text-decoration: none; '
+                            'border-radius: 0.25rem; '
+                            'text-align: center; '
+                            'font-size: 0.875rem; '
+                            'width: 100%; '
+                            'box-sizing: border-box;'
+                            '">Nova Aba</a>',
+                            unsafe_allow_html=True
+                        )
 
 def criar_gauge_contrato(dias_restantes):
     """Cria gráfico gauge para status de contrato"""
@@ -691,17 +755,31 @@ def main():
     # Criar tabela de avaliações se não existir
     db.criar_tabela_avaliacoes()
 
+    # Verificar query parameters na URL
+    query_params = st.query_params
+    jogador_id_url = query_params.get('jogador', None)
+
     # Sistema de navegação com session_state
     if 'pagina' not in st.session_state:
         st.session_state.pagina = 'dashboard'
     if 'jogador_selecionado' not in st.session_state:
         st.session_state.jogador_selecionado = None
 
+    # Se há um ID de jogador na URL, ir para o perfil
+    if jogador_id_url:
+        try:
+            st.session_state.pagina = 'perfil'
+            st.session_state.jogador_selecionado = int(jogador_id_url)
+        except:
+            pass
+
     # Se estiver na página de perfil
     if st.session_state.pagina == 'perfil':
         if st.button("← Voltar para Dashboard"):
             st.session_state.pagina = 'dashboard'
             st.session_state.jogador_selecionado = None
+            # Limpar query parameter
+            st.query_params.clear()
             st.rerun()
 
         st.markdown("---")
@@ -962,13 +1040,34 @@ def main():
         if visualizacao == 'Cards':
             exibir_lista_com_fotos(df_display, db)
         else:
+            # Tabela com nomes clicáveis
             df_display_formatted = df_display.copy()
+            
+            # Adicionar coluna de ação com link
+            df_display_formatted['acao'] = df_display_formatted['id_jogador'].apply(
+                lambda x: f'?jogador={x}'
+            )
             
             # Selecionar e renomear colunas
             colunas = ['id_jogador', 'nome', 'nacionalidade', 'idade_atual', 'altura', 'pe_dominante',
                       'clube', 'liga_clube', 'posicao', 'data_fim_contrato', 'status_contrato']
             
-            df_display_formatted = df_display_formatted[colunas]
+            df_display_formatted = df_display_formatted[colunas + ['acao']]
+            
+            # Criar HTML para nomes clicáveis
+            df_display_formatted['nome_link'] = df_display_formatted.apply(
+                lambda row: f'<a href="?jogador={row["id_jogador"]}" target="_blank" style="color: #1f77b4; text-decoration: none; font-weight: bold;">{row["nome"]}</a>',
+                axis=1
+            )
+            
+            # Remover coluna nome original e acao
+            df_display_formatted = df_display_formatted.drop(['nome', 'acao'], axis=1)
+            
+            # Reordenar colunas
+            cols_order = ['id_jogador', 'nome_link', 'nacionalidade', 'idade_atual', 'altura', 'pe_dominante',
+                         'clube', 'liga_clube', 'posicao', 'data_fim_contrato', 'status_contrato']
+            
+            df_display_formatted = df_display_formatted[cols_order]
             
             df_display_formatted.columns = [
                 'ID', 'Nome', 'Nacionalidade', 'Idade', 'Altura', 'Pé',
@@ -983,11 +1082,40 @@ def main():
                 else:
                     return [''] * len(row)
 
-            st.dataframe(
-                df_display_formatted.style.apply(highlight_status, axis=1),
-                use_container_width=True,
-                height=500
+            # Exibir tabela com HTML
+            st.markdown("💡 **Dica:** Clique no nome do jogador para abrir o perfil em nova aba", help="Os nomes são clicáveis!")
+            
+            st.markdown(
+                df_display_formatted.to_html(escape=False, index=False),
+                unsafe_allow_html=True
             )
+            
+            # Adicionar CSS para melhorar a aparência da tabela
+            st.markdown("""
+                <style>
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                th {
+                    background-color: #f0f2f6;
+                    padding: 12px;
+                    text-align: left;
+                    font-weight: bold;
+                    border-bottom: 2px solid #ddd;
+                }
+                td {
+                    padding: 10px;
+                    border-bottom: 1px solid #eee;
+                }
+                tr:hover {
+                    background-color: #f5f5f5;
+                }
+                a:hover {
+                    text-decoration: underline !important;
+                }
+                </style>
+            """, unsafe_allow_html=True)
 
         st.markdown("---")
         csv = df_display.to_csv(index=False).encode('utf-8')
@@ -1131,7 +1259,12 @@ def main():
                             st.markdown(f"### {emoji}")
                         
                         with col2:
-                            st.markdown(f"**{jogador['nome']}**")
+                            # Nome clicável
+                            perfil_url = get_perfil_url(jogador['id_jogador'])
+                            st.markdown(
+                                f'<a href="{perfil_url}" target="_blank" style="color: #1f77b4; text-decoration: none; font-weight: bold; font-size: 1.1em;">{jogador["nome"]}</a>',
+                                unsafe_allow_html=True
+                            )
                             st.caption(f"{jogador['posicao']} | {jogador['clube']}")
                         
                         with col3:
@@ -1164,9 +1297,18 @@ def main():
                     df_pos = df_rank[df_rank['posicao'] == posicao].head(10)
                     
                     with st.expander(f"⚽ {posicao} ({len(df_pos)} jogadores)", expanded=True):
+                        # Criar links clicáveis
+                        df_pos_display = df_pos.copy()
+                        
+                        # Adicionar coluna com link HTML
+                        df_pos_display['nome_link'] = df_pos_display.apply(
+                            lambda row: f'<a href="?jogador={row["id_jogador"]}" target="_blank" style="color: #1f77b4; text-decoration: none; font-weight: bold;">{row["nome"]}</a>',
+                            axis=1
+                        )
+                        
                         # Criar DataFrame para exibição
-                        df_display = df_pos[[
-                            'rank', 'nome', 'clube', 'nacionalidade', 'idade_atual',
+                        df_display = df_pos_display[[
+                            'rank', 'nome_link', 'clube', 'nacionalidade', 'idade_atual',
                             'nota_potencial', 'media_geral', 'nota_tatico', 
                             'nota_tecnico', 'nota_fisico', 'nota_mental'
                         ]].copy()
@@ -1180,24 +1322,33 @@ def main():
                         for col in ['⭐ Potencial', 'Média', 'Tático', 'Técnico', 'Físico', 'Mental']:
                             df_display[col] = df_display[col].apply(lambda x: f"{x:.1f}")
                         
-                        # Aplicar estilo
-                        def highlight_top3(row):
-                            if row['Rank'] <= 3:
-                                return ['background-color: #d4edda'] * len(row)
-                            return [''] * len(row)
+                        # Exibir tabela HTML com nomes clicáveis
+                        html_table = df_display.to_html(escape=False, index=False)
                         
-                        st.dataframe(
-                            df_display.style.apply(highlight_top3, axis=1),
-                            use_container_width=True,
-                            hide_index=True
-                        )
+                        # Aplicar destaque top 3
+                        for i in range(min(3, len(df_display))):
+                            html_table = html_table.replace(
+                                f"<tr>\n      <td>{i+1}</td>",
+                                f'<tr style="background-color: #d4edda;">\n      <td>{i+1}</td>'
+                            )
+                        
+                        st.markdown(html_table, unsafe_allow_html=True)
             
             else:  # Tabela Completa
                 st.markdown(f"### 📋 Tabela Completa - {len(df_rank)} jogadores")
                 
+                # Criar links clicáveis
+                df_rank_display = df_rank.copy()
+                
+                # Adicionar coluna com link HTML
+                df_rank_display['nome_link'] = df_rank_display.apply(
+                    lambda row: f'<a href="?jogador={row["id_jogador"]}" target="_blank" style="color: #1f77b4; text-decoration: none; font-weight: bold;">{row["nome"]}</a>',
+                    axis=1
+                )
+                
                 # Criar DataFrame para exibição
-                df_display = df_rank[[
-                    'rank', 'nome', 'posicao', 'clube', 'nacionalidade', 'idade_atual',
+                df_display = df_rank_display[[
+                    'rank', 'nome_link', 'posicao', 'clube', 'nacionalidade', 'idade_atual',
                     'nota_potencial', 'media_geral', 'nota_tatico', 
                     'nota_tecnico', 'nota_fisico', 'nota_mental', 'data_avaliacao'
                 ]].copy()
@@ -1214,21 +1365,65 @@ def main():
                 # Formatar data
                 df_display['Última Avaliação'] = pd.to_datetime(df_display['Última Avaliação']).dt.strftime('%d/%m/%Y')
                 
-                # Aplicar estilo
-                def highlight_top(row):
-                    rank = row['Rank']
-                    if rank <= 3:
-                        return ['background-color: #d4edda'] * len(row)
-                    elif rank <= 10:
-                        return ['background-color: #fff3cd'] * len(row)
-                    return [''] * len(row)
+                # Exibir dica
+                st.markdown("💡 **Dica:** Clique no nome do jogador para abrir o perfil em nova aba")
                 
-                st.dataframe(
-                    df_display.style.apply(highlight_top, axis=1),
-                    use_container_width=True,
-                    hide_index=True,
-                    height=600
+                # Exibir tabela HTML com nomes clicáveis
+                html_table = df_display.to_html(escape=False, index=False)
+                
+                # Aplicar cores por ranking
+                for i, row in df_display.iterrows():
+                    rank = i + 1
+                    if rank <= 3:
+                        bg_color = "#d4edda"
+                    elif rank <= 10:
+                        bg_color = "#fff3cd"
+                    else:
+                        bg_color = ""
+                    
+                    if bg_color:
+                        # Encontrar a linha correspondente e adicionar estilo
+                        html_table = html_table.replace(
+                            f"<tr>\n      <td>{rank}</td>",
+                            f'<tr style="background-color: {bg_color};">\n      <td>{rank}</td>',
+                            1  # Substituir apenas a primeira ocorrência
+                        )
+                
+                # Container com scroll
+                st.markdown(
+                    f'<div style="height: 600px; overflow-y: scroll;">{html_table}</div>',
+                    unsafe_allow_html=True
                 )
+                
+                # Adicionar CSS para melhorar aparência
+                st.markdown("""
+                    <style>
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+                    th {
+                        background-color: #f0f2f6;
+                        padding: 12px;
+                        text-align: left;
+                        font-weight: bold;
+                        border-bottom: 2px solid #ddd;
+                        position: sticky;
+                        top: 0;
+                        z-index: 10;
+                    }
+                    td {
+                        padding: 10px;
+                        border-bottom: 1px solid #eee;
+                    }
+                    tr:hover {
+                        background-color: #f5f5f5 !important;
+                    }
+                    a:hover {
+                        text-decoration: underline !important;
+                    }
+                    </style>
+                """, unsafe_allow_html=True)
                 
                 # Botão de export
                 st.markdown("---")
