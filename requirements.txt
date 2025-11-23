@@ -1,7 +1,7 @@
 # Core (Versões destravadas para compatibilidade com Python 3.12)
 streamlit
 pandas
-numpy>=1.26.0
+numpy
 
 # Google Sheets Integration
 gspread
