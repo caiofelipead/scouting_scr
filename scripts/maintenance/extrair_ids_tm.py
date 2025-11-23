@@ -1,5 +1,5 @@
-import sqlite3
 import re
+import sqlite3
 
 # Nome do banco de dados
 DB_NAME = "scouting.db"
@@ -35,20 +35,24 @@ def main():
     print(colunas)
 
     # Pergunta qual coluna tem o link completo
-    coluna_link = input("\nDigite o nome da coluna que tem o LINK COMPLETO (ex: url, link, tm_link): ").strip()
+    coluna_link = input(
+        "\nDigite o nome da coluna que tem o LINK COMPLETO (ex: url, link, tm_link): "
+    ).strip()
 
     if coluna_link not in colunas:
         print(f"❌ Erro: A coluna '{coluna_link}' não existe.")
         return
 
     # 2. Garante que a coluna de destino (transfermarkt_id) existe
-    if 'transfermarkt_id' not in colunas:
+    if "transfermarkt_id" not in colunas:
         print("Criando coluna 'transfermarkt_id'...")
         cursor.execute("ALTER TABLE jogadores ADD COLUMN transfermarkt_id TEXT")
 
     # 3. Pega todos os jogadores
     print(f"Lendo dados da coluna '{coluna_link}'...")
-    cursor.execute(f"SELECT id_jogador, {coluna_link} FROM jogadores WHERE {coluna_link} IS NOT NULL")
+    cursor.execute(
+        f"SELECT id_jogador, {coluna_link} FROM jogadores WHERE {coluna_link} IS NOT NULL"
+    )
     jogadores = cursor.fetchall()
 
     atualizados = 0
@@ -64,7 +68,10 @@ def main():
         tm_id = extrair_id_do_link(link)
 
         if tm_id:
-            cursor.execute("UPDATE jogadores SET transfermarkt_id = ? WHERE id_jogador = ?", (tm_id, id_db))
+            cursor.execute(
+                "UPDATE jogadores SET transfermarkt_id = ? WHERE id_jogador = ?",
+                (tm_id, id_db),
+            )
             atualizados += 1
             # Print opcional para acompanhar
             # print(f"ID {id_db}: Link extraído -> {tm_id}")

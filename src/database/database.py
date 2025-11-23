@@ -3,38 +3,42 @@ Sistema de Banco de Dados para Scouting
 Gerencia conexões com SQLite e integração segura com Google Sheets
 """
 
-import sqlite3
-import pandas as pd
-from datetime import datetime, timedelta
-import streamlit as st
-import gspread
-import os
 import json
+import os
+import sqlite3
+from datetime import datetime
+
+import gspread
+import pandas as pd
+import streamlit as st
+
 
 class ScoutingDatabase:
-    def __init__(self, db_path='scouting.db'):
+    def __init__(self, db_path="scouting.db"):
         """Inicializa conexão com banco de dados SQLite e Google Sheets"""
-        
+
         # --- 1. CONFIGURAÇÃO DE PERSISTÊNCIA (RAILWAY) ---
         # Se a variável de ambiente do volume existir, salvamos o banco lá.
         # Caso contrário, salvamos na pasta local (desenvolvimento).
         if os.getenv("RAILWAY_VOLUME_MOUNT_PATH"):
-            self.db_path = os.path.join(os.getenv("RAILWAY_VOLUME_MOUNT_PATH"), 'scouting.db')
+            self.db_path = os.path.join(
+                os.getenv("RAILWAY_VOLUME_MOUNT_PATH"), "scouting.db"
+            )
         else:
             self.db_path = db_path
-            
+
         self.criar_tabelas()
-        
+
         # --- 2. INTEGRAÇÃO GOOGLE SHEETS (HÍBRIDA: NUVEM/LOCAL) ---
         self.gc = None
         self.sh = None
-        
+
         try:
             # Cenário A: Streamlit Cloud (usa st.secrets)
             if hasattr(st, "secrets") and "gcp_service_account" in st.secrets:
                 creds_dict = dict(st.secrets["gcp_service_account"])
                 self.gc = gspread.service_account_from_dict(creds_dict)
-            
+
             # Cenário B: Produção Railway/Render (usa Variável de Ambiente)
             # Você deve criar uma variável chamada GCP_CREDENTIALS com o conteúdo do JSON
             elif os.getenv("GCP_CREDENTIALS"):
@@ -43,23 +47,23 @@ class ScoutingDatabase:
 
             # Cenário C: Localhost (usa arquivo físico)
             else:
-                self.gc = gspread.service_account(filename='service_account.json')
+                self.gc = gspread.service_account(filename="service_account.json")
 
             # Tenta abrir a planilha pelo nome
-            self.sh = self.gc.open("Scout Database") 
-            
+            self.sh = self.gc.open("Scout Database")
+
         except Exception as e:
             # Não quebra o app se falhar, apenas avisa (o SQLite continua funcionando)
             print(f"⚠️ Aviso: Conexão com Google Sheets não estabelecida: {e}")
-    
+
     def get_dados_google_sheets(self):
         """Método auxiliar para puxar dados da planilha como DataFrame"""
         if not self.sh:
             return None
-        
+
         try:
             # Pega a primeira aba da planilha
-            worksheet = self.sh.sheet1 
+            worksheet = self.sh.sheet1
             # Pega todos os registros
             dados = worksheet.get_all_records()
             # Converte para DataFrame
@@ -71,31 +75,33 @@ class ScoutingDatabase:
     def connect(self):
         """Cria conexão com o banco SQLite"""
         return sqlite3.connect(self.db_path)
-    
+
     def verificar_e_criar_colunas(self):
         """Verifica e adiciona colunas faltantes em tabelas existentes"""
         conn = self.connect()
         cursor = conn.cursor()
-        
+
         try:
             # Verificar se a coluna 'ativo' existe na tabela alertas
             cursor.execute("PRAGMA table_info(alertas)")
             colunas = [col[1] for col in cursor.fetchall()]
-            
-            if 'ativo' not in colunas:
+
+            if "ativo" not in colunas:
                 cursor.execute("ALTER TABLE alertas ADD COLUMN ativo BOOLEAN DEFAULT 1")
                 conn.commit()
         except sqlite3.OperationalError:
             pass
-        
+
         # ========= NOVO: Verificar se nota_potencial existe na tabela avaliacoes =========
         try:
             cursor.execute("PRAGMA table_info(avaliacoes)")
             colunas_aval = [col[1] for col in cursor.fetchall()]
 
-            if 'nota_potencial' not in colunas_aval:
+            if "nota_potencial" not in colunas_aval:
                 print("⚠️  Adicionando coluna nota_potencial na tabela avaliacoes...")
-                cursor.execute("ALTER TABLE avaliacoes ADD COLUMN nota_potencial REAL CHECK(nota_potencial >= 1 AND nota_potencial <= 5)")
+                cursor.execute(
+                    "ALTER TABLE avaliacoes ADD COLUMN nota_potencial REAL CHECK(nota_potencial >= 1 AND nota_potencial <= 5)"
+                )
                 conn.commit()
                 print("✅ Coluna nota_potencial adicionada com sucesso!")
         except sqlite3.OperationalError:
@@ -110,7 +116,8 @@ class ScoutingDatabase:
         cursor = conn.cursor()
 
         # Tabela de jogadores
-        cursor.execute("""
+        cursor.execute(
+            """
         CREATE TABLE IF NOT EXISTS jogadores (
             id_jogador INTEGER PRIMARY KEY,
             nome TEXT NOT NULL,
@@ -121,10 +128,12 @@ class ScoutingDatabase:
             pe_dominante TEXT,
             transfermarkt_id TEXT
         )
-        """)
+        """
+        )
 
         # Tabela de vínculos
-        cursor.execute("""
+        cursor.execute(
+            """
         CREATE TABLE IF NOT EXISTS vinculos (
             id_vinculo INTEGER PRIMARY KEY AUTOINCREMENT,
             id_jogador INTEGER,
@@ -135,10 +144,12 @@ class ScoutingDatabase:
             status_contrato TEXT,
             FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador)
         )
-        """)
+        """
+        )
 
         # Tabela de alertas
-        cursor.execute("""
+        cursor.execute(
+            """
         CREATE TABLE IF NOT EXISTS alertas (
             id_alerta INTEGER PRIMARY KEY AUTOINCREMENT,
             id_jogador INTEGER,
@@ -149,10 +160,12 @@ class ScoutingDatabase:
             ativo BOOLEAN DEFAULT 1,
             FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador)
         )
-        """)
+        """
+        )
 
         # Tabela de avaliações
-        cursor.execute("""
+        cursor.execute(
+            """
         CREATE TABLE IF NOT EXISTS avaliacoes (
             id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
             id_jogador INTEGER NOT NULL,
@@ -167,7 +180,8 @@ class ScoutingDatabase:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador)
         )
-        """)
+        """
+        )
 
         conn.commit()
         conn.close()
@@ -180,17 +194,40 @@ class ScoutingDatabase:
         # Redireciona para o criar_tabelas principal para evitar código duplicado
         self.criar_tabelas()
 
-    def salvar_avaliacao(self, id_jogador, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico,
-                          nota_fisico, nota_mental, observacoes="", avaliador=""):
+    def salvar_avaliacao(
+        self,
+        id_jogador,
+        data_avaliacao,
+        nota_potencial,
+        nota_tatico,
+        nota_tecnico,
+        nota_fisico,
+        nota_mental,
+        observacoes="",
+        avaliador="",
+    ):
         """Salva uma nova avaliação"""
         conn = self.connect()
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
         INSERT INTO avaliacoes 
         (id_jogador, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (id_jogador, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador))
+        """,
+            (
+                id_jogador,
+                data_avaliacao,
+                nota_potencial,
+                nota_tatico,
+                nota_tecnico,
+                nota_fisico,
+                nota_mental,
+                observacoes,
+                avaliador,
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -199,11 +236,15 @@ class ScoutingDatabase:
         """Retorna todas as avaliações de um jogador"""
         conn = self.connect()
         try:
-            df = pd.read_sql_query("""
+            df = pd.read_sql_query(
+                """
             SELECT * FROM avaliacoes 
             WHERE id_jogador = ?
             ORDER BY data_avaliacao DESC
-            """, conn, params=(id_jogador,))
+            """,
+                conn,
+                params=(id_jogador,),
+            )
         except:
             df = pd.DataFrame()
         conn.close()
@@ -213,12 +254,16 @@ class ScoutingDatabase:
         """Retorna a última avaliação de um jogador"""
         conn = self.connect()
         try:
-            df = pd.read_sql_query("""
+            df = pd.read_sql_query(
+                """
             SELECT * FROM avaliacoes 
             WHERE id_jogador = ?
             ORDER BY data_avaliacao DESC
             LIMIT 1
-            """, conn, params=(id_jogador,))
+            """,
+                conn,
+                params=(id_jogador,),
+            )
         except:
             df = pd.DataFrame()
         conn.close()
@@ -237,7 +282,7 @@ class ScoutingDatabase:
         conn = self.connect()
         cursor = conn.cursor()
 
-        tabelas = ['alertas', 'vinculos', 'jogadores', 'avaliacoes']
+        tabelas = ["alertas", "vinculos", "jogadores", "avaliacoes"]
         for tabela in tabelas:
             try:
                 cursor.execute(f"DELETE FROM {tabela}")
@@ -247,23 +292,45 @@ class ScoutingDatabase:
         conn.commit()
         conn.close()
 
-    def inserir_jogador(self, id_jogador, nome, nacionalidade, ano_nascimento,
-                        idade_atual, altura, pe_dominante, transfermarkt_id=None):
+    def inserir_jogador(
+        self,
+        id_jogador,
+        nome,
+        nacionalidade,
+        ano_nascimento,
+        idade_atual,
+        altura,
+        pe_dominante,
+        transfermarkt_id=None,
+    ):
         """Insere ou atualiza um jogador"""
         conn = self.connect()
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
         INSERT OR REPLACE INTO jogadores 
         (id_jogador, nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (id_jogador, nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id))
+        """,
+            (
+                id_jogador,
+                nome,
+                nacionalidade,
+                ano_nascimento,
+                idade_atual,
+                altura,
+                pe_dominante,
+                transfermarkt_id,
+            ),
+        )
 
         conn.commit()
         conn.close()
 
-    def inserir_vinculo(self, id_jogador, clube, liga_clube, posicao,
-                        data_fim_contrato, status_contrato):
+    def inserir_vinculo(
+        self, id_jogador, clube, liga_clube, posicao, data_fim_contrato, status_contrato
+    ):
         """Insere vínculo de um jogador"""
         conn = self.connect()
         cursor = conn.cursor()
@@ -272,11 +339,21 @@ class ScoutingDatabase:
         cursor.execute("DELETE FROM vinculos WHERE id_jogador = ?", (id_jogador,))
 
         # Insere novo vínculo
-        cursor.execute("""
+        cursor.execute(
+            """
         INSERT INTO vinculos 
         (id_jogador, clube, liga_clube, posicao, data_fim_contrato, status_contrato)
         VALUES (?, ?, ?, ?, ?, ?)
-        """, (id_jogador, clube, liga_clube, posicao, data_fim_contrato, status_contrato))
+        """,
+            (
+                id_jogador,
+                clube,
+                liga_clube,
+                posicao,
+                data_fim_contrato,
+                status_contrato,
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -313,53 +390,63 @@ class ScoutingDatabase:
         cursor = conn.cursor()
 
         stats = {
-            'total_jogadores': 0,
-            'total_vinculos_ativos': 0,
-            'contratos_vencendo': 0,
-            'alertas_ativos': 0
+            "total_jogadores": 0,
+            "total_vinculos_ativos": 0,
+            "contratos_vencendo": 0,
+            "alertas_ativos": 0,
         }
 
         try:
             cursor.execute("SELECT COUNT(*) FROM jogadores")
-            stats['total_jogadores'] = cursor.fetchone()[0]
+            stats["total_jogadores"] = cursor.fetchone()[0]
 
-            cursor.execute("SELECT COUNT(*) FROM vinculos WHERE status_contrato = 'ativo'")
-            stats['total_vinculos_ativos'] = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT COUNT(*) FROM vinculos WHERE status_contrato = 'ativo'"
+            )
+            stats["total_vinculos_ativos"] = cursor.fetchone()[0]
 
-            cursor.execute("""
+            cursor.execute(
+                """
             SELECT COUNT(*) FROM vinculos 
             WHERE status_contrato IN ('ultimo_ano', 'ultimos_6_meses')
-            """)
-            stats['contratos_vencendo'] = cursor.fetchone()[0]
+            """
+            )
+            stats["contratos_vencendo"] = cursor.fetchone()[0]
 
             # Alertas
             try:
                 cursor.execute("SELECT COUNT(*) FROM alertas WHERE ativo = 1")
             except:
                 cursor.execute("SELECT COUNT(*) FROM alertas")
-            stats['alertas_ativos'] = cursor.fetchone()[0]
-            
+            stats["alertas_ativos"] = cursor.fetchone()[0]
+
         except:
             pass
 
         conn.close()
         return stats
 
-    def criar_alerta(self, id_jogador, tipo_alerta, descricao, prioridade='media'):
+    def criar_alerta(self, id_jogador, tipo_alerta, descricao, prioridade="media"):
         """Cria um novo alerta"""
         conn = self.connect()
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
             INSERT INTO alertas (id_jogador, tipo_alerta, descricao, prioridade, ativo)
             VALUES (?, ?, ?, ?, 1)
-            """, (id_jogador, tipo_alerta, descricao, prioridade))
+            """,
+                (id_jogador, tipo_alerta, descricao, prioridade),
+            )
         except:
-            cursor.execute("""
+            cursor.execute(
+                """
             INSERT INTO alertas (id_jogador, tipo_alerta, descricao, prioridade)
             VALUES (?, ?, ?, ?)
-            """, (id_jogador, tipo_alerta, descricao, prioridade))
+            """,
+                (id_jogador, tipo_alerta, descricao, prioridade),
+            )
 
         conn.commit()
         conn.close()
@@ -402,7 +489,9 @@ class ScoutingDatabase:
         cursor = conn.cursor()
 
         try:
-            cursor.execute("UPDATE alertas SET ativo = 0 WHERE id_alerta = ?", (id_alerta,))
+            cursor.execute(
+                "UPDATE alertas SET ativo = 0 WHERE id_alerta = ?", (id_alerta,)
+            )
         except:
             cursor.execute("DELETE FROM alertas WHERE id_alerta = ?", (id_alerta,))
 
@@ -420,8 +509,8 @@ class ScoutingDatabase:
         for idx, row in df.iterrows():
             try:
                 # Validar ID (campo obrigatório)
-                id_str = str(row.get('ID', '')).strip()
-                if not id_str or id_str == '' or id_str == 'nan':
+                id_str = str(row.get("ID", "")).strip()
+                if not id_str or id_str == "" or id_str == "nan":
                     linhas_ignoradas += 1
                     continue
 
@@ -432,19 +521,23 @@ class ScoutingDatabase:
                     continue
 
                 # Validar nome (campo obrigatório)
-                nome = str(row.get('Nome', '')).strip()
-                if not nome or nome == '' or nome == 'nan':
+                nome = str(row.get("Nome", "")).strip()
+                if not nome or nome == "" or nome == "nan":
                     linhas_ignoradas += 1
                     continue
 
                 # Extrair dados do jogador com tratamento de valores vazios
-                nacionalidade = str(row.get('Nacionalidade', '')) if pd.notna(row.get('Nacionalidade')) else ''
+                nacionalidade = (
+                    str(row.get("Nacionalidade", ""))
+                    if pd.notna(row.get("Nacionalidade"))
+                    else ""
+                )
 
                 # Ano de nascimento
                 ano_nascimento = None
                 try:
-                    ano_str = str(row.get('Ano', '')).strip()
-                    if ano_str and ano_str != 'nan' and ano_str != '':
+                    ano_str = str(row.get("Ano", "")).strip()
+                    if ano_str and ano_str != "nan" and ano_str != "":
                         ano_nascimento = int(float(ano_str))
                 except (ValueError, TypeError):
                     pass
@@ -452,8 +545,8 @@ class ScoutingDatabase:
                 # Idade atual
                 idade_atual = None
                 try:
-                    idade_str = str(row.get('Idade', '')).strip()
-                    if idade_str and idade_str != 'nan' and idade_str != '':
+                    idade_str = str(row.get("Idade", "")).strip()
+                    if idade_str and idade_str != "nan" and idade_str != "":
                         idade_atual = int(float(idade_str))
                 except (ValueError, TypeError):
                     pass
@@ -461,8 +554,8 @@ class ScoutingDatabase:
                 # Altura
                 altura = None
                 try:
-                    altura_str = str(row.get('Altura', '')).strip()
-                    if altura_str and altura_str != 'nan' and altura_str != '':
+                    altura_str = str(row.get("Altura", "")).strip()
+                    if altura_str and altura_str != "nan" and altura_str != "":
                         altura_float = float(altura_str)
                         if altura_float < 3:
                             altura = int(altura_float * 100)  # 1.75 -> 175
@@ -471,8 +564,10 @@ class ScoutingDatabase:
                 except (ValueError, TypeError):
                     pass
 
-                pe_dominante = str(row.get('Pé', '')) if pd.notna(row.get('Pé')) else ''
-                transfermarkt_id = str(row.get('TM', '')) if pd.notna(row.get('TM')) else None
+                pe_dominante = str(row.get("Pé", "")) if pd.notna(row.get("Pé")) else ""
+                transfermarkt_id = (
+                    str(row.get("TM", "")) if pd.notna(row.get("TM")) else None
+                )
 
                 # Inserir jogador
                 self.inserir_jogador(
@@ -483,14 +578,24 @@ class ScoutingDatabase:
                     idade_atual=idade_atual,
                     altura=altura,
                     pe_dominante=pe_dominante,
-                    transfermarkt_id=transfermarkt_id
+                    transfermarkt_id=transfermarkt_id,
                 )
 
                 # Extrair dados do vínculo
-                clube = str(row.get('Clube', '')) if pd.notna(row.get('Clube')) else ''
-                liga_clube = str(row.get('Liga do Clube', '')) if pd.notna(row.get('Liga do Clube')) else ''
-                posicao = str(row.get('Posição', '')) if pd.notna(row.get('Posição')) else ''
-                fim_contrato = str(row.get('Fim de contrato', '')) if pd.notna(row.get('Fim de contrato')) else ''
+                clube = str(row.get("Clube", "")) if pd.notna(row.get("Clube")) else ""
+                liga_clube = (
+                    str(row.get("Liga do Clube", ""))
+                    if pd.notna(row.get("Liga do Clube"))
+                    else ""
+                )
+                posicao = (
+                    str(row.get("Posição", "")) if pd.notna(row.get("Posição")) else ""
+                )
+                fim_contrato = (
+                    str(row.get("Fim de contrato", ""))
+                    if pd.notna(row.get("Fim de contrato"))
+                    else ""
+                )
 
                 status_contrato = self._determinar_status_contrato(fim_contrato)
 
@@ -502,7 +607,7 @@ class ScoutingDatabase:
                         liga_clube=liga_clube,
                         posicao=posicao,
                         data_fim_contrato=fim_contrato,
-                        status_contrato=status_contrato
+                        status_contrato=status_contrato,
                     )
 
                 self._criar_alertas_automaticos(id_jogador, row, status_contrato)
@@ -511,7 +616,7 @@ class ScoutingDatabase:
 
             except Exception as e:
                 erros += 1
-                nome_erro = row.get('Nome', 'desconhecido')
+                nome_erro = row.get("Nome", "desconhecido")
                 print(f"❌ Erro ao importar jogador {nome_erro}: {str(e)}")
 
         print(f"\n✅ Importação concluída!")
@@ -524,45 +629,50 @@ class ScoutingDatabase:
     def _determinar_status_contrato(self, fim_contrato_str):
         """Determina o status do contrato baseado na data de fim"""
         try:
-            if not fim_contrato_str or fim_contrato_str == '' or fim_contrato_str == 'nan':
-                return 'indefinido'
+            if (
+                not fim_contrato_str
+                or fim_contrato_str == ""
+                or fim_contrato_str == "nan"
+            ):
+                return "indefinido"
 
             from dateutil import parser
+
             fim_contrato = parser.parse(fim_contrato_str)
             hoje = datetime.now()
 
             diferenca = fim_contrato - hoje
 
             if diferenca.days < 0:
-                return 'expirado'
+                return "expirado"
             elif diferenca.days <= 180:  # 6 meses
-                return 'ultimos_6_meses'
+                return "ultimos_6_meses"
             elif diferenca.days <= 365:  # 1 ano
-                return 'ultimo_ano'
+                return "ultimo_ano"
             else:
-                return 'ativo'
+                return "ativo"
 
         except:
-            return 'indefinido'
+            return "indefinido"
 
     def _criar_alertas_automaticos(self, id_jogador, row, status_contrato):
         """Cria alertas automáticos baseados nos dados do jogador"""
 
-        if status_contrato in ['ultimos_6_meses', 'ultimo_ano']:
+        if status_contrato in ["ultimos_6_meses", "ultimo_ano"]:
             self.criar_alerta(
                 id_jogador=id_jogador,
-                tipo_alerta='Contrato',
+                tipo_alerta="Contrato",
                 descricao=f'Contrato vence em {row.get("Fim de contrato", "data não especificada")}',
-                prioridade='alta' if status_contrato == 'ultimos_6_meses' else 'media'
+                prioridade="alta" if status_contrato == "ultimos_6_meses" else "media",
             )
 
-        potencial = str(row.get('Potencial', '')).lower()
-        if 'alto' in potencial or 'alta' in potencial:
+        potencial = str(row.get("Potencial", "")).lower()
+        if "alto" in potencial or "alta" in potencial:
             self.criar_alerta(
                 id_jogador=id_jogador,
-                tipo_alerta='Potencial',
-                descricao=f'Jogador com potencial alto: {potencial}',
-                prioridade='media'
+                tipo_alerta="Potencial",
+                descricao=f"Jogador com potencial alto: {potencial}",
+                prioridade="media",
             )
 
     def criar_alertas_automaticos(self):
@@ -587,13 +697,13 @@ class ScoutingDatabase:
         alertas_criados = 0
 
         for _, row in df.iterrows():
-            status = row['status_contrato']
-            if status in ['ultimos_6_meses', 'ultimo_ano', 'expirado']:
+            status = row["status_contrato"]
+            if status in ["ultimos_6_meses", "ultimo_ano", "expirado"]:
                 self.criar_alerta(
-                    id_jogador=row['id_jogador'],
-                    tipo_alerta='Contrato',
+                    id_jogador=row["id_jogador"],
+                    tipo_alerta="Contrato",
                     descricao=f'Contrato: {status.replace("_", " ")}',
-                    prioridade='alta' if status == 'ultimos_6_meses' else 'media'
+                    prioridade="alta" if status == "ultimos_6_meses" else "media",
                 )
                 alertas_criados += 1
 

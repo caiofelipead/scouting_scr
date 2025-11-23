@@ -3,9 +3,9 @@ Script de Importação - Google Sheets para Banco de Dados
 Converte dados da planilha para estrutura normalizada
 """
 
-
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.sync.google_sheets_sync import GoogleSheetsSyncer
@@ -25,7 +25,7 @@ def processar_importacao():
     print("\n⚠️  ATENÇÃO: Esta operação pode limpar dados existentes")
     resposta = input("Deseja LIMPAR os dados antes de importar? (sim/não): ")
 
-    limpar_antes = resposta.lower() in ['sim', 's', 'yes', 'y']
+    limpar_antes = resposta.lower() in ["sim", "s", "yes", "y"]
 
     # Criar sincronizador
     syncer = GoogleSheetsSyncer(SHEET_URL)

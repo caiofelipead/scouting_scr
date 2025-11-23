@@ -3,13 +3,15 @@ Baixar Fotos do Transfermarkt - Versão com Scraping
 Busca a URL correta da foto na página do jogador
 """
 
+import os
+import re
+import time
+
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import os
-import time
+
 from src.database.database import ScoutingDatabase
-import re
 
 
 def extrair_id_da_url(tm_value):
@@ -20,13 +22,13 @@ def extrair_id_da_url(tm_value):
     - https://www.transfermarkt.com.br/adriano/profil/spieler/1046580 -> 1046580
     - 1046580 -> 1046580
     """
-    if pd.isna(tm_value) or str(tm_value).strip() == '':
+    if pd.isna(tm_value) or str(tm_value).strip() == "":
         return None
 
     tm_str = str(tm_value).strip()
 
     # Tentar extrair ID numérico da URL
-    match = re.search(r'/spieler/(\d+)', tm_str)
+    match = re.search(r"/spieler/(\d+)", tm_str)
     if match:
         return match.group(1)
 
@@ -41,10 +43,10 @@ def extrair_url_foto_da_pagina(tm_id):
     """
     Acessa a página do jogador e extrai a URL completa da foto
     """
-    url_pagina = f'https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}'
+    url_pagina = f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}"
 
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
 
     try:
@@ -53,31 +55,31 @@ def extrair_url_foto_da_pagina(tm_id):
         if response.status_code != 200:
             return None, f"Status {response.status_code}"
 
-        soup = BeautifulSoup(response.content, 'html.parser')
+        soup = BeautifulSoup(response.content, "html.parser")
 
         # Procurar pela tag img com a foto do jogador
         # Padrão: <img src='https://img.a.transfermarkt.technology/portrait/big/68290-1692601435.jpg?lm=1' ...>
 
         # Método 1: Buscar no modal da foto
-        modal_img = soup.find('img', {'src': re.compile(r'portrait/big/.*\.jpg')})
-        if modal_img and modal_img.get('src'):
-            url_foto = modal_img['src']
+        modal_img = soup.find("img", {"src": re.compile(r"portrait/big/.*\.jpg")})
+        if modal_img and modal_img.get("src"):
+            url_foto = modal_img["src"]
             # Remover parâmetros de query (?lm=1)
-            url_foto = url_foto.split('?')[0]
+            url_foto = url_foto.split("?")[0]
             return url_foto, "OK"
 
         # Método 2: Buscar em data-src
-        modal_img = soup.find('img', {'data-src': re.compile(r'portrait/big/.*\.jpg')})
-        if modal_img and modal_img.get('data-src'):
-            url_foto = modal_img['data-src']
-            url_foto = url_foto.split('?')[0]
+        modal_img = soup.find("img", {"data-src": re.compile(r"portrait/big/.*\.jpg")})
+        if modal_img and modal_img.get("data-src"):
+            url_foto = modal_img["data-src"]
+            url_foto = url_foto.split("?")[0]
             return url_foto, "OK"
 
         # Método 3: Buscar qualquer img com portrait/big
-        for img in soup.find_all('img'):
-            src = img.get('src', '') or img.get('data-src', '')
-            if 'portrait/big' in src and '.jpg' in src:
-                url_foto = src.split('?')[0]
+        for img in soup.find_all("img"):
+            src = img.get("src", "") or img.get("data-src", "")
+            if "portrait/big" in src and ".jpg" in src:
+                url_foto = src.split("?")[0]
                 return url_foto, "OK"
 
         return None, "URL não encontrada no HTML"
@@ -107,14 +109,14 @@ def baixar_foto_com_scraping(tm_value, id_jogador, nome_jogador):
     # Baixar a foto
     try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
 
         response = requests.get(url_foto, headers=headers, timeout=10)
 
         if response.status_code == 200 and len(response.content) > 1000:
-            foto_path = f'fotos/{id_jogador}.jpg'
-            with open(foto_path, 'wb') as f:
+            foto_path = f"fotos/{id_jogador}.jpg"
+            with open(foto_path, "wb") as f:
                 f.write(response.content)
             return True, "OK"
         else:
@@ -133,7 +135,7 @@ def baixar_todas_fotos_scraping(delay=2.0, max_jogadores=None):
     print("=" * 60)
 
     # Criar pasta
-    os.makedirs('fotos', exist_ok=True)
+    os.makedirs("fotos", exist_ok=True)
 
     # Conectar ao banco
     db = ScoutingDatabase()
@@ -181,9 +183,9 @@ def baixar_todas_fotos_scraping(delay=2.0, max_jogadores=None):
     print("\n🔄 Baixando fotos...\n")
 
     for idx, (_, jogador) in enumerate(jogadores.iterrows(), 1):
-        id_jog = jogador['id_jogador']
-        nome = jogador['nome']
-        tm_value = jogador['transfermarkt_id']
+        id_jog = jogador["id_jogador"]
+        nome = jogador["nome"]
+        tm_value = jogador["transfermarkt_id"]
 
         # Extrair ID para exibição
         tm_id = extrair_id_da_url(tm_value)
@@ -239,7 +241,9 @@ def testar_um_jogador(tm_value):
         return False
 
     print(f"\n📋 Transfermarkt ID extraído: {tm_id}")
-    print(f"🌐 URL da página: https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}\n")
+    print(
+        f"🌐 URL da página: https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}\n"
+    )
 
     print("1️⃣ Acessando página do jogador...")
     url_foto, motivo = extrair_url_foto_da_pagina(tm_id)
@@ -254,7 +258,7 @@ def testar_um_jogador(tm_value):
     print("2️⃣ Baixando foto...")
 
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url_foto, headers=headers, timeout=10)
 
         if response.status_code == 200:
@@ -262,8 +266,8 @@ def testar_um_jogador(tm_value):
             print(f"   ✅ Baixado! Tamanho: {tamanho:,} bytes")
 
             # Salvar temporariamente
-            os.makedirs('fotos', exist_ok=True)
-            with open('fotos/teste.jpg', 'wb') as f:
+            os.makedirs("fotos", exist_ok=True)
+            with open("fotos/teste.jpg", "wb") as f:
                 f.write(response.content)
             print(f"   💾 Salvo em: fotos/teste.jpg\n")
 
@@ -338,4 +342,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Erro: {e}\n")
         import traceback
+
         traceback.print_exc()

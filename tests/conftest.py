@@ -1,4 +1,5 @@
 """Configuração global dos testes"""
+
 import sys
 from pathlib import Path
 
