@@ -120,6 +120,8 @@ def get_foto_jogador(id_jogador):
     if foto_path.exists() and foto_path.is_file():
         return str(foto_path)
     return None
+
+
 def get_perfil_url(id_jogador):
     """Retorna a URL completa do perfil do jogador"""
     return f"?jogador={id_jogador}"
