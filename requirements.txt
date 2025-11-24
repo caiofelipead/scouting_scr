@@ -36,13 +36,12 @@ python-dateutil>=2.8.0
 pytz>=2023.3
 openpyxl>=3.1.0  # Excel support
 
-# ===== DESENVOLVIMENTO (opcional) =====
+# ===== DESENVOLVIMENTO E TESTES =====
 pytest>=7.4.0
+pytest-cov>=5.0.0
 black>=23.10.0
 flake8>=6.1.0
-pytest-cov
-python-dotenv
-
+python-dotenv>=1.0.0
 
 # ===== RAILWAY SPECIFIC =====
 gunicorn>=21.2.0  # WSGI server para produção
