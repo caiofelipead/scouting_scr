@@ -1011,6 +1011,46 @@ def main():
     # Sidebar - Filtros normais
     st.sidebar.header("🔍 Filtros")
 
+        # Extrair valores únicos para os filtros
+    posicoes = sorted(df_jogadores['posicao'].dropna().unique().tolist()) if 'posicao' in df_jogadores.columns else []
+    nacionalidades = sorted(df_jogadores['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df_jogadores.columns else []
+    clubes = sorted(df_jogadores['clube'].dropna().unique().tolist()) if 'clube' in df_jogadores.columns else []
+    
+    # Filtros
+    filtro_nome = st.sidebar.text_input("🔎 Buscar por nome", "")
+    
+    filtro_posicao = st.sidebar.multiselect(
+        "⚽ Posição",
+        options=posicoes,
+        default=[]
+    )
+    
+    filtro_idade_min = st.sidebar.number_input(
+        "🎂 Idade mínima",
+        min_value=15,
+        max_value=45,
+        value=15
+    )
+    
+    filtro_idade_max = st.sidebar.number_input(
+        "🎂 Idade máxima",
+        min_value=15,
+        max_value=45,
+        value=45
+    )
+    
+    filtro_nacionalidade = st.sidebar.multiselect(
+        "🏁 Nacionalidade",
+        options=nacionalidades,
+        default=[]
+    )
+    
+    filtro_clube = st.sidebar.multiselect(
+        "🏟️ Clube",
+        options=clubes,
+        default=[]
+    )
+
     # Carregar dados
     df_jogadores = db.get_jogadores_com_vinculos()
 
@@ -1044,6 +1084,25 @@ def main():
 
     # Aplicar filtros
     df_filtrado = df_jogadores.copy()
+
+        # Aplicar filtros progressivamente
+    if filtro_nome:
+        df_filtrado = df_filtrado[df_filtrado['nome'].str.contains(filtro_nome, case=False, na=False)]
+    
+    if filtro_posicao:
+        df_filtrado = df_filtrado[df_filtrado['posicao'].isin(filtro_posicao)]
+    
+    if 'idade_atual' in df_filtrado.columns:
+        df_filtrado = df_filtrado[
+            (df_filtrado['idade_atual'] >= filtro_idade_min) & 
+            (df_filtrado['idade_atual'] <= filtro_idade_max)
+        ]
+    
+    if filtro_nacionalidade:
+        df_filtrado = df_filtrado[df_filtrado['nacionalidade'].isin(filtro_nacionalidade)]
+    
+    if filtro_clube:
+        df_filtrado = df_filtrado[df_filtrado['clube'].isin(filtro_clube)]
     
     # Mostrar apenas primeiros 20 jogadores como exemplo
     st.markdown("---")
