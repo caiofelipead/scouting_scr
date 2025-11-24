@@ -1042,6 +1042,31 @@ def main():
     # (Os tabs e toda a visualização segue depois)
     st.info("✅ Sistema funcionando! Dados carregados com sucesso.")
 
+    # Aplicar filtros
+    df_filtrado = df_jogadores.copy()
+    
+    # Mostrar apenas primeiros 20 jogadores como exemplo
+    st.markdown("---")
+    st.subheader(f"📋 Jogadores Encontrados: {len(df_filtrado)}")
+    
+    # Exibir tabela de jogadores
+    if len(df_filtrado) > 0:
+        # Selecionar colunas principais para exibir
+        colunas_exibir = ['nome', 'posicao', 'idade_atual', 'nacionalidade', 'clube']
+        colunas_disponiveis = [col for col in colunas_exibir if col in df_filtrado.columns]
+        
+        # Mostrar tabela
+        st.dataframe(
+            df_filtrado[colunas_disponiveis].head(20),
+            use_container_width=True,
+            height=600
+        )
+        
+        if len(df_filtrado) > 20:
+            st.info(f"Mostrando os primeiros 20 de {len(df_filtrado)} jogadores. Use os filtros na sidebar para refinar a busca.")
+    else:
+        st.warning("Nenhum jogador encontrado com os filtros aplicados.")
+
 
 if __name__ == "__main__":
     main()
