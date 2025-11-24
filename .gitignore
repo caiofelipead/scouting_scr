@@ -116,3 +116,49 @@ credentials*.json
 .env
 *.bak*
 database.py.bak*
+
+# Scripts temporários de diagnóstico
+diagnostico_*.py
+fix_*.py
+corrigir_*.py
+verificar_*.py
+criar_*.py
+mapeamento_*.py
+mapeamento_*.csv
+log_*.txt
+organizar_*.py
+
+# Scripts temporários de diagnóstico e debug
+diagnostico_*.py
+fix_*.py
+corrigir_*.py
+verificar_*.py
+criar_*.py
+mapeamento_*.py
+limpar_*.py
+organizar_*.py
+
+# Arquivos de mapeamento temporários
+mapeamento_*.csv
+log_*.txt
+
+# Backups temporários
+*.bak
+*.backup
+*_backup_*
+
+# Banco SQLite (não usa mais)
+*.db
+*.db-journal
+
+# Fotos arquivadas
+fotos/fotos_ids_antigos_arquivo/
+fotos/backup_ids_antigos/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Exports temporários
+exports/*.csv
+!exports/.gitkeep
