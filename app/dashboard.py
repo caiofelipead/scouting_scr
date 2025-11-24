@@ -1013,7 +1013,17 @@ def main():
 
         # Extrair valores únicos para os filtros
     
-    # Filtros
+    )
+
+    # Carregar dados
+    df_jogadores = db.get_jogadores_com_vinculos()
+
+        # Extrair valores únicos para os filtros (DEPOIS de carregar df_jogadores)
+    posicoes = sorted(df_jogadores['posicao'].dropna().unique().tolist()) if 'posicao' in df_jogadores.columns else []
+    nacionalidades = sorted(df_jogadores['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df_jogadores.columns else []
+    clubes = sorted(df_jogadores['clube'].dropna().unique().tolist()) if 'clube' in df_jogadores.columns else []
+
+        # Filtros (AGORA com as listas já criadas)
     filtro_nome = st.sidebar.text_input("🔎 Buscar por nome", "")
     
     filtro_posicao = st.sidebar.multiselect(
@@ -1022,19 +1032,8 @@ def main():
         default=[]
     )
     
-    filtro_idade_min = st.sidebar.number_input(
-        "🎂 Idade mínima",
-        min_value=15,
-        max_value=45,
-        value=15
-    )
-    
-    filtro_idade_max = st.sidebar.number_input(
-        "🎂 Idade máxima",
-        min_value=15,
-        max_value=45,
-        value=45
-    )
+    filtro_idade_min = st.sidebar.number_input("🎂 Idade mínima", min_value=15, max_value=45, value=15)
+    filtro_idade_max = st.sidebar.number_input("🎂 Idade máxima", min_value=15, max_value=45, value=45)
     
     filtro_nacionalidade = st.sidebar.multiselect(
         "🏁 Nacionalidade",
@@ -1047,14 +1046,6 @@ def main():
         options=clubes,
         default=[]
     )
-
-    # Carregar dados
-    df_jogadores = db.get_jogadores_com_vinculos()
-
-        # Extrair valores únicos para os filtros (DEPOIS de carregar df_jogadores)
-    posicoes = sorted(df_jogadores['posicao'].dropna().unique().tolist()) if 'posicao' in df_jogadores.columns else []
-    nacionalidades = sorted(df_jogadores['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df_jogadores.columns else []
-    clubes = sorted(df_jogadores['clube'].dropna().unique().tolist()) if 'clube' in df_jogadores.columns else []
 
     # Verificar se há dados
     if len(df_jogadores) == 0:
