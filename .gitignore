@@ -114,3 +114,5 @@ reports/*.xlsx
 __pycache__/
 credentials*.json
 .env
+*.bak*
+database.py.bak*
