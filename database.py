@@ -492,12 +492,12 @@ class ScoutingDatabase:
     def get_dados_google_sheets(self):
         """Tenta importar e usar o módulo de sync"""
         try:
-            from google_sheets_sync_railway import GoogleSheetsSync
+            from google_sheets_sync_streamlit import GoogleSheetsSync
             sync = GoogleSheetsSync()
             sync.conectar_planilha()
             return sync.ler_dados_planilha()
         except ImportError:
-            print("⚠️ Módulo google_sheets_sync_railway não encontrado.")
+            print("⚠️ Módulo google_sheets_sync_streamlit não encontrado.")
             return None
         except Exception as e:
             print(f"❌ Erro no sync: {e}")
@@ -510,7 +510,7 @@ class ScoutingDatabase:
         
         try:
             # Usa a lógica de sync existente para parsing
-            from google_sheets_sync_railway import GoogleSheetsSync
+            from google_sheets_sync_streamlit import GoogleSheetsSync
             sync = GoogleSheetsSync()
             
             sucesso = 0

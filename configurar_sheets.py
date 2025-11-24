@@ -55,7 +55,7 @@ def testar_conexao():
     print("\n🧪 Testando conexão com Google Sheets...")
 
     try:
-        from google_sheets_sync_railway import GoogleSheetsSync
+        from google_sheets_sync_streamlit import GoogleSheetsSync
 
         sync = GoogleSheetsSync()
 
