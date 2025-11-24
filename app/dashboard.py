@@ -1013,7 +1013,6 @@ def main():
 
         # Extrair valores únicos para os filtros
     
-    )
 
     # Carregar dados
     df_jogadores = db.get_jogadores_com_vinculos()
