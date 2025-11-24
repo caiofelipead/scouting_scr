@@ -245,7 +245,7 @@ class ScoutingDatabase:
                 conn,
                 params=(id_jogador,),
             )
-        except:
+        except Exception:
             df = pd.DataFrame()
         conn.close()
         return df
@@ -264,7 +264,7 @@ class ScoutingDatabase:
                 conn,
                 params=(id_jogador,),
             )
-        except:
+        except Exception:
             df = pd.DataFrame()
         conn.close()
         return df
@@ -286,7 +286,7 @@ class ScoutingDatabase:
         for tabela in tabelas:
             try:
                 cursor.execute(f"DELETE FROM {tabela}")
-            except:
+            except Exception:
                 pass
 
         conn.commit()
@@ -416,11 +416,11 @@ class ScoutingDatabase:
             # Alertas
             try:
                 cursor.execute("SELECT COUNT(*) FROM alertas WHERE ativo = 1")
-            except:
+            except Exception:
                 cursor.execute("SELECT COUNT(*) FROM alertas")
             stats["alertas_ativos"] = cursor.fetchone()[0]
 
-        except:
+        except Exception:
             pass
 
         conn.close()
@@ -439,7 +439,7 @@ class ScoutingDatabase:
             """,
                 (id_jogador, tipo_alerta, descricao, prioridade),
             )
-        except:
+        except Exception:
             cursor.execute(
                 """
             INSERT INTO alertas (id_jogador, tipo_alerta, descricao, prioridade)
@@ -477,7 +477,7 @@ class ScoutingDatabase:
                 a.data_criacao DESC
             """
             df = pd.read_sql_query(query, conn)
-        except:
+        except Exception:
             df = pd.DataFrame()
 
         conn.close()
@@ -492,7 +492,7 @@ class ScoutingDatabase:
             cursor.execute(
                 "UPDATE alertas SET ativo = 0 WHERE id_alerta = ?", (id_alerta,)
             )
-        except:
+        except Exception:
             cursor.execute("DELETE FROM alertas WHERE id_alerta = ?", (id_alerta,))
 
         conn.commit()
@@ -652,7 +652,7 @@ class ScoutingDatabase:
             else:
                 return "ativo"
 
-        except:
+        except Exception:
             return "indefinido"
 
     def _criar_alertas_automaticos(self, id_jogador, row, status_contrato):

@@ -112,3 +112,5 @@ data/exports/*
 reports/*.pdf
 reports/*.xlsx
 __pycache__/
+credentials*.json
+.env

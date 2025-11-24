@@ -66,7 +66,7 @@ def fazer_backup():
             cursor.execute("SELECT COUNT(*) FROM alertas")
             total_alertas = cursor.fetchone()[0]
             print(f"   • Alertas: {total_alertas}")
-        except:
+        except Exception:
             pass
 
         conn.close()
@@ -98,7 +98,7 @@ def limpar_backups_antigos(manter=10):
             try:
                 os.remove(f"backups/{backup}")
                 removidos += 1
-            except:
+            except Exception:
                 pass
 
         if removidos > 0:
@@ -133,7 +133,7 @@ def listar_backups():
             timestamp = backup.replace("scouting_backup_", "").replace(".db", "")
             data = datetime.strptime(timestamp, "%Y%m%d_%H%M%S")
             data_formatada = data.strftime("%d/%m/%Y %H:%M:%S")
-        except:
+        except Exception:
             data_formatada = "Data desconhecida"
 
         print(f"\n{i}. {backup}")

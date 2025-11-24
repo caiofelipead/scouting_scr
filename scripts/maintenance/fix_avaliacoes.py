@@ -23,7 +23,7 @@ def fix_avaliacoes_table():
         cursor.execute("SELECT * FROM avaliacoes")
         backup_data = cursor.fetchall()
         print(f"  📦 Backup de {len(backup_data)} avaliações encontradas")
-    except:
+    except Exception:
         backup_data = []
         print("  ℹ️ Nenhuma avaliação existente para backup")
 

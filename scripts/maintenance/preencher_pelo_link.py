@@ -31,7 +31,7 @@ def conectar_sheets():
 
         try:
             worksheet = sheet.worksheet(NOME_ABA)
-        except:
+        except Exception:
             worksheet = sheet.get_worksheet(0)
             print(
                 f"⚠️ Aba '{NOME_ABA}' não encontrada. Usando a primeira aba: '{worksheet.title}'"
@@ -82,7 +82,7 @@ def extrair_dados_tm(url):
                 dados["nome"] = limpar_texto(h1.get_text().split("\n")[-1])
             else:
                 dados["nome"] = soup.find("title").get_text().split("-")[0].strip()
-        except:
+        except Exception:
             dados["nome"] = "Erro Nome"
 
         # --- 2. Clube e Liga ---
@@ -98,7 +98,7 @@ def extrair_dados_tm(url):
                 dados["liga"] = header_league.find("a").get_text(strip=True)
             else:
                 dados["liga"] = "N/A"
-        except:
+        except Exception:
             dados["clube"] = "N/A"
             dados["liga"] = "N/A"
 
@@ -141,7 +141,7 @@ def extrair_dados_tm(url):
                 dados["nacionalidade"] = flag_img["title"]
             else:
                 dados["nacionalidade"] = ""
-        except:
+        except Exception:
             dados["nacionalidade"] = ""
 
         # Contrato

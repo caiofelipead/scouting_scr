@@ -26,7 +26,8 @@ try:
         sys.path.append(str(root_path))
 
     # Tenta importar o banco de dados
-    from src.database.database import ScoutingDatabase
+    # MODIFICAÇÃO: Importa direto pois sys.path inclui a raiz
+    from database import ScoutingDatabase
 
 except ImportError as e:
     st.error(f"❌ Erro Crítico de Importação: {e}")
@@ -404,7 +405,7 @@ def exibir_perfil_jogador(db, id_jogador):
 
     try:
         id_busca = int(id_jogador)
-    except:
+    except Exception:
         id_busca = id_jogador
 
     query = """
@@ -416,11 +417,13 @@ def exibir_perfil_jogador(db, id_jogador):
         v.data_fim_contrato,
         v.status_contrato
     FROM jogadores j
-    LEFT JOIN vinculos v ON j.id_jogador = v.id_jogador
-    WHERE j.id_jogador = ?
+    LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+    WHERE j.id_jogador = :id
     """
 
-    jogador = pd.read_sql_query(query, conn, params=(id_busca,))
+    # Compatibilidade SQL (Postgres/SQLite)
+    # O parametro :id é mais seguro
+    jogador = pd.read_sql_query(query, conn, params={'id': id_busca})
     conn.close()
 
     if len(jogador) == 0:
@@ -553,7 +556,7 @@ def exibir_perfil_jogador(db, id_jogador):
                     dias_totais = 1095
                     progresso = max(0, min(100, (dias_restantes / dias_totais) * 100))
                     st.progress(progresso / 100)
-            except:
+            except Exception:
                 pass
 
     # ============== SEÇÃO DE AVALIAÇÕES ==============
@@ -968,7 +971,7 @@ def main():
         try:
             st.session_state.pagina = "perfil"
             st.session_state.jogador_selecionado = int(jogador_id_url)
-        except:
+        except Exception:
             pass
 
     # Se estiver na página de perfil
@@ -1413,7 +1416,7 @@ def main():
             a.nota_mental,
             a.data_avaliacao
         FROM jogadores j
-        LEFT JOIN vinculos v ON j.id_jogador = v.id_jogador
+        LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
         INNER JOIN avaliacoes a ON j.id_jogador = a.id_jogador
         INNER JOIN (
             SELECT id_jogador, MAX(data_avaliacao) as max_data
@@ -1422,6 +1425,7 @@ def main():
         ) ultima ON a.id_jogador = ultima.id_jogador AND a.data_avaliacao = ultima.max_data
         """
 
+        # Compatibilidade para SQLite/Postgres
         df_avaliacoes = pd.read_sql_query(query_avaliacoes, conn)
         conn.close()
 

@@ -82,7 +82,7 @@ def check_folders():
         try:
             os.makedirs("fotos")
             return True, "Pasta 'fotos/' criada"
-        except:
+        except Exception:
             return False, "Erro ao criar pasta 'fotos/'"
     else:
         return True, "Pasta 'fotos/' já existe"

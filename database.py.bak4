@@ -402,19 +402,11 @@ class ScoutingDatabase:
                 else:
                     alertas = conn.execute(text("SELECT COUNT(*) FROM alertas WHERE ativo = 1")).fetchone()[0]
                 
-                # Compatível com SQLite e PostgreSQL
-                if self.db_type == 'postgresql':
-                    contratos = conn.execute(text("""
-                        SELECT COUNT(*) FROM vinculos_clubes 
-                        WHERE data_fim_contrato <= CURRENT_DATE + INTERVAL '6 months'
-                        AND data_fim_contrato >= CURRENT_DATE
-                    """)).fetchone()[0]
-                else:
-                    contratos = conn.execute(text("""
-                        SELECT COUNT(*) FROM vinculos_clubes 
-                        WHERE data_fim_contrato <= DATE('now', '+6 months')
-                        AND data_fim_contrato >= DATE('now')
-                    """)).fetchone()[0]
+                contratos = conn.execute(text("""
+                    SELECT COUNT(*) FROM vinculos_clubes 
+                    WHERE data_fim_contrato <= DATE('now', '+6 months')
+                    AND data_fim_contrato >= DATE('now')
+                """)).fetchone()[0]
                 
                 vinculos = conn.execute(text("SELECT COUNT(*) FROM vinculos_clubes")).fetchone()[0]
                 
