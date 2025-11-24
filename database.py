@@ -511,7 +511,7 @@ class ScoutingDatabase:
                     'ano_nascimento': sync._converter_int(row.get('Ano')),
                     'idade_atual': sync._converter_int(row.get('Idade')),
                     'altura': sync._converter_altura(row.get('Altura')),
-                    'pe_dominante': str(row.get('Pé', '')).strip() or None,
+                    'pe_dominante': str(row.get('Pé dominante', '')).strip() or None,
                     'transfermarkt_id': tm_id
                 }
                 
@@ -522,8 +522,8 @@ class ScoutingDatabase:
                         'clube': str(row.get('Clube', '')).strip() or None,
                         'liga_clube': str(row.get('Liga do Clube', '')).strip() or None,
                         'posicao': str(row.get('Posição', '')).strip(),
-                        'data_fim_contrato': sync._converter_data(row.get('Fim de contrato')),
-                        'status_contrato': sync._calcular_status_contrato(row.get('Fim de contrato'))
+                        'data_fim_contrato': sync._converter_data(row.get('Fim de Contrato')),
+                        'status_contrato': sync._calcular_status_contrato(row.get('Fim de Contrato'))
                     }
                     self.inserir_vinculo(id_jogador, dados_vinculo)
                     sucesso += 1

@@ -144,7 +144,7 @@ class GoogleSheetsSync:
                     'ano_nascimento': self._converter_int(row.get('Ano')),
                     'idade_atual': self._converter_int(row.get('Idade')),
                     'altura': self._converter_altura(row.get('Altura')),
-                    'pe_dominante': str(row.get('Pé', '')).strip() or None,
+                    'pe_dominante': str(row.get('Pé dominante', '')).strip() or None,
                     'transfermarkt_id': tm_id
                 }
                 
@@ -157,9 +157,9 @@ class GoogleSheetsSync:
                         'clube': str(row.get('Clube', '')).strip() or None,
                         'liga_clube': str(row.get('Liga do Clube', '')).strip() or None,
                         'posicao': str(row.get('Posição', '')).strip(),
-                        'data_fim_contrato': self._converter_data(row.get('Fim de contrato')),
+                        'data_fim_contrato': self._converter_data(row.get('Fim de Contrato')),
                         'status_contrato': self._calcular_status_contrato(
-                            row.get('Fim de contrato')
+                            row.get('Fim de Contrato')
                         )
                     }
                     
