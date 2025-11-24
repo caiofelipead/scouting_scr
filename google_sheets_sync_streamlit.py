@@ -139,7 +139,6 @@ class GoogleSheetsSync:
         print("\n" + "="*60)
         print("🔄 SINCRONIZAÇÃO: Google Sheets → Banco de Dados")
         print("="*60 + "\n")
-            try:
         
         # Conectar à planilha
         if not self.conectar_planilha(sheet_url):
@@ -215,9 +214,6 @@ class GoogleSheetsSync:
         print("="*60)
         
         return True
-            except Exception as e:
-        print(f"❌ Erro geral na sincronização: {e}")
-        return False
     
     def _converter_int(self, valor):
         """Converte valor para int, retorna None se inválido"""
