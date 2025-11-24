@@ -24,6 +24,7 @@ plotly>=5.17.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
 pillow>=10.0.0
+mplsoccer
 
 # ===== WEB SCRAPING =====
 beautifulsoup4>=4.12.0
