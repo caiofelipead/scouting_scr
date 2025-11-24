@@ -110,21 +110,16 @@ def get_database():
 
 
 def get_foto_jogador(id_jogador):
-    """Retorna o caminho da foto do jogador ou uma imagem placeholder"""
-    # Ajuste para procurar fotos na raiz se estiver rodando do app/
-    foto_path = Path(f"fotos/{id_jogador}.jpg")
+    """Retorna o caminho da foto do jogador ou None"""
+    from pathlib import Path
 
-    # Tenta caminho relativo da raiz
-    if not foto_path.exists():
-        # Tenta subir um nível
-        foto_path = Path(f"../fotos/{id_jogador}.jpg")
+    # Caminho absoluto a partir da raiz do projeto
+    root_path = Path(__file__).resolve().parent.parent
+    foto_path = root_path / "fotos" / f"{id_jogador}.jpg"
 
-    if foto_path.exists():
+    if foto_path.exists() and foto_path.is_file():
         return str(foto_path)
-    else:
-        return None
-
-
+    return None
 def get_perfil_url(id_jogador):
     """Retorna a URL completa do perfil do jogador"""
     return f"?jogador={id_jogador}"
