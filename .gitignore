@@ -111,3 +111,4 @@ data/exports/*
 # Relatórios gerados
 reports/*.pdf
 reports/*.xlsx
+__pycache__/
