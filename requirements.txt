@@ -40,6 +40,8 @@ openpyxl>=3.1.0  # Excel support
 pytest>=7.4.0
 black>=23.10.0
 flake8>=6.1.0
+pytest-cov
+
 
 # ===== RAILWAY SPECIFIC =====
 gunicorn>=21.2.0  # WSGI server para produção
