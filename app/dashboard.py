@@ -990,23 +990,21 @@ def main():
     st.sidebar.header("🔄 Sincronização")
 
     # Botão para puxar dados do Google Sheets
-    if st.sidebar.button("Baixar Dados da Planilha", type="primary"):
-        with st.spinner("Conectando ao Google Sheets..."):
-            # 1. Puxa os dados brutos da planilha
-            df_novos_dados = db.get_dados_google_sheets()
-
-            if df_novos_dados is not None:
-                # 2. Salva no banco de dados SQLite
-                sucesso = db.importar_dados_planilha(df_novos_dados)
-
-                if sucesso:
-                    st.sidebar.success("✅ Atualizado com sucesso!")
-                    time.sleep(1)  # Espera 1 segundinho pra ler
-                    st.rerun()  # Recarrega a página sozinho
-                else:
-                    st.sidebar.error("❌ Falha ao salvar no banco.")
+if st.sidebar.button("Baixar Dados da Planilha", type="primary"):
+    with st.spinner("Sincronizando..."):
+        try:
+            from google_sheets_sync_streamlit import GoogleSheetsSync
+            sync = GoogleSheetsSync()
+            sucesso = sync.sincronizar_para_banco(limpar_antes=False)
+            
+            if sucesso:
+                st.sidebar.success("✅ Sincronização concluída!")
+                time.sleep(1)
+                st.rerun()
             else:
-                st.sidebar.error("❌ Erro ao conectar na planilha.")
+                st.sidebar.error("❌ Falha na sincronização.")
+        except Exception as e:
+            st.sidebar.error(f"❌ Erro: {str(e)}")
 
     st.sidebar.markdown("---")
 
