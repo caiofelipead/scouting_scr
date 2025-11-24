@@ -1012,9 +1012,6 @@ def main():
     st.sidebar.header("🔍 Filtros")
 
         # Extrair valores únicos para os filtros
-    posicoes = sorted(df_jogadores['posicao'].dropna().unique().tolist()) if 'posicao' in df_jogadores.columns else []
-    nacionalidades = sorted(df_jogadores['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df_jogadores.columns else []
-    clubes = sorted(df_jogadores['clube'].dropna().unique().tolist()) if 'clube' in df_jogadores.columns else []
     
     # Filtros
     filtro_nome = st.sidebar.text_input("🔎 Buscar por nome", "")
@@ -1053,6 +1050,11 @@ def main():
 
     # Carregar dados
     df_jogadores = db.get_jogadores_com_vinculos()
+
+        # Extrair valores únicos para os filtros (DEPOIS de carregar df_jogadores)
+    posicoes = sorted(df_jogadores['posicao'].dropna().unique().tolist()) if 'posicao' in df_jogadores.columns else []
+    nacionalidades = sorted(df_jogadores['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df_jogadores.columns else []
+    clubes = sorted(df_jogadores['clube'].dropna().unique().tolist()) if 'clube' in df_jogadores.columns else []
 
     # Verificar se há dados
     if len(df_jogadores) == 0:
