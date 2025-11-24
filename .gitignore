@@ -162,3 +162,6 @@ htmlcov/
 # Exports temporários
 exports/*.csv
 !exports/.gitkeep
+.streamlit/secrets.toml
+.streamlit/secrets.toml
+credentials.json
