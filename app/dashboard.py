@@ -2632,13 +2632,15 @@ def tab_alertas_inteligentes(db):
     
     if filtro_prioridade:
         alertas = alertas[alertas['prioridade'].isin(filtro_prioridade)]
+        
     
     st.metric("Total de Alertas", len(alertas))
     
     st.markdown("---")
-    
-    if len(alertas) == 0:
-        st.success("✅ Nenhum alerta no momento!")
+
+   
+     if alertas.empty or 'tipo_alerta' not in alertas.columns:
+        st.info("✅ Tudo tranquilo! Nenhum alerta ativo no momento.")
         return
     
     # Agrupar por tipo
