@@ -57,7 +57,31 @@ class ScoutingDatabase:
         if isinstance(value, (np.int64, np.int32, np.int16)):
             return int(value)
         return value
-    
+
+    def criar_tabela_propostas(self):
+        """Cria ou atualiza a tabela propostas com todas as colunas necessárias"""
+    try:
+        with self.engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS propostas (
+                    id_proposta SERIAL PRIMARY KEY,
+                    id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
+                    valor_proposta NUMERIC(12, 2),
+                    moeda VARCHAR(10) DEFAULT 'BRL',
+                    tipo_transferencia VARCHAR(50) DEFAULT 'Definitiva',
+                    clube_interessado VARCHAR(255),
+                    data_proposta DATE DEFAULT CURRENT_DATE,
+                    status VARCHAR(50) DEFAULT 'Em análise',
+                    observacoes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.commit()
+            return True
+    except Exception as e:
+        print(f"Erro ao criar tabela propostas: {e}")
+        return False
+        
     def criar_tabelas(self):
         """Cria todas as tabelas e views (v3.0) - Compatível com SQLite e PostgreSQL"""
         
@@ -69,6 +93,7 @@ class ScoutingDatabase:
             id_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
             bool_true = "1"
 
+        
         # --- 1. DEFINIÇÃO DAS TABELAS ---
         commands = [
             # Jogadores
