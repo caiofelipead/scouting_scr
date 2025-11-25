@@ -1345,7 +1345,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                         if na_wishlist:
                             # Botão de remover da wishlist
                             if st.button(
-                                "💔",
+                                "❌",
                                 key=f"remwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
                                 use_container_width=True,
                                 help="Remover da Wishlist"
@@ -1356,7 +1356,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                         else:
                             # Botão de adicionar à wishlist
                             if st.button(
-                                "❤️",
+                                "⭐️",
                                 key=f"addwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
                                 use_container_width=True,
                                 help="Adicionar à Wishlist"
