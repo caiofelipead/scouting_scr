@@ -330,46 +330,59 @@ class ScoutingDatabaseExtended:
             conn.close()
     
     def estatisticas_financeiras(self):
-        """Retorna estatísticas do banco financeiro"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        try:
-            stats = {}
+    """Retorna estatísticas gerais das propostas"""
+    try:
+        with self.engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT 
+                    COUNT(*) as total_propostas,
+                    COALESCE(SUM(CASE WHEN status = 'Aceita' THEN 1 ELSE 0 END), 0) as aceitas,
+                    COALESCE(SUM(CASE WHEN status = 'Recusada' THEN 1 ELSE 0 END), 0) as recusadas,
+                    COALESCE(SUM(CASE WHEN status = 'Em análise' THEN 1 ELSE 0 END), 0) as em_analise,
+                    COALESCE(SUM(valor_proposta), 0) as valor_total,
+                    COALESCE(AVG(valor_proposta), 0) as valor_medio,
+                    COALESCE(MAX(valor_proposta), 0) as maior_proposta,
+                    COALESCE(MIN(valor_proposta), 0) as menor_proposta
+                FROM propostas
+            """))
             
-            # Total com informação salarial
-            cursor.execute("""
-                SELECT COUNT(*) 
-                FROM jogadores 
-                WHERE salario_mensal_min IS NOT NULL
-            """)
-            stats['com_salario'] = cursor.fetchone()[0]
+            row = result.fetchone()
             
-            # Média salarial
-            cursor.execute("""
-                SELECT AVG((salario_mensal_min + salario_mensal_max) / 2)
-                FROM jogadores 
-                WHERE salario_mensal_min IS NOT NULL
-            """)
-            stats['media_salarial'] = cursor.fetchone()[0]
-            
-            # Total com informação de agente
-            cursor.execute("""
-                SELECT COUNT(*) 
-                FROM jogadores 
-                WHERE agente_nome IS NOT NULL
-            """)
-            stats['com_agente'] = cursor.fetchone()[0]
-            
-            # Total de jogadores
-            cursor.execute("SELECT COUNT(*) FROM jogadores")
-            stats['total'] = cursor.fetchone()[0]
-            
-            return stats
-            
-        finally:
-            cursor.close()
-            conn.close()
+            if row:
+                return {
+                    'total_propostas': int(row[0]),
+                    'aceitas': int(row[1]),
+                    'recusadas': int(row[2]),
+                    'em_analise': int(row[3]),
+                    'valor_total': float(row[4]),
+                    'valor_medio': float(row[5]),
+                    'maior_proposta': float(row[6]),
+                    'menor_proposta': float(row[7])
+                }
+            else:
+                return {
+                    'total_propostas': 0,
+                    'aceitas': 0,
+                    'recusadas': 0,
+                    'em_analise': 0,
+                    'valor_total': 0.0,
+                    'valor_medio': 0.0,
+                    'maior_proposta': 0.0,
+                    'menor_proposta': 0.0
+                }
+    except Exception as e:
+        print(f"Erro ao buscar estatísticas: {e}")
+        # Retorna valores zerados em caso de erro
+        return {
+            'total_propostas': 0,
+            'aceitas': 0,
+            'recusadas': 0,
+            'em_analise': 0,
+            'valor_total': 0.0,
+            'valor_medio': 0.0,
+            'maior_proposta': 0.0,
+            'menor_proposta': 0.0
+        }
 
 
 # FUNÇÕES AUXILIARES
