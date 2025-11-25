@@ -10,6 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from mplsoccer import Pitch
+from sqlalchemy import text # Added import for text() used in raw SQL execution
 
 # Configuração da página (DEVE SER A PRIMEIRA CHAMADA)
 st.set_page_config(page_title="Scout Pro", page_icon="⚽", layout="wide")
@@ -1274,7 +1275,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         )
 
 
-    def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
+def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
     """Exibe lista de jogadores com fotos em formato de cards"""
     st.markdown("### Jogadores")
     
@@ -1326,10 +1327,10 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
                     cola, colb = st.columns(2)
                     
                     with cola:
-                        # CORREÇÃO 2: Key tripla única (id_jogador + idx + i)
+                        # CORREÇÃO 2: Key tripla única (id_jogador + idx + i + sufixo_key)
                         if st.button(
                             "Ver Perfil",
-                            key=f"perfil_{jogador['id_jogador']}_{idx}_{i}",
+                            key=f"perfil_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
                             use_container_width=True,
                         ):
                             st.session_state.pagina = "perfil"
@@ -1339,14 +1340,12 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
                     
                     with colb:
                         # CORREÇÃO 3: Botão Wishlist também precisa de key única!
-                        # Este botão provavelmente estava faltando key!
                         na_wishlist = db.esta_na_wishlist(jogador['id_jogador'])
                         
                         if na_wishlist:
                             # Botão de remover da wishlist
                             if st.button(
                                 "💔",
-                                # Adicione _{sufixo_key} no final
                                 key=f"remwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
                                 use_container_width=True,
                                 help="Remover da Wishlist"
@@ -1358,7 +1357,6 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
                             # Botão de adicionar à wishlist
                             if st.button(
                                 "❤️",
-                                # Adicione _{sufixo_key} no final
                                 key=f"addwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
                                 use_container_width=True,
                                 help="Adicionar à Wishlist"
@@ -1511,7 +1509,7 @@ def tab_ranking(db, df_jogadores):
         
         # Exibir cada jogador do Top 20
         for idx, jogador in enumerate(df_top20.itertuples()):
-            rank_pos = jogador["rank"]
+            rank_pos = jogador.rank
             
             # Determinar classe CSS e emoji
             if rank_pos == 1:
@@ -1542,30 +1540,30 @@ def tab_ranking(db, df_jogadores):
             
             with col2:
                 # Nome clicável
-                perfil_url = f"?jogador={jogador['id_jogador']}"
+                perfil_url = f"?jogador={jogador.id_jogador}"
                 st.markdown(
-                    f'<a href="{perfil_url}" target="_blank" style="font-size: 1.1em;">{jogador["nome"]}</a>',
+                    f'<a href="{perfil_url}" target="_blank" style="font-size: 1.1em;">{jogador.nome}</a>',
                     unsafe_allow_html=True,
                 )
-                st.caption(f"{jogador['posicao']} | {jogador['clube']}")
+                st.caption(f"{jogador.posicao} | {jogador.clube}")
             
             with col3:
-                st.metric("⭐ Potencial", f"{jogador['nota_potencial']:.1f}")
+                st.metric("⭐ Potencial", f"{jogador.nota_potencial:.1f}")
             
             with col4:
-                st.metric("Média", f"{jogador['media_geral']:.1f}")
+                st.metric("Média", f"{jogador.media_geral:.1f}")
             
             with col5:
-                st.metric("Tático", f"{jogador['nota_tatico']:.1f}")
+                st.metric("Tático", f"{jogador.nota_tatico:.1f}")
             
             with col6:
-                st.metric("Técnico", f"{jogador['nota_tecnico']:.1f}")
+                st.metric("Técnico", f"{jogador.nota_tecnico:.1f}")
             
             with col7:
-                st.metric("Físico", f"{jogador['nota_fisico']:.1f}")
+                st.metric("Físico", f"{jogador.nota_fisico:.1f}")
             
             with col8:
-                st.metric("Mental", f"{jogador['nota_mental']:.1f}")
+                st.metric("Mental", f"{jogador.nota_mental:.1f}")
             
             st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("")  # Espaçamento
@@ -2222,7 +2220,7 @@ def render_tags_widget(db, id_jogador):
                     key=f"rem_tag_{id_jogador}"
                 )
                 
-                if st.button("Remover", key=f"btn_rem_tag_{id_jogador}_{tag_remover}"):, type="secondary"):
+                if st.button("Remover", key=f"btn_rem_tag_{id_jogador}_{tag_remover}", type="secondary"):
                     if db.remover_tag_jogador(id_jogador, tag_remover):
                         st.success("Tag removida!")
                         st.rerun()
@@ -2556,36 +2554,41 @@ def tab_wishlist(db):
     
     # Mostrar jogadores
     for idx, jogador in enumerate(wishlist.iterrows()):
-        prioridade_color = {'alta': '#dc3545', 'media': '#ffc107', 'baixa': '#28a745'}[jogador['prioridade']]
-        prioridade_label = {'alta': '🔴 ALTA', 'media': '🟡 MÉDIA', 'baixa': '🟢 BAIXA'}[jogador['prioridade']]
+        # Correção: iterrows() retorna (index, Series)
+        # Então 'jogador' aqui é na verdade uma tupla (index, row)
+        # Vamos corrigir para usar 'row'
+        row = jogador[1]  # Pegando a Series
+        
+        prioridade_color = {'alta': '#dc3545', 'media': '#ffc107', 'baixa': '#28a745'}[row['prioridade']]
+        prioridade_label = {'alta': '🔴 ALTA', 'media': '🟡 MÉDIA', 'baixa': '🟢 BAIXA'}[row['prioridade']]
         
         with st.container():
             col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
             
             with col1:
-                st.markdown(f"### {jogador['nome']}")
-                st.caption(f"{jogador.get('posicao', 'N/A')} • {jogador.get('clube', 'Livre')}")
+                st.markdown(f"### {row['nome']}")
+                st.caption(f"{row.get('posicao', 'N/A')} • {row.get('clube', 'Livre')}")
             
             with col2:
                 st.markdown(f"**Prioridade:** <span style='color: {prioridade_color}; font-weight: bold;'>{prioridade_label}</span>", 
                            unsafe_allow_html=True)
-                if pd.notna(jogador.get('observacao')):
+                if pd.notna(row.get('observacao')):
                     with st.expander("💬 Ver observação"):
-                        st.info(jogador['observacao'])
+                        st.info(row['observacao'])
             
             with col3:
-                data_add = pd.to_datetime(jogador['wishlist_adicionado_em']).strftime("%d/%m/%Y")
+                data_add = pd.to_datetime(row['wishlist_adicionado_em']).strftime("%d/%m/%Y")
                 st.metric("Adicionado em", data_add)
             
             with col4:
-                if st.button("Ver Perfil", key=f"perfil_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}", use_container_width=True,):
+                if st.button("Ver Perfil", key=f"wishlist_perfil_{row['id_jogador']}_{idx}"):
                     st.session_state.pagina = "perfil"
-                    st.session_state.jogador_selecionado = jogador['id_jogador']
-                    st.query_params["jogador"] = jogador['id_jogador']
+                    st.session_state.jogador_selecionado = row['id_jogador']
+                    st.query_params["jogador"] = row['id_jogador']
                     st.rerun()
                 
-                if st.button("Remover", key=f"wishlist_rem_{jogador['id_jogador']}_{idx}"):, type="secondary"):
-                    if db.remover_wishlist(jogador['id_jogador']):
+                if st.button("Remover", key=f"wishlist_rem_{row['id_jogador']}_{idx}", type="secondary"):
+                    if db.remover_wishlist(row['id_jogador']):
                         st.success("Removido!")
                         st.rerun()
             
@@ -2811,7 +2814,7 @@ def tab_busca_avancada(db, df_jogadores):
         if st.session_state.get('filtros_busca'):
             with st.form("form_salvar_busca"):
                 nome_busca = st.text_input("Nome da Busca", 
-                                           placeholder="Ex: Zagueiros brasileiros sub-25")
+                                             placeholder="Ex: Zagueiros brasileiros sub-25")
                 autor = st.text_input("Seu nome", value="Scout")
                 
                 if st.form_submit_button("Salvar"):
@@ -2851,7 +2854,7 @@ def tab_busca_avancada(db, df_jogadores):
         
         if view_mode == 'Cards':
             # Mostrar em cards
-            for i in range(for i in range(0, len(resultado), 3):, len(resultado), 3):
+            for i in range(0, len(resultado), 3):
                 cols = st.columns(3)
                 for j, col in enumerate(cols):
                     idx = i + j
@@ -3162,10 +3165,6 @@ def tab_analise_mercado(db, df_jogadores):
             st.warning("Sem dados de benchmark. Adicione avaliações aos jogadores.")
 
 
-# ============================================
-# FUNÇÃO AUXILIAR DE COMPARAÇÃO
-# ============================================
-
 def comparar_jogadores_busca(db, ids_jogadores, df_jogadores):
     """Compara múltiplos jogadores da busca"""
     st.markdown("### ⚖️ Comparação de Jogadores")
@@ -3189,7 +3188,7 @@ def comparar_jogadores_busca(db, ids_jogadores, df_jogadores):
                 'Físico': avaliacao['nota_fisico'].iloc[0],
                 'Mental': avaliacao['nota_mental'].iloc[0],
                 'Média': (avaliacao['nota_tatico'].iloc[0] + avaliacao['nota_tecnico'].iloc[0] +
-                         avaliacao['nota_fisico'].iloc[0] + avaliacao['nota_mental'].iloc[0]) / 4
+                          avaliacao['nota_fisico'].iloc[0] + avaliacao['nota_mental'].iloc[0]) / 4
             })
     
     if len(dados_comparacao) > 0:
@@ -3459,8 +3458,9 @@ def main():
         
         if len(df_filtrado) > 0:
             st.markdown("#### 🎯 Primeiros Jogadores")
+            # Use um sufixo específico para evitar conflito de keys
             exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key="overview")
-
+            
             if len(df_filtrado) > 10:
                 st.info(f"Mostrando os primeiros 10 de {len(df_filtrado)} jogadores. Use as outras tabs para explorar mais.")
         else:
@@ -3475,8 +3475,9 @@ def main():
             view_mode = st.radio("Modo de Visualização", ["Cards com Fotos", "Tabela Simples"], horizontal=True)
             
             if view_mode == "Cards com Fotos":
-            exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
-        else:
+                # Use um sufixo diferente para esta aba
+                exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
+            else:
                 # Tabela simples
                 df_display = df_filtrado[['nome', 'posicao', 'clube', 'nacionalidade', 'idade_atual']].copy()
                 st.dataframe(df_display, use_container_width=True, hide_index=True)
