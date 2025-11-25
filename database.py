@@ -184,7 +184,15 @@ class ScoutingDatabase:
         GROUP BY v.posicao
         """
         
-        view_alertas_inteligentes = """
+        # --- Lógica Diferenciada para Datas (SQLite vs Postgres) ---
+        if self.db_type == 'postgresql':
+            # Sintaxe PostgreSQL
+            condicao_data = "v.data_fim_contrato <= (CURRENT_DATE + INTERVAL '6 months')"
+        else:
+            # Sintaxe SQLite
+            condicao_data = "v.data_fim_contrato <= DATE('now', '+6 months')"
+
+        view_alertas_inteligentes = f"""
         CREATE VIEW IF NOT EXISTS vw_alertas_inteligentes AS
         -- 1. Alertas Manuais
         SELECT 
@@ -202,7 +210,7 @@ class ScoutingDatabase:
         
         UNION ALL
         
-        -- 2. Alertas Automáticos (Contratos Vencendo em 6 meses)
+        -- 2. Alertas Automáticos (Contratos Vencendo)
         SELECT 
             j.id_jogador,
             j.nome,
@@ -213,8 +221,7 @@ class ScoutingDatabase:
             v.data_atualizacao as data_criacao
         FROM vinculos_clubes v
         JOIN jogadores j ON v.id_jogador = j.id_jogador
-        WHERE v.data_fim_contrato <= DATE(CURRENT_DATE, '+6 months') 
-           OR v.data_fim_contrato <= (CURRENT_DATE + INTERVAL '6 months')
+        WHERE {condicao_data}
         """
 
         # --- 3. EXECUÇÃO UNIFICADA ---
