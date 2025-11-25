@@ -3,7 +3,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from utils_fotos import get_foto_jogador, get_foto_jogador_rapido
+from app.utils_fotos import get_foto_jogador, get_foto_jogador_rapido
 
 
 import numpy as np
