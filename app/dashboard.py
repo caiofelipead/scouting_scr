@@ -3,44 +3,41 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from utils_fotos import get_foto_jogador, get_foto_jogador_rapido
-from auth import check_password, mostrar_info_usuario
-from dashboard_financeiro import aba_financeira
 
-# PROTEGE O DASHBOARD
-if not check_password():
-    st.stop()
-
+# Imports de terceiros PRIMEIRO
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
+import streamlit as st  # ← STREAMLIT DEVE VIR ANTES DO st.stop()
 from mplsoccer import Pitch
-from sqlalchemy import text # Added import for text() used in raw SQL execution
+from sqlalchemy import text
 
 # Configuração da página (DEVE SER A PRIMEIRA CHAMADA)
 st.set_page_config(page_title="Scout Pro", page_icon="⚽", layout="wide")
 
 # --- CORREÇÃO DE CAMINHOS (CRÍTICO) ---
 try:
-    # Obtém o caminho absoluto do arquivo atual
     current_path = Path(__file__).resolve()
-    # Sobe dois níveis: app -> scouting_scr (raiz)
     root_path = current_path.parent.parent
-
-    # Adiciona a raiz ao sys.path se ainda não estiver lá
+    
     if str(root_path) not in sys.path:
-        sys.path.append(str(root_path))
+        sys.path.insert(0, str(root_path))
+except Exception as e:
+    st.error(f"❌ Erro ao configurar caminhos: {e}")
+    st.stop()
 
-    # Tenta importar o banco de dados
-    # MODIFICAÇÃO: Importa direto pois sys.path inclui a raiz
+# AGORA importa os módulos locais
+try:
+    from utils_fotos import get_foto_jogador, get_foto_jogador_rapido
+    from auth import check_password, mostrar_info_usuario
+    from dashboard_financeiro import aba_financeira
     from database import ScoutingDatabase
-
 except ImportError as e:
     st.error(f"❌ Erro Crítico de Importação: {e}")
     st.info(f"📂 Caminho tentado: {root_path}")
     st.stop()
+
 
 """
 Dashboard Interativo de Scouting
