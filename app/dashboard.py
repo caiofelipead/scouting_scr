@@ -3,6 +3,8 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from migrate_financeiro import migrar_colunas_financeiras
+migrar_colunas_financeiras()
 
 # Imports de terceiros PRIMEIRO
 import numpy as np
