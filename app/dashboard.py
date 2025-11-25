@@ -191,6 +191,63 @@ st.markdown(
     ::-webkit-scrollbar-thumb:hover {
         background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     }
+    
+    /* ========== NOVO: TABELAS HTML ESTILIZADAS ========== */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-radius: 10px;
+        overflow: hidden;
+        background: white;
+        margin: 1rem 0;
+    }
+    
+    th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 14px 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
+        color: #2c3e50;
+    }
+    
+    tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    tr:hover {
+        background-color: #e3f2fd !important;
+        transition: background-color 0.2s;
+    }
+    
+    /* Links na tabela */
+    table a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 0.3rem 0.8rem;
+        border-radius: 6px;
+        background: #f0f3ff;
+        transition: all 0.2s;
+        display: inline-block;
+    }
+    
+    table a:hover {
+        background: #667eea;
+        color: white;
+        text-decoration: none;
+        transform: scale(1.05);
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -3304,22 +3361,99 @@ def main():
             st.warning("Nenhum jogador encontrado com os filtros aplicados.")
     
     # ============== TAB 2: LISTA DE JOGADORES ==============
-    with tab2:
-        st.subheader(f"📋 Lista Completa: {len(df_filtrado)} jogadores")
+with tab2:
+    st.subheader(f"📋 Lista Completa: {len(df_filtrado)} jogadores")
+    
+    if len(df_filtrado) > 0:
+        # Opções de visualização
+        view_mode = st.radio(
+            "Modo de Visualização",
+            ["📸 Cards com Fotos", "📊 Tabela"],
+            horizontal=True,
+            key="view_mode_tab2"
+        )
         
-        if len(df_filtrado) > 0:
-            # Opções de visualização
-            view_mode = st.radio("Modo de Visualização", ["Cards com Fotos", "Tabela Simples"], horizontal=True)
+        st.markdown("---")
+        
+        if view_mode == "📸 Cards com Fotos":
+            # Exibir cards (código existente)
+            exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
+        
+        else:  # Tabela
+            # Preparar DataFrame para exibição
+            df_display = df_filtrado.copy()
             
-            if view_mode == "Cards com Fotos":
-                # Use um sufixo diferente para esta aba
-                exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
+            # Criar coluna com link clicável
+            base_url = st.query_params.get("base_url", "https://scoutingscr-kqoj2ctskq2nv4a4wvrc.streamlit.app")
+            
+            df_display['🔗 Perfil'] = df_display['id_jogador'].apply(
+                lambda x: f'<a href="{base_url}?jogador={x}" target="_blank">Ver Perfil</a>'
+            )
+            
+            # Selecionar colunas
+            colunas_exibir = ['nome', 'posicao', 'clube', 'liga_clube', 'nacionalidade', 
+                            'idade_atual', 'altura', 'pe_dominante', 'data_fim_contrato', '🔗 Perfil']
+            
+            # Filtrar apenas colunas que existem
+            colunas_disponiveis = [col for col in colunas_exibir if col in df_display.columns or col == '🔗 Perfil']
+            df_tabela = df_display[colunas_disponiveis].copy()
+            
+            # Renomear colunas
+            rename_map = {
+                'nome': 'Nome',
+                'posicao': 'Posição',
+                'clube': 'Clube',
+                'liga_clube': 'Liga',
+                'nacionalidade': 'Nacionalidade',
+                'idade_atual': 'Idade',
+                'altura': 'Altura (cm)',
+                'pe_dominante': 'Pé',
+                'data_fim_contrato': 'Fim Contrato'
+            }
+            df_tabela = df_tabela.rename(columns=rename_map)
+            
+            # Paginação
+            jogadores_por_pagina = 50
+            total_paginas = (len(df_tabela) - 1) // jogadores_por_pagina + 1
+            
+            if total_paginas > 1:
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    pagina_atual = st.number_input(
+                        "Página",
+                        min_value=1,
+                        max_value=total_paginas,
+                        value=1,
+                        key="paginacao_tabela"
+                    )
             else:
-                # Tabela simples
-                df_display = df_filtrado[['nome', 'posicao', 'clube', 'nacionalidade', 'idade_atual']].copy()
-                st.dataframe(df_display, use_container_width=True, hide_index=True)
-        else:
-            st.warning("Nenhum jogador encontrado com os filtros aplicados.")
+                pagina_atual = 1
+            
+            inicio = (pagina_atual - 1) * jogadores_por_pagina
+            fim = min(inicio + jogadores_por_pagina, len(df_tabela))
+            df_pagina = df_tabela.iloc[inicio:fim]
+            
+            st.caption(f"Exibindo jogadores {inicio + 1} a {fim} de {len(df_tabela)}")
+            
+            # Exibir tabela com HTML para permitir links clicáveis
+            st.markdown(
+                df_pagina.to_html(escape=False, index=False),
+                unsafe_allow_html=True
+            )
+            
+            # Botão de export
+            st.markdown("---")
+            csv = df_filtrado.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Exportar Lista (CSV)",
+                data=csv,
+                file_name=f"jogadores_scout_pro_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="export_csv_tab2"
+            )
+    else:
+        st.warning("Nenhum jogador encontrado com os filtros aplicados.")
     
     # ============== TAB 3: WISHLIST ==============
     with tab3:
