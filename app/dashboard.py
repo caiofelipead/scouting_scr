@@ -3449,7 +3449,7 @@ def main():
                         data=csv,
                         file_name=f"jogadores_scout_pro_{datetime.now().strftime('%Y%m%d')}.csv",
                         mime="text/csv",
-                        use_container_width=True,
+                        width="stretch",
                         key="export_csv_tab2"
                     )
             else:
