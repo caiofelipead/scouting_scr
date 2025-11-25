@@ -3421,16 +3421,37 @@ def main():
         st.subheader(f"📋 Visão Geral do Sistema")
         
         col1, col2, col3, col4 = st.columns(4)
+        
         with col1:
             st.metric("Total de Jogadores", len(df_filtrado))
+        
         with col2:
-            total_avaliacoes = db.execute_query("SELECT COUNT(*) as total FROM avaliacoes")[0]['total'] if len(db.execute_query("SELECT COUNT(*) as total FROM avaliacoes")) > 0 else 0
+            # Total de avaliações
+            try:
+                with db.engine.connect() as conn:
+                    result = conn.execute(text("SELECT COUNT(*) as total FROM avaliacoes"))
+                    total_avaliacoes = result.fetchone()[0]
+            except:
+                total_avaliacoes = 0
             st.metric("Total de Avaliações", total_avaliacoes)
+        
         with col3:
-            wishlist_count = db.execute_query("SELECT COUNT(*) as total FROM wishlist")[0]['total'] if len(db.execute_query("SELECT COUNT(*) as total FROM wishlist")) > 0 else 0
+            # Jogadores na wishlist
+            try:
+                wishlist = db.get_wishlist()
+                wishlist_count = len(wishlist)
+            except:
+                wishlist_count = 0
             st.metric("Jogadores na Wishlist", wishlist_count)
+        
         with col4:
-            tags_count = db.execute_query("SELECT COUNT(DISTINCT id_jogador) as total FROM jogador_tags")[0]['total'] if len(db.execute_query("SELECT COUNT(DISTINCT id_jogador) as total FROM jogador_tags")) > 0 else 0
+            # Jogadores com tags
+            try:
+                with db.engine.connect() as conn:
+                    result = conn.execute(text("SELECT COUNT(DISTINCT id_jogador) as total FROM jogador_tags"))
+                    tags_count = result.fetchone()[0]
+            except:
+                tags_count = 0
             st.metric("Jogadores com Tags", tags_count)
         
         st.markdown("---")
