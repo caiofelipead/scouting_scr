@@ -3,22 +3,31 @@ Sistema de Autenticação - Scout Pro
 Gerenciamento de usuários e controle de acesso
 """
 
-import streamlit as st
-import hashlib
-import psycopg2
-from datetime import datetime
 import os
-
+import psycopg2
+import bcrypt
+import streamlit as st
+from datetime import datetime
 
 class AuthManager:
-    """Gerenciador de autenticação e usuários"""
-    
     def __init__(self):
-        self.database_url = os.getenv('DATABASE_URL')
+        """Inicializa o gerenciador de autenticação"""
+        # Tenta pegar DATABASE_URL do st.secrets (Streamlit Cloud) primeiro
+        try:
+            self.database_url = st.secrets["DATABASE_URL"]
+        except (KeyError, FileNotFoundError):
+            # Fallback para variável de ambiente (.env local)
+            from dotenv import load_dotenv
+            load_dotenv()
+            self.database_url = os.getenv('DATABASE_URL')
+        
+        if not self.database_url:
+            raise ValueError("❌ DATABASE_URL não configurada! Configure em Secrets (Cloud) ou .env (Local)")
+        
         self._criar_tabela_usuarios()
     
     def get_connection(self):
-        """Estabelece conexão com o banco PostgreSQL"""
+        """Retorna conexão com PostgreSQL"""
         return psycopg2.connect(self.database_url)
     
     def _criar_tabela_usuarios(self):
