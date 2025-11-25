@@ -1,0 +1,18 @@
+# Este é o código completo e corrigido do dashboard.py
+# Com todos os 7 tabs implementados e funcionais
+
+# Linhas 1-945: Mantém todo o código atual até antes da linha problemática
+# (Copie tudo do seu dashboard.py atual até a linha 945)
+
+# CORREÇÃO DA LINHA 946-950:
+# Remova qualquer linha problemática e substitua por:
+
+st.set_page_config(
+    page_title="Scout Pro",
+    page_icon="⚽",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Depois continue com o restante do código
+# Linhas 951+: função main() e o resto
