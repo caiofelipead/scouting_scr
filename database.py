@@ -11,15 +11,7 @@ import pandas as pd
 from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
-import psycopg2
-from psycopg2.extensions import register_adapter, AsIs
 import numpy as np
-
-# Registra adaptadores para tipos numpy
-register_adapter(np.int64, lambda x: AsIs(x))
-register_adapter(np.int32, lambda x: AsIs(x))
-register_adapter(np.float64, lambda x: AsIs(x))
-register_adapter(np.float32, lambda x: AsIs(x))
 
 # Carregar variáveis de ambiente do .env
 load_dotenv()
@@ -58,6 +50,12 @@ class ScoutingDatabase:
             print("✅ Conectado ao SQLite com sucesso!")
         
         self.criar_tabelas()
+    
+    def _safe_int(self, value):
+        """Converte numpy int64/int32 para int nativo Python"""
+        if isinstance(value, (np.int64, np.int32, np.int16)):
+            return int(value)
+        return value
     
     def criar_tabelas(self):
         """Cria todas as tabelas e views (v3.0) - Compatível com SQLite e PostgreSQL"""
@@ -259,6 +257,7 @@ class ScoutingDatabase:
             print(f"❌ Erro crítico ao criar tabelas: {e}")
 
     def inserir_vinculo(self, id_jogador: int, dados_vinculo: dict) -> bool:
+        id_jogador = self._safe_int(id_jogador)
         try:
             query_check = "SELECT id_vinculo FROM vinculos_clubes WHERE id_jogador = :id_jogador"
             with self.engine.connect() as conn:
@@ -367,6 +366,7 @@ class ScoutingDatabase:
             return None
 
     def inserir_alerta(self, id_jogador: int, tipo_alerta: str, descricao: str, prioridade: str = 'média') -> bool:
+        id_jogador = self._safe_int(id_jogador)
         try:
             query = """
             INSERT INTO alertas (id_jogador, tipo_alerta, descricao, prioridade)
@@ -386,6 +386,7 @@ class ScoutingDatabase:
             return False
 
     def inserir_avaliacao(self, id_jogador: int, dados_avaliacao: dict) -> bool:
+        id_jogador = self._safe_int(id_jogador)
         try:
             query = """
             INSERT INTO avaliacoes (
@@ -430,6 +431,7 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def buscar_avaliacoes_jogador(self, id_jogador: int) -> pd.DataFrame:
+        id_jogador = self._safe_int(id_jogador)
         query = """
         SELECT 
             id_avaliacao, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico,
@@ -533,12 +535,14 @@ class ScoutingDatabase:
         return self.buscar_todos_jogadores()
 
     def get_avaliacoes_jogador(self, id_jogador):
+        id_jogador = self._safe_int(id_jogador)
         return self.buscar_avaliacoes_jogador(id_jogador)
 
     def get_alertas_ativos(self):
         return self.buscar_alertas_ativos()
 
     def get_ultima_avaliacao(self, id_jogador):
+        id_jogador = self._safe_int(id_jogador)
         df = self.buscar_avaliacoes_jogador(id_jogador)
         if not df.empty:
             return df.head(1)
@@ -619,6 +623,7 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def get_jogador_tags(self, id_jogador):
+        id_jogador = self._safe_int(id_jogador)
         query = """
         SELECT t.id_tag, t.nome, t.cor, t.descricao, jt.adicionado_em
         FROM jogador_tags jt
@@ -633,6 +638,8 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def adicionar_tag_jogador(self, id_jogador, id_tag, adicionado_por=None):
+        id_jogador = self._safe_int(id_jogador)
+        id_tag = self._safe_int(id_tag)
         try:
             with self.engine.connect() as conn:
                 query = """
@@ -651,6 +658,8 @@ class ScoutingDatabase:
             return False
 
     def remover_tag_jogador(self, id_jogador, id_tag):
+        id_jogador = self._safe_int(id_jogador)
+        id_tag = self._safe_int(id_tag)
         try:
             with self.engine.connect() as conn:
                 query = "DELETE FROM jogador_tags WHERE id_jogador = :id_jogador AND id_tag = :id_tag"
@@ -662,6 +671,7 @@ class ScoutingDatabase:
             return False
 
     def get_jogadores_por_tag(self, id_tag):
+        id_tag = self._safe_int(id_tag)
         query = """
         SELECT 
             j.*,
@@ -682,6 +692,7 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def adicionar_wishlist(self, id_jogador, prioridade='media', observacao=None, adicionado_por=None):
+        id_jogador = self._safe_int(id_jogador)
         try:
             with self.engine.connect() as conn:
                 check_query = "SELECT id FROM wishlist WHERE id_jogador = :id_jogador"
@@ -714,6 +725,7 @@ class ScoutingDatabase:
             return False
 
     def remover_wishlist(self, id_jogador):
+        id_jogador = self._safe_int(id_jogador)
         try:
             with self.engine.connect() as conn:
                 query = "DELETE FROM wishlist WHERE id_jogador = :id_jogador"
@@ -776,6 +788,7 @@ class ScoutingDatabase:
                 return pd.DataFrame()
 
     def esta_na_wishlist(self, id_jogador):
+        id_jogador = self._safe_int(id_jogador)
         try:
             with self.engine.connect() as conn:
                 query = "SELECT COUNT(*) FROM wishlist WHERE id_jogador = :id_jogador"
@@ -787,6 +800,7 @@ class ScoutingDatabase:
             return False
 
     def adicionar_nota_rapida(self, id_jogador, texto, autor=None, tipo='observacao'):
+        id_jogador = self._safe_int(id_jogador)
         try:
             with self.engine.connect() as conn:
                 query = """
@@ -806,6 +820,7 @@ class ScoutingDatabase:
             return False
 
     def get_notas_rapidas(self, id_jogador):
+        id_jogador = self._safe_int(id_jogador)
         query = """
         SELECT *
         FROM notas_rapidas
@@ -819,6 +834,7 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def deletar_nota_rapida(self, id_nota):
+        id_nota = self._safe_int(id_nota)
         try:
             with self.engine.connect() as conn:
                 query = "DELETE FROM notas_rapidas WHERE id_nota = :id_nota"
@@ -945,6 +961,7 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def calcular_media_jogador(self, id_jogador):
+        id_jogador = self._safe_int(id_jogador)
         avals = self.get_ultima_avaliacao(id_jogador)
         if not avals.empty:
             return (
@@ -983,6 +1000,7 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def executar_busca_salva(self, id_busca):
+        id_busca = self._safe_int(id_busca)
         import json
         try:
             with self.engine.connect() as conn:
