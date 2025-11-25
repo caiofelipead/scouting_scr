@@ -3058,6 +3058,12 @@ def calcular_media_jogador(db, id_jogador):
 # FUNÇÃO PRINCIPAL
 # ========================================
 
+@st.cache_data(ttl=300, show_spinner=False)  # ← ADICIONE ESTA LINHA
+def carregar_jogadores(_db):
+    """Carrega jogadores do banco com cache"""
+    return _db.get_jogadores_com_vinculos()
+
+
 def main():
     # Header Visual Profissional
     st.markdown(
@@ -3099,18 +3105,51 @@ def main():
         if st.button("← Voltar para Dashboard"):
             st.session_state.pagina = "dashboard"
             st.session_state.jogador_selecionado = None
-            # Limpar query parameter
             st.query_params.clear()
             st.rerun()
 
         st.markdown("---")
         
-        # Checkbox de debug na sidebar para perfil
-        debug_fotos_perfil = st.sidebar.checkbox("🐛 Debug de Fotos (Perfil)", value=False, help="Ativa modo debug para verificar o caminho das fotos no perfil")
+        debug_fotos_perfil = st.sidebar.checkbox("🐛 Debug de Fotos (Perfil)", value=False, help="Ativa modo debug")
         
         exibir_perfil_jogador(db, st.session_state.jogador_selecionado, debug=debug_fotos_perfil)
         return
 
+    # Dashboard principal continua aqui
+
+    # --- BARRA LATERAL (SIDEBAR) COM SINCRONIZAÇÃO ---
+    st.sidebar.header("🔄 Sincronização")
+
+    # Botão para puxar dados do Google Sheets
+    if st.sidebar.button("Baixar Dados da Planilha", type="primary"):
+        with st.spinner("Sincronizando..."):
+            try:
+                from google_sheets_sync_streamlit import GoogleSheetsSync
+                sync = GoogleSheetsSync()
+                sucesso = sync.sincronizar_para_banco(limpar_antes=False)
+                
+                if sucesso:
+                    st.sidebar.success("✅ Sincronização concluída!")
+                    # Limpar cache após sincronização
+                    st.cache_data.clear()  # ← LIMPA O CACHE
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.sidebar.error("❌ Falha na sincronização.")
+            except Exception as e:
+                st.sidebar.error(f"❌ Erro: {str(e)}")
+
+    st.sidebar.markdown("---")
+
+    # Sidebar - Filtros normais
+    st.sidebar.header("🔍 Filtros")
+    
+    # DEBUG MODE (desabilitado por padrão)
+    debug_fotos = st.sidebar.checkbox("🐛 Debug de Fotos", value=False, help="Ativa modo debug")
+
+    # Carregar dados COM CACHE ← MUDANÇA AQUI
+    df_jogadores = carregar_jogadores(db)
+    
     # Dashboard principal continua aqui
 
     # --- BARRA LATERAL (SIDEBAR) COM SINCRONIZAÇÃO ---
