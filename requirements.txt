@@ -36,6 +36,7 @@ selenium>=4.15.0  # Se precisar de scraping avançado
 python-dateutil>=2.8.0
 pytz>=2023.3
 openpyxl>=3.1.0  # Excel support
+lxml>=4.9.0 
 
 # ===== DESENVOLVIMENTO E TESTES =====
 pytest>=7.4.0

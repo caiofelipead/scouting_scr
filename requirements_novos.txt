@@ -1,0 +1,15 @@
+# Dependências existentes do seu projeto
+streamlit
+pandas
+numpy
+plotly
+psycopg2-binary
+python-dotenv
+gspread
+oauth2client
+
+# NOVAS DEPENDÊNCIAS PARA AS FUNCIONALIDADES
+beautifulsoup4>=4.12.0  # Para scraping do Transfermarkt
+requests>=2.31.0        # Para requisições HTTP
+openpyxl>=3.1.0         # Para exportar backups em Excel
+lxml>=4.9.0             # Parser adicional para BeautifulSoup

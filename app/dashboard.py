@@ -4,7 +4,12 @@ import time
 from datetime import datetime
 from pathlib import Path
 from utils_fotos import get_foto_jogador, get_foto_jogador_rapido
+from auth import check_password, mostrar_info_usuario
+from dashboard_financeiro import aba_financeira
 
+# PROTEGE O DASHBOARD
+if not check_password():
+    st.stop()
 
 import numpy as np
 import pandas as pd
@@ -3350,17 +3355,19 @@ def main():
     # ============== TABS PRINCIPAIS ==============
     st.markdown("---")
     
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
-        "📊 Visão Geral",
-        "👥 Lista de Jogadores",
-        "⭐ Wishlist",
-        "🏆 Ranking",
-        "⚖️ Comparador",
-        "⚽ Shadow Team",
-        "🔍 Busca Avançada",
-        "📈 Análise de Mercado",
-        "🔔 Alertas"
-    ])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
+    "📊 Visão Geral",
+    "👥 Lista de Jogadores",
+    "⭐ Wishlist",
+    "🏆 Ranking",
+    "⚖️ Comparador",
+    "⚽ Shadow Team",
+    "🔍 Busca Avançada",
+    "📈 Análise de Mercado",
+    "🔔 Alertas",
+    "💰 Financeiro"  # ← NOVA TAB
+])
+
     
     # ============== TAB 1: VISÃO GERAL ==============
     with tab1:
@@ -3456,6 +3463,10 @@ def main():
     # ============== TAB 9: ALERTAS INTELIGENTES ==============
     with tab9:
         tab_alertas_inteligentes(db)
+
+    # ============== TAB 10: FINANCEIRO ==============
+    with tab10:
+        aba_financeira()
 
 
 if __name__ == "__main__":
