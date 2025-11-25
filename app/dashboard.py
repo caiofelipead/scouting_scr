@@ -3202,34 +3202,68 @@ def main():
             except Exception as e:
                 st.sidebar.error(f"❌ Erro: {str(e)}")
 
-    st.sidebar.markdown("---")
-
-    # Sidebar - Filtros normais
-    st.sidebar.header("🔍 Filtros")
+     st.sidebar.markdown("---")
     
-    # DEBUG MODE (desabilitado por padrão)
-    debug_fotos = st.sidebar.checkbox("🐛 Debug de Fotos", value=False, help="Ativa modo debug")
-
-    # Carregar dados COM CACHE ← MUDANÇA AQUI
-    df_jogadores = carregar_jogadores(db)
-
-    # Dashboard principal continua aqui
-
-    # --- BARRA LATERAL (SIDEBAR) COM SINCRONIZAÇÃO ---
+    # --- BARRA LATERAL: SINCRONIZAÇÃO ---
     st.sidebar.header("🔄 Sincronização")
-
-    # Sidebar - Filtros normais
+    
+    # Botão para puxar dados do Google Sheets
+    if st.sidebar.button("Baixar Dados da Planilha", type="primary"):
+        with st.spinner("Sincronizando..."):
+            try:
+                from google_sheets_sync_streamlit import GoogleSheetsSync
+                sync = GoogleSheetsSync()
+                sucesso = sync.sincronizar_para_banco(limpar_antes=False)
+                
+                if sucesso:
+                    st.sidebar.success("✅ Sincronização concluída!")
+                    st.cache_data.clear()
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.sidebar.error("❌ Falha na sincronização.")
+            except Exception as e:
+                st.sidebar.error(f"❌ Erro: {str(e)}")
+    
+    st.sidebar.markdown("---")
+    
+    # --- BARRA LATERAL: FILTROS ---
     st.sidebar.header("🔍 Filtros")
     
-    # Carregar dados
-    df_jogadores = db.get_jogadores_com_vinculos()
-
-    # Extrair valores únicos para os filtros (DEPOIS de carregar df_jogadores)
+    # DEBUG MODE
+    debug_fotos = st.sidebar.checkbox("🐛 Debug de Fotos", value=False, help="Ativa modo debug")
+    
+    # Carregar dados COM CACHE
+    df_jogadores = carregar_jogadores(db)
+    
+    # Verificar se há dados
+    if len(df_jogadores) == 0:
+        st.error("⚠️ **Banco de dados vazio!**")
+        st.markdown("O sistema não encontrou jogadores cadastrados.")
+        
+        if st.button("🔄 Importar Dados do Google Sheets Agora"):
+            with st.spinner("Importando dados..."):
+                try:
+                    from google_sheets_sync_streamlit import GoogleSheetsSync
+                    sync = GoogleSheetsSync()
+                    sucesso = sync.sincronizar_para_banco(limpar_antes=False)
+                    
+                    if sucesso:
+                        st.success("Dados importados! Recarregando...")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Falha na sincronização.")
+                except Exception as e:
+                    st.error(f"Erro: {str(e)}")
+        st.stop()
+    
+    # Extrair valores únicos para os filtros
     posicoes = sorted(df_jogadores['posicao'].dropna().unique().tolist()) if 'posicao' in df_jogadores.columns else []
     nacionalidades = sorted(df_jogadores['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df_jogadores.columns else []
     clubes = sorted(df_jogadores['clube'].dropna().unique().tolist()) if 'clube' in df_jogadores.columns else []
-
-    # Filtros (AGORA com as listas já criadas)
+    
+    # Filtros da sidebar
     filtro_nome = st.sidebar.text_input("🔎 Buscar por nome", "")
     
     filtro_posicao = st.sidebar.multiselect(
@@ -3252,35 +3286,10 @@ def main():
         options=clubes,
         default=[]
     )
-
-    # Verificar se há dados
-    if len(df_jogadores) == 0:
-        st.error("⚠️ **Banco de dados vazio!**")
-        st.markdown("O sistema não encontrou jogadores cadastrados.")
-
-        # Botão para importar dados se estiver vazio
-        if st.button("🔄 Importar Dados do Google Sheets Agora"):
-            with st.spinner("Importando dados..."):
-                try:
-                    from google_sheets_sync_streamlit import GoogleSheetsSync
-                    sync = GoogleSheetsSync()
-                    sucesso = sync.sincronizar_para_banco(limpar_antes=False)
-                    
-                    if sucesso:
-                        st.success("Dados importados! Recarregando...")
-                        time.sleep(1)
-                        st.rerun()
-                    else:
-                        st.error("Falha na sincronização.")
-                except Exception as e:
-                    st.error(f"Erro: {str(e)}")
-
-        st.stop()
-
+    
     # Aplicar filtros
     df_filtrado = df_jogadores.copy()
-
-    # Aplicar filtros progressivamente
+    
     if filtro_nome:
         df_filtrado = df_filtrado[df_filtrado['nome'].str.contains(filtro_nome, case=False, na=False)]
     
@@ -3298,6 +3307,29 @@ def main():
     
     if filtro_clube:
         df_filtrado = df_filtrado[df_filtrado['clube'].isin(filtro_clube)]
+    
+    # ============== NAVEGAÇÃO OTIMIZADA (LAZY LOADING) ==============
+    st.markdown("---")
+    
+    tab_selecionada = st.selectbox(
+        "📍 Navegação",
+        [
+            "📊 Visão Geral",
+            "👥 Lista de Jogadores", 
+            "⭐ Wishlist",
+            "🏆 Ranking",
+            "⚖️ Comparador",
+            "⚽ Shadow Team",
+            "🔍 Busca Avançada",
+            "📈 Análise de Mercado",
+            "🔔 Alertas",
+            "💰 Financeiro"
+        ],
+        key="nav_principal",
+        label_visibility="collapsed"
+    )
+    
+    st.markdown("---")
     
     # ============== NAVEGAÇÃO OTIMIZADA (LAZY LOADING) ==============
 st.markdown("---")
