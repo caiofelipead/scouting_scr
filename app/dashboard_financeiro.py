@@ -266,7 +266,7 @@ def aba_financeira():
         st.subheader("✏️ Editar Informações Financeiras")
         
         # Seletor de jogador
-        conn = db.get_connection()
+        conn = db.conn
         df_jogadores = pd.read_sql("SELECT id, nome, posicao, clube FROM jogadores ORDER BY nome", conn)
         conn.close()
         
