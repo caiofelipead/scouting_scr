@@ -1274,7 +1274,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         )
 
 
-    def exibir_lista_com_fotos(df_display, db, debug=False):
+    def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
     """Exibe lista de jogadores com fotos em formato de cards"""
     st.markdown("### Jogadores")
     
@@ -1346,7 +1346,8 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
                             # Botão de remover da wishlist
                             if st.button(
                                 "💔",
-                                key=f"remwish_{jogador['id_jogador']}_{idx}_{i}",
+                                # Adicione _{sufixo_key} no final
+                                key=f"remwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
                                 use_container_width=True,
                                 help="Remover da Wishlist"
                             ):
@@ -1357,7 +1358,8 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
                             # Botão de adicionar à wishlist
                             if st.button(
                                 "❤️",
-                                key=f"addwish_{jogador['id_jogador']}_{idx}_{i}",
+                                # Adicione _{sufixo_key} no final
+                                key=f"addwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
                                 use_container_width=True,
                                 help="Adicionar à Wishlist"
                             ):
@@ -2576,7 +2578,7 @@ def tab_wishlist(db):
                 st.metric("Adicionado em", data_add)
             
             with col4:
-                if st.button("Ver Perfil", key=f"wishlist_perfil_{jogador['id_jogador']}_{idx}"):
+                if st.button("Ver Perfil", key=f"perfil_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}", use_container_width=True,):
                     st.session_state.pagina = "perfil"
                     st.session_state.jogador_selecionado = jogador['id_jogador']
                     st.query_params["jogador"] = jogador['id_jogador']
@@ -3457,8 +3459,8 @@ def main():
         
         if len(df_filtrado) > 0:
             st.markdown("#### 🎯 Primeiros Jogadores")
-            exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos)
-            
+            exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key="overview")
+
             if len(df_filtrado) > 10:
                 st.info(f"Mostrando os primeiros 10 de {len(df_filtrado)} jogadores. Use as outras tabs para explorar mais.")
         else:
@@ -3473,8 +3475,8 @@ def main():
             view_mode = st.radio("Modo de Visualização", ["Cards com Fotos", "Tabela Simples"], horizontal=True)
             
             if view_mode == "Cards com Fotos":
-                exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos)
-            else:
+            exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
+        else:
                 # Tabela simples
                 df_display = df_filtrado[['nome', 'posicao', 'clube', 'nacionalidade', 'idade_atual']].copy()
                 st.dataframe(df_display, use_container_width=True, hide_index=True)
