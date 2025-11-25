@@ -82,22 +82,120 @@ st.markdown(
         margin: 0.5rem 0 0 0;
     }
     
-    /* ... resto do CSS ... */
+    /* Métricas melhoradas */
+    div[data-testid="stMetric"] {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 1.2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 4px solid #667eea;
+    }
+    
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+        transition: all 0.2s ease;
+    }
+    
+    /* Labels das métricas */
+    div[data-testid="stMetric"] label {
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        color: #2c3e50 !important;
+    }
+    
+    /* Valores das métricas */
+    div[data-testid="stMetric"] > div {
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+        color: #667eea !important;
+    }
+    
+    /* Tabs customizadas */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+        background-color: #f8f9fa;
+        padding: 0.75rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 55px;
+        background-color: white;
+        border-radius: 10px;
+        color: #495057;
+        font-weight: 600;
+        font-size: 0.95rem;
+        padding: 0 1.5rem;
+        border: 2px solid transparent;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #e9ecef;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        border-color: #667eea;
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #f8f9fa;
+    }
+    
+    /* Botões */
+    .stButton>button {
+        border-radius: 8px;
+        font-weight: 600;
+        border: 2px solid transparent;
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.2s ease;
+    }
+    
+    /* Imagens dos jogadores */
+    img {
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Cards */
+    .element-container {
+        transition: all 0.2s ease;
+    }
+    
+    /* Scrollbar customizada */
+    ::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f3f4;
+        border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        border: 2px solid #f1f3f4;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Header Visual Profissional (APÓS CSS E AUTENTICAÇÃO)
-st.markdown(
-    """
-    <div class="header-container fade-in">
-        <div class="header-title">⚽ Scout Pro</div>
-        <div class="header-subtitle">Sistema Profissional de Monitoramento e Análise de Jogadores</div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 @st.cache_resource(ttl=None)
 def get_database():
