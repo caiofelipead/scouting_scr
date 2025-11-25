@@ -1274,30 +1274,29 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         )
 
 
-def exibir_lista_com_fotos(df_display, db, debug=False):
-    """Exibe lista de jogadores com fotos em formato de cards"""
-    st.markdown("### 👥 Jogadores")
-
-    # Remover duplicatas
-    df_display = df_display.drop_duplicates(
-        subset=["id_jogador"], keep="first"
-    ).reset_index(drop=True)
-
     def exibir_lista_com_fotos(df_display, db, debug=False):
     """Exibe lista de jogadores com fotos em formato de cards"""
     st.markdown("### Jogadores")
     
-    # CORREÇÃO: Remover duplicatas E resetar index para garantir IDs únicos
+    # CORREÇÃO 1: Remover duplicatas e resetar index
     df_display = df_display.drop_duplicates(subset=['id_jogador'], keep='first').reset_index(drop=True)
     
+    if len(df_display) == 0:
+        st.info("Nenhum jogador encontrado com os filtros aplicados.")
+        return
+    
+    # Loop de exibição em grid 4 colunas
     for i in range(0, len(df_display), 4):
         cols = st.columns(4)
+        
         for j, col in enumerate(cols):
             idx = i + j
+            
             if idx < len(df_display):
                 jogador = df_display.iloc[idx]
+                
                 with col:
-                    # Foto
+                    # === FOTO DO JOGADOR ===
                     tm_id = jogador.get('transfermarkt_id', None)
                     foto_path = get_foto_jogador(
                         jogador['id_jogador'],
@@ -1308,6 +1307,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False):
                     if foto_path:
                         st.image(foto_path, use_container_width=True)
                     else:
+                        # Placeholder com gradiente
                         st.markdown(
                             f"""
                             <div style="width: 100%; padding-top: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; position: relative;">
@@ -1317,59 +1317,53 @@ def exibir_lista_com_fotos(df_display, db, debug=False):
                             unsafe_allow_html=True,
                         )
                     
+                    # === INFO DO JOGADOR ===
                     st.markdown(f"**{jogador['nome']}**")
                     st.caption(f"{jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'}")
                     st.caption(f"{jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}")
                     
-                    perfil_url = get_perfil_url(jogador['id_jogador'])
-                    
+                    # === BOTÕES DE AÇÃO ===
                     cola, colb = st.columns(2)
+                    
                     with cola:
-                        # CORREÇÃO: Key única combinando id_jogador + idx + timestamp
-                        # Isso garante que NUNCA haverá duplicatas mesmo se o DataFrame tiver problemas
+                        # CORREÇÃO 2: Key tripla única (id_jogador + idx + i)
                         if st.button(
                             "Ver Perfil",
-                            key=f"perfil_{jogador['id_jogador']}_{idx}_{i}",  # Adicionar i também
+                            key=f"perfil_{jogador['id_jogador']}_{idx}_{i}",
                             use_container_width=True,
                         ):
                             st.session_state.pagina = "perfil"
                             st.session_state.jogador_selecionado = jogador['id_jogador']
                             st.query_params["jogador"] = jogador['id_jogador']
                             st.rerun()
-
-                    # Criar link para abrir em nova aba
-                    perfil_url = get_perfil_url(jogador["id_jogador"])
-
-                    col_a, col_b = st.columns(2)
-                    with col_a:
-                        # Botão que abre na mesma aba
-                        if st.button(
-                            "Ver Perfil",
-                            key=f"perfil_{jogador['id_jogador']}_{idx}",
-                            use_container_width=True,
-                        ):
-                            st.session_state.pagina = "perfil"
-                            st.session_state.jogador_selecionado = jogador["id_jogador"]
-                            st.query_params["jogador"] = jogador["id_jogador"]
-                            st.rerun()
-
-                    with col_b:
-                        # Link que abre em nova aba
-                        st.markdown(
-                            f'<a href="{perfil_url}" target="_blank" style="'
-                            "display: inline-block; "
-                            "padding: 0.25rem 0.75rem; "
-                            "background-color: #FF4B4B; "
-                            "color: white; "
-                            "text-decoration: none; "
-                            "border-radius: 0.25rem; "
-                            "text-align: center; "
-                            "font-size: 0.875rem; "
-                            "width: 100%; "
-                            "box-sizing: border-box;"
-                            '">Nova Aba</a>',
-                            unsafe_allow_html=True,
-                        )
+                    
+                    with colb:
+                        # CORREÇÃO 3: Botão Wishlist também precisa de key única!
+                        # Este botão provavelmente estava faltando key!
+                        na_wishlist = db.esta_na_wishlist(jogador['id_jogador'])
+                        
+                        if na_wishlist:
+                            # Botão de remover da wishlist
+                            if st.button(
+                                "💔",
+                                key=f"remwish_{jogador['id_jogador']}_{idx}_{i}",
+                                use_container_width=True,
+                                help="Remover da Wishlist"
+                            ):
+                                if db.remover_wishlist(jogador['id_jogador']):
+                                    st.success("Removido da wishlist!")
+                                    st.rerun()
+                        else:
+                            # Botão de adicionar à wishlist
+                            if st.button(
+                                "❤️",
+                                key=f"addwish_{jogador['id_jogador']}_{idx}_{i}",
+                                use_container_width=True,
+                                help="Adicionar à Wishlist"
+                            ):
+                                if db.adicionar_wishlist(jogador['id_jogador'], prioridade='media'):
+                                    st.success("Adicionado à wishlist!")
+                                    st.rerun()
 
 
 def tab_ranking(db, df_jogadores):
