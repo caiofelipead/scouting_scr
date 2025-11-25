@@ -11,6 +11,15 @@ import pandas as pd
 from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
+import psycopg2
+from psycopg2.extensions import register_adapter, AsIs
+import numpy as np
+
+# Registra adaptadores para tipos numpy
+register_adapter(np.int64, lambda x: AsIs(x))
+register_adapter(np.int32, lambda x: AsIs(x))
+register_adapter(np.float64, lambda x: AsIs(x))
+register_adapter(np.float32, lambda x: AsIs(x))
 
 # Carregar variáveis de ambiente do .env
 load_dotenv()
