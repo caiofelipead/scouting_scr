@@ -14,15 +14,6 @@ secrets.yaml
 *.sqlite3
 scouting.db
 
-# Fotos e Mídia
-fotos/
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.webp
-!docs/screenshots/*.png
-!docs/screenshots/*.jpg
 
 # Python
 __pycache__/
