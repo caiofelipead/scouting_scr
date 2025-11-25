@@ -60,7 +60,7 @@ class ScoutingDatabase:
 
     def criar_tabela_propostas(self):
         """Cria ou atualiza a tabela propostas com todas as colunas necessárias"""
-    try:
+        try:
         with self.engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS propostas (
