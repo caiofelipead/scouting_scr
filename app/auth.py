@@ -6,8 +6,10 @@ Gerenciamento de usuários e controle de acesso
 import os
 import psycopg2
 import bcrypt
+import hashlib  # ← ADICIONE ESTA LINHA
 import streamlit as st
 from datetime import datetime
+
 
 class AuthManager:
     def __init__(self):
