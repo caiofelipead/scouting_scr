@@ -1894,82 +1894,87 @@ def tab_shadow_team(db, df_jogadores):
     if "shadow_team" not in st.session_state:
         st.session_state.shadow_team = {}
     
+    # Seleção de formação no topo
+    formacao = st.selectbox(
+        "**Escolha a Formação Tática**",
+        ["4-4-2", "4-3-3", "3-5-2", "4-2-3-1"],
+        help="Selecione a formação para organizar o time"
+    )
+    
+    posicoes_formacao = {
+        "4-4-2": ["Goleiro", "Zagueiro (1)", "Zagueiro (2)", "Lateral Esquerdo", 
+                  "Lateral Direito", "Meia (1)", "Meia (2)", "Meia (3)", 
+                  "Meia (4)", "Atacante (1)", "Atacante (2)"],
+        "4-3-3": ["Goleiro", "Zagueiro (1)", "Zagueiro (2)", "Lateral Esquerdo",
+                  "Lateral Direito", "Volante", "Meia (1)", "Meia (2)",
+                  "Atacante (1)", "Atacante (2)", "Atacante (3)"],
+        "3-5-2": ["Goleiro", "Zagueiro (1)", "Zagueiro (2)", "Zagueiro (3)",
+                  "Ala Esquerdo", "Ala Direito", "Volante", "Meia (1)",
+                  "Meia (2)", "Atacante (1)", "Atacante (2)"],
+        "4-2-3-1": ["Goleiro", "Zagueiro (1)", "Zagueiro (2)", "Lateral Esquerdo",
+                    "Lateral Direito", "Volante (1)", "Volante (2)", "Meia (1)",
+                    "Meia (2)", "Meia (3)", "Atacante"]
+    }
+    
+    posicoes = posicoes_formacao[formacao]
+    total_posicoes = len(posicoes)
+    posicoes_preenchidas = len([p for p in posicoes if p in st.session_state.shadow_team])
+    
+    # Contador de progresso
+    col_prog1, col_prog2 = st.columns([3, 1])
+    with col_prog1:
+        st.progress(posicoes_preenchidas / total_posicoes)
+    with col_prog2:
+        st.metric("Posições", f"{posicoes_preenchidas}/{total_posicoes}")
+    
+    st.markdown("---")
+    
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        st.markdown("#### Selecione os Jogadores")
+        st.markdown("#### 📋 Seleção de Jogadores")
         
-        formacao = st.selectbox(
-            "Formação",
-            ["4-4-2", "4-3-3", "3-5-2", "4-2-3-1"]
-        )
+        # Agrupar por setores
+        st.markdown("**⚽ Goleiro**")
+        for posicao in [p for p in posicoes if "Goleiro" in p]:
+            criar_seletor_posicao(posicao, df_jogadores, db)
         
-        posicoes_formacao = {
-            "4-4-2": ["Goleiro", "Zagueiro (1)", "Zagueiro (2)", "Lateral Esquerdo", 
-                      "Lateral Direito", "Meia (1)", "Meia (2)", "Meia (3)", 
-                      "Meia (4)", "Atacante (1)", "Atacante (2)"],
-            "4-3-3": ["Goleiro", "Zagueiro (1)", "Zagueiro (2)", "Lateral Esquerdo",
-                      "Lateral Direito", "Volante", "Meia (1)", "Meia (2)",
-                      "Atacante (1)", "Atacante (2)", "Atacante (3)"],
-            "3-5-2": ["Goleiro", "Zagueiro (1)", "Zagueiro (2)", "Zagueiro (3)",
-                      "Ala Esquerdo", "Ala Direito", "Volante", "Meia (1)",
-                      "Meia (2)", "Atacante (1)", "Atacante (2)"],
-            "4-2-3-1": ["Goleiro", "Zagueiro (1)", "Zagueiro (2)", "Lateral Esquerdo",
-                        "Lateral Direito", "Volante (1)", "Volante (2)", "Meia (1)",
-                        "Meia (2)", "Meia (3)", "Atacante"]
-        }
+        st.markdown("**🛡️ Defesa**")
+        for posicao in [p for p in posicoes if "Zagueiro" in p or "Lateral" in p or "Ala" in p]:
+            criar_seletor_posicao(posicao, df_jogadores, db)
         
-        posicoes = posicoes_formacao[formacao]
+        st.markdown("**⚙️ Meio-Campo**")
+        for posicao in [p for p in posicoes if "Volante" in p or "Meia" in p]:
+            criar_seletor_posicao(posicao, df_jogadores, db)
         
-        # Criar seletores para cada posição
-        for posicao in posicoes:
-            # Determinar filtro de posição
-            if "Goleiro" in posicao:
-                filtro_pos = ["goleiro", "gk"]
-            elif "Zagueiro" in posicao:
-                filtro_pos = ["zagueiro", "cb"]
-            elif "Lateral" in posicao or "Ala" in posicao:
-                filtro_pos = ["lateral", "lb", "rb", "wing"]
-            elif "Volante" in posicao:
-                filtro_pos = ["volante", "cdm", "dm"]
-            elif "Meia" in posicao:
-                filtro_pos = ["meia", "cam", "cm"]
-            else:
-                filtro_pos = ["atacante", "st", "cf", "fw"]
-            
-            # Buscar top jogadores
-            top_jogadores = get_top_jogadores_por_posicao(df_jogadores, db, filtro_pos, 20)
-            
-            if len(top_jogadores) > 0:
-                opcoes = ["Nenhum"] + [j["label"] for j in top_jogadores]
-                selecionado = st.selectbox(
-                    posicao,
-                    options=opcoes,
-                    key=f"shadow_{posicao}"
-                )
-                
-                if selecionado != "Nenhum":
-                    # Encontrar o ID do jogador selecionado
-                    for j in top_jogadores:
-                        if j["label"] == selecionado:
-                            st.session_state.shadow_team[posicao] = j["id"]
-                            break
-                elif posicao in st.session_state.shadow_team:
-                    del st.session_state.shadow_team[posicao]
+        st.markdown("**⚡ Ataque**")
+        for posicao in [p for p in posicoes if "Atacante" in p]:
+            criar_seletor_posicao(posicao, df_jogadores, db)
         
-        if st.button("🗑️ Limpar Time", use_container_width=True):
-            st.session_state.shadow_team = {}
-            st.rerun()
+        st.markdown("---")
+        
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("🗑️ Limpar Time", use_container_width=True):
+                st.session_state.shadow_team = {}
+                st.rerun()
+        
+        with col_btn2:
+            if st.button("🔄 Preencher Auto", use_container_width=True, 
+                        help="Preenche automaticamente com os melhores jogadores"):
+                preencher_automaticamente(posicoes, df_jogadores, db)
+                st.rerun()
     
     with col2:
-        st.markdown("#### Visualização do Time")
+        st.markdown("#### 🏟️ Visualização do Time")
         
         if len(st.session_state.shadow_team) > 0:
             # Preparar dados para visualização
             jogadores_selecionados = []
             for posicao, id_jogador in st.session_state.shadow_team.items():
-                jogador_info = df_jogadores[df_jogadores['id_jogador'] == id_jogador].iloc[0]
-                jogadores_selecionados.append(jogador_info)
+                jogador_info = df_jogadores[df_jogadores['id_jogador'] == id_jogador]
+                if not jogador_info.empty:
+                    jogadores_selecionados.append(jogador_info.iloc[0])
             
             if len(jogadores_selecionados) > 0:
                 df_shadow = pd.DataFrame(jogadores_selecionados)
@@ -2065,7 +2070,86 @@ def tab_shadow_team(db, df_jogadores):
                     media_time = np.mean(medias) if len(medias) > 0 else 0
                     st.metric("Média do Time", f"{media_time:.2f}" if media_time > 0 else "N/A")
         else:
-            st.info("Selecione jogadores para montar seu time ideal")
+            st.info("👆 Selecione jogadores nas posições acima para montar seu time ideal")
+
+
+def criar_seletor_posicao(posicao, df_jogadores, db):
+    """Cria um seletor para uma posição específica"""
+    # Determinar filtro de posição
+    if "Goleiro" in posicao:
+        filtro_pos = ["goleiro", "gk"]
+    elif "Zagueiro" in posicao:
+        filtro_pos = ["zagueiro", "cb"]
+    elif "Lateral" in posicao or "Ala" in posicao:
+        filtro_pos = ["lateral", "lb", "rb", "wing", "ala"]
+    elif "Volante" in posicao:
+        filtro_pos = ["volante", "cdm", "dm"]
+    elif "Meia" in posicao:
+        filtro_pos = ["meia", "cam", "cm", "am"]
+    else:  # Atacante
+        filtro_pos = ["atacante", "st", "cf", "fw", "ponta", "extremo"]
+    
+    # Buscar top jogadores
+    top_jogadores = get_top_jogadores_por_posicao(df_jogadores, db, filtro_pos, 20)
+    
+    if len(top_jogadores) > 0:
+        opcoes = ["Nenhum"] + [j["label"] for j in top_jogadores]
+        
+        # Valor default se já estiver selecionado
+        valor_default = "Nenhum"
+        if posicao in st.session_state.shadow_team:
+            id_atual = st.session_state.shadow_team[posicao]
+            for j in top_jogadores:
+                if j["id"] == id_atual:
+                    valor_default = j["label"]
+                    break
+        
+        default_index = opcoes.index(valor_default) if valor_default in opcoes else 0
+        
+        selecionado = st.selectbox(
+            f"**{posicao}**",
+            options=opcoes,
+            index=default_index,
+            key=f"shadow_{posicao}"
+        )
+        
+        if selecionado != "Nenhum":
+            # Encontrar o ID do jogador selecionado
+            for j in top_jogadores:
+                if j["label"] == selecionado:
+                    st.session_state.shadow_team[posicao] = j["id"]
+                    break
+        elif posicao in st.session_state.shadow_team:
+            del st.session_state.shadow_team[posicao]
+    else:
+        st.warning(f"Nenhum jogador encontrado para {posicao}")
+
+
+def preencher_automaticamente(posicoes, df_jogadores, db):
+    """Preenche automaticamente com os melhores jogadores"""
+    st.session_state.shadow_team = {}
+    
+    for posicao in posicoes:
+        # Determinar filtro de posição
+        if "Goleiro" in posicao:
+            filtro_pos = ["goleiro", "gk"]
+        elif "Zagueiro" in posicao:
+            filtro_pos = ["zagueiro", "cb"]
+        elif "Lateral" in posicao or "Ala" in posicao:
+            filtro_pos = ["lateral", "lb", "rb", "wing", "ala"]
+        elif "Volante" in posicao:
+            filtro_pos = ["volante", "cdm", "dm"]
+        elif "Meia" in posicao:
+            filtro_pos = ["meia", "cam", "cm", "am"]
+        else:  # Atacante
+            filtro_pos = ["atacante", "st", "cf", "fw", "ponta", "extremo"]
+        
+        # Buscar melhor jogador
+        top_jogadores = get_top_jogadores_por_posicao(df_jogadores, db, filtro_pos, 1)
+        
+        if len(top_jogadores) > 0:
+            st.session_state.shadow_team[posicao] = top_jogadores[0]["id"]
+
 
 
 def main():
