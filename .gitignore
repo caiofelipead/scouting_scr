@@ -156,4 +156,4 @@ exports/*.csv
 .streamlit/secrets.toml
 .streamlit/secrets.toml
 credentials.json
-fotos/
+# fotos/
