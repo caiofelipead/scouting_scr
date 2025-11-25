@@ -39,63 +39,282 @@ Dashboard Interativo de Scouting
 Sistema moderno de visualização e análise de jogadores
 """
 
-# CSS customizado para melhor visual
+# CSS Profissional - Scout Pro
 st.markdown(
     """
     <style>
+    /* Layout principal */
     .main {
         padding: 0rem 1rem;
     }
-    .stMetric {
-        background-color: #f0f2f6;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .stAlert {
-        padding: 1rem;
-        border-radius: 0.5rem;
-    }
-    h1 {
-        color: #1f77b4;
-        padding-bottom: 1rem;
-    }
-    h2 {
-        color: #2c3e50;
-        padding-top: 1rem;
+    
+    /* Header com gradiente */
+    .header-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     
-    /* Estilos para tabelas HTML */
+    .header-title {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 0;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .header-subtitle {
+        color: rgba(255,255,255,0.95);
+        font-size: 1.1rem;
+        margin: 0.5rem 0 0 0;
+    }
+    
+    /* Métricas melhoradas */
+    .stMetric {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 1.2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 4px solid #667eea;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stMetric:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+    
+    /* Cards de jogadores */
+    .player-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .player-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        border-color: #667eea;
+    }
+    
+    /* Tabs customizadas */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+        background-color: #f8f9fa;
+        padding: 0.75rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 55px;
+        background-color: white;
+        border-radius: 10px;
+        color: #495057;
+        font-weight: 600;
+        font-size: 0.95rem;
+        padding: 0 1.5rem;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #e9ecef;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        border-color: #667eea;
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #f8f9fa;
+    }
+    
+    /* Botões */
+    .stButton>button {
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    /* Botões primários */
+    .stButton>button[kind="primary"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+    }
+    
+    /* Tabelas HTML */
     table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.9em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-radius: 10px;
+        overflow: hidden;
+        background: white;
     }
+    
     th {
-        background-color: #f0f2f6;
-        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 14px 12px;
         text-align: left;
-        font-weight: bold;
-        border-bottom: 2px solid #ddd;
+        font-weight: 600;
         position: sticky;
         top: 0;
         z-index: 10;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
+    
     td {
-        padding: 10px;
-        border-bottom: 1px solid #eee;
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
     }
+    
+    tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
     tr:hover {
-        background-color: #f5f5f5 !important;
+        background-color: #e3f2fd !important;
+        transition: background-color 0.2s;
     }
+    
+    /* Links */
     a {
-        color: #1f77b4;
+        color: #667eea;
         text-decoration: none;
-        font-weight: bold;
+        font-weight: 600;
+        transition: all 0.2s;
     }
+    
     a:hover {
+        color: #764ba2;
         text-decoration: underline !important;
-        color: #0d5aa7;
+    }
+    
+    /* Medalhas de ranking */
+    .rank-medal {
+        font-size: 2rem;
+        display: inline-block;
+        margin-right: 0.5rem;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    /* Containers de ranking */
+    .rank-container {
+        background: white;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-left: 4px solid #667eea;
+        transition: all 0.2s;
+    }
+    
+    .rank-container:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateX(5px);
+    }
+    
+    /* Top 3 highlight */
+    .rank-1 { border-left-color: #FFD700 !important; background: linear-gradient(90deg, #fff9e6 0%, white 100%); }
+    .rank-2 { border-left-color: #C0C0C0 !important; background: linear-gradient(90deg, #f5f5f5 0%, white 100%); }
+    .rank-3 { border-left-color: #CD7F32 !important; background: linear-gradient(90deg, #fff4e6 0%, white 100%); }
+    
+    /* Alertas */
+    .alert-success {
+        background-color: #d4edda;
+        border-left: 4px solid #28a745;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+    }
+    
+    .alert-warning {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+    }
+    
+    .alert-danger {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+    }
+    
+    /* Scrollbar customizada */
+    ::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f3f4;
+        border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        border: 2px solid #f1f3f4;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    
+    /* Expander customizado */
+    .streamlit-expanderHeader {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    
+    /* Footer */
+    .footer {
+        text-align: center;
+        padding: 2rem 0;
+        color: #6c757d;
+        font-size: 0.9rem;
+        border-top: 2px solid #e9ecef;
+        margin-top: 3rem;
+    }
+    
+    /* Animações */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.3s ease-in;
     }
     </style>
 """,
@@ -109,16 +328,93 @@ def get_database():
     return ScoutingDatabase()
 
 
-def get_foto_jogador(id_jogador):
-    """Retorna o caminho da foto do jogador ou None"""
+def get_foto_jogador(id_jogador, transfermarkt_id=None, debug=False):
+    """Retorna o caminho da foto do jogador ou None
+    
+    Procura fotos com:
+    1. ID do banco de dados (ex: 123.jpg)
+    2. ID do Transfermarkt (ex: 68290.jpg)
+    
+    Funciona tanto se dashboard.py está em:
+    - scouting_scr/dashboard.py → fotos em scouting_scr/fotos/
+    - scouting_scr/app/dashboard.py → fotos em scouting_scr/fotos/
+    """
     from pathlib import Path
+    import re
 
-    # Caminho absoluto a partir da raiz do projeto
-    root_path = Path(__file__).resolve().parent.parent
-    foto_path = root_path / "fotos" / f"{id_jogador}.jpg"
-
-    if foto_path.exists() and foto_path.is_file():
-        return str(foto_path)
+    current_file = Path(__file__).resolve()
+    
+    # Tentar múltiplos caminhos
+    possivel_fotos_dirs = [
+        current_file.parent / "fotos",  # Se dashboard está na raiz
+        current_file.parent.parent / "fotos",  # Se dashboard está em app/
+    ]
+    
+    # Encontrar a pasta fotos que existe
+    fotos_dir = None
+    for dir_path in possivel_fotos_dirs:
+        if dir_path.exists() and dir_path.is_dir():
+            fotos_dir = dir_path
+            break
+    
+    if fotos_dir is None:
+        if debug:
+            st.sidebar.error("❌ Pasta 'fotos' não encontrada!")
+            st.sidebar.write(f"📂 Arquivo atual: `{current_file}`")
+            st.sidebar.write("Caminhos tentados:")
+            for d in possivel_fotos_dirs:
+                st.sidebar.code(str(d))
+        return None
+    
+    if debug:
+        st.sidebar.write(f"🔍 **Debug - Foto do jogador ID: {id_jogador}**")
+        st.sidebar.write(f"📂 Dashboard: `{current_file}`")
+        st.sidebar.write(f"📁 Pasta fotos: `{fotos_dir}`")
+        st.sidebar.write(f"✅ Pasta existe: SIM")
+    
+    # Lista de IDs para tentar
+    ids_para_tentar = [id_jogador]
+    
+    # Adicionar Transfermarkt ID se fornecido
+    if transfermarkt_id:
+        tm_id = str(transfermarkt_id)
+        match = re.search(r'\d+', tm_id)
+        if match:
+            ids_para_tentar.append(match.group(0))
+    
+    # Tentar encontrar foto com cada ID
+    for test_id in ids_para_tentar:
+        # Tentar .jpg
+        foto_path = fotos_dir / f"{test_id}.jpg"
+        
+        if debug:
+            st.sidebar.write(f"📸 Tentando: `{test_id}.jpg`")
+            st.sidebar.write(f"   Caminho: `{foto_path}`")
+            st.sidebar.write(f"   Existe: {'✅ SIM' if foto_path.exists() else '❌ NÃO'}")
+        
+        if foto_path.exists() and foto_path.is_file():
+            if debug:
+                st.sidebar.success(f"✅ FOTO ENCONTRADA: {foto_path.name}")
+            return str(foto_path)
+        
+        # Tentar .png
+        foto_path_png = fotos_dir / f"{test_id}.png"
+        if foto_path_png.exists() and foto_path_png.is_file():
+            if debug:
+                st.sidebar.success(f"✅ FOTO ENCONTRADA: {foto_path_png.name}")
+            return str(foto_path_png)
+    
+    if debug:
+        # Listar fotos disponíveis
+        fotos = list(fotos_dir.glob("*.jpg")) + list(fotos_dir.glob("*.png"))
+        st.sidebar.write(f"📁 Total de fotos na pasta: {len(fotos)}")
+        if len(fotos) > 0:
+            st.sidebar.write("**Primeiras 10 fotos:**")
+            for f in fotos[:10]:
+                st.sidebar.code(f.name)
+        else:
+            st.sidebar.warning("⚠️ Pasta de fotos está vazia!")
+    
     return None
 
 
@@ -457,7 +753,7 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True, coordenadas_fixas=None)
     )
 
 
-def exibir_perfil_jogador(db, id_jogador):
+def exibir_perfil_jogador(db, id_jogador, debug=False):
     """Exibe perfil detalhado do jogador"""
     conn = db.connect()
 
@@ -497,7 +793,10 @@ def exibir_perfil_jogador(db, id_jogador):
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        foto_path = get_foto_jogador(id_busca)
+        # Buscar foto com ambos os IDs
+        tm_id = jogador.get('transfermarkt_id', None)
+        foto_path = get_foto_jogador(id_busca, transfermarkt_id=tm_id, debug=debug)
+        
         if foto_path:
             st.image(foto_path, width=300)
         else:
@@ -916,7 +1215,7 @@ def exibir_perfil_jogador(db, id_jogador):
         )
 
 
-def exibir_lista_com_fotos(df_display, db):
+def exibir_lista_com_fotos(df_display, db, debug=False):
     """Exibe lista de jogadores com fotos em formato de cards"""
     st.markdown("### 👥 Jogadores")
 
@@ -934,7 +1233,13 @@ def exibir_lista_com_fotos(df_display, db):
                 jogador = df_display.iloc[idx]
 
                 with col:
-                    foto_path = get_foto_jogador(jogador["id_jogador"])
+                    # Tentar pegar foto com ambos os IDs
+                    tm_id = jogador.get('transfermarkt_id', None)
+                    foto_path = get_foto_jogador(
+                        jogador["id_jogador"], 
+                        transfermarkt_id=tm_id,
+                        debug=debug and idx == 0  # Debug apenas no primeiro
+                    )
 
                     if foto_path:
                         st.image(foto_path, use_container_width=True)
@@ -1470,7 +1775,11 @@ def main():
             st.rerun()
 
         st.markdown("---")
-        exibir_perfil_jogador(db, st.session_state.jogador_selecionado)
+        
+        # Checkbox de debug na sidebar para perfil
+        debug_fotos_perfil = st.sidebar.checkbox("🐛 Debug de Fotos (Perfil)", value=False, help="Ativa modo debug para verificar o caminho das fotos no perfil")
+        
+        exibir_perfil_jogador(db, st.session_state.jogador_selecionado, debug=debug_fotos_perfil)
         return
 
     # Dashboard principal continua aqui
@@ -1499,6 +1808,9 @@ def main():
 
     # Sidebar - Filtros normais
     st.sidebar.header("🔍 Filtros")
+    
+    # DEBUG MODE
+    debug_fotos = st.sidebar.checkbox("🐛 Debug de Fotos", value=False, help="Ativa modo debug para verificar o caminho das fotos")
 
     # Carregar dados
     df_jogadores = db.get_jogadores_com_vinculos()
@@ -1593,7 +1905,7 @@ def main():
         st.subheader(f"📋 Jogadores Encontrados: {len(df_filtrado)}")
         
         if len(df_filtrado) > 0:
-            exibir_lista_com_fotos(df_filtrado.head(20), db)
+            exibir_lista_com_fotos(df_filtrado.head(20), db, debug=debug_fotos)
             
             if len(df_filtrado) > 20:
                 st.info(f"Mostrando os primeiros 20 de {len(df_filtrado)} jogadores. Use os filtros na sidebar para refinar a busca.")
