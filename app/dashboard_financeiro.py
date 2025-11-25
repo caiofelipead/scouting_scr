@@ -266,9 +266,18 @@ def aba_financeira():
         # CORREÇÃO: Usar get_connection()
         conn = db.get_connection() 
         
-        # CORREÇÃO: Usar id_jogador ao invés de id
-        query = "SELECT id_jogador, nome, posicao, clube FROM jogadores ORDER BY nome"
-        
+       # CORREÇÃO: Usar id_jogador ao invés de id
+        # Note o espaço antes do LEFT JOIN
+        query = """
+        SELECT 
+            j.id_jogador, 
+            j.nome, 
+            v.posicao, 
+            v.clube 
+        FROM jogadores j
+        LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador 
+        ORDER BY j.nome
+        """        
         try:
             df_jogadores = pd.read_sql(query, conn)
         except Exception as e:
@@ -280,7 +289,7 @@ def aba_financeira():
         if df_jogadores.empty:
             st.warning("⚠️ Nenhum jogador cadastrado")
             return
-        
+                
         # CORREÇÃO: Usar id_jogador nas referências
         jogador_selecionado = st.selectbox(
             "Selecione o Jogador",
