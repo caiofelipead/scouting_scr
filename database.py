@@ -53,12 +53,21 @@ class ScoutingDatabase:
         self.criar_tabelas()
     
     def criar_tabelas(self):
-        """Cria as tabelas no banco (compatível com SQLite e PostgreSQL)"""
+        """Cria todas as tabelas e views (v3.0) - Compatível com SQLite e PostgreSQL"""
         
+        # Definições de tipos para ID (Postgres usa SERIAL, SQLite usa AUTOINCREMENT)
         if self.db_type == 'postgresql':
-            sql_jogadores = """
-            CREATE TABLE IF NOT EXISTS jogadores (
-                id_jogador SERIAL PRIMARY KEY,
+            id_type = "SERIAL PRIMARY KEY"
+            bool_true = "TRUE"
+        else:
+            id_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
+            bool_true = "1"
+
+        # --- 1. TABELAS CORE (JOGADORES, VINCULOS, AVALIACOES, ALERTAS) ---
+        commands = [
+            # Jogadores
+            f"""CREATE TABLE IF NOT EXISTS jogadores (
+                id_jogador {id_type},
                 nome VARCHAR(255) NOT NULL,
                 nacionalidade VARCHAR(100),
                 ano_nascimento INTEGER,
@@ -68,11 +77,11 @@ class ScoutingDatabase:
                 transfermarkt_id VARCHAR(100),
                 data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-            sql_vinculos = """
-            CREATE TABLE IF NOT EXISTS vinculos_clubes (
-                id_vinculo SERIAL PRIMARY KEY,
+            )""",
+            
+            # Vínculos
+            f"""CREATE TABLE IF NOT EXISTS vinculos_clubes (
+                id_vinculo {id_type},
                 id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
                 clube VARCHAR(255),
                 liga_clube VARCHAR(255),
@@ -81,22 +90,22 @@ class ScoutingDatabase:
                 status_contrato VARCHAR(50),
                 data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-            sql_alertas = """
-            CREATE TABLE IF NOT EXISTS alertas (
-                id_alerta SERIAL PRIMARY KEY,
+            )""",
+            
+            # Alertas
+            f"""CREATE TABLE IF NOT EXISTS alertas (
+                id_alerta {id_type},
                 id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
                 tipo_alerta VARCHAR(100) NOT NULL,
                 descricao TEXT,
                 prioridade VARCHAR(50),
                 data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                ativo BOOLEAN DEFAULT TRUE
-            )
-            """
-            sql_avaliacoes = """
-            CREATE TABLE IF NOT EXISTS avaliacoes (
-                id_avaliacao SERIAL PRIMARY KEY,
+                ativo BOOLEAN DEFAULT {bool_true}
+            )""",
+            
+            # Avaliações
+            f"""CREATE TABLE IF NOT EXISTS avaliacoes (
+                id_avaliacao {id_type},
                 id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
                 data_avaliacao DATE NOT NULL,
                 nota_potencial DECIMAL(3,1),
@@ -107,160 +116,149 @@ class ScoutingDatabase:
                 observacoes TEXT,
                 avaliador VARCHAR(255),
                 data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        else:
-            sql_jogadores = """
-            CREATE TABLE IF NOT EXISTS jogadores (
-                id_jogador INTEGER PRIMARY KEY AUTOINCREMENT,
-                nome TEXT NOT NULL,
-                nacionalidade TEXT,
-                ano_nascimento INTEGER,
-                idade_atual INTEGER,
-                altura INTEGER,
-                pe_dominante TEXT,
-                transfermarkt_id TEXT,
-                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-            sql_vinculos = """
-            CREATE TABLE IF NOT EXISTS vinculos_clubes (
-                id_vinculo INTEGER PRIMARY KEY AUTOINCREMENT,
+            )""",
+
+            # --- 2. NOVAS TABELAS V3.0 (TAGS, WISHLIST, NOTAS, BUSCAS) ---
+            
+            # Tags
+            f"""CREATE TABLE IF NOT EXISTS tags (
+                id_tag {id_type},
+                nome VARCHAR(50) NOT NULL UNIQUE,
+                cor VARCHAR(20) DEFAULT '#808080',
+                descricao TEXT
+            )""",
+
+            # Relacionamento Jogador <-> Tags
+            """CREATE TABLE IF NOT EXISTS jogador_tags (
                 id_jogador INTEGER,
-                clube TEXT,
-                liga_clube TEXT,
-                posicao TEXT NOT NULL,
-                data_fim_contrato DATE,
-                status_contrato TEXT,
-                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                id_tag INTEGER,
+                adicionado_por VARCHAR(100),
+                adicionado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id_jogador, id_tag),
+                FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
+                FOREIGN KEY (id_tag) REFERENCES tags(id_tag) ON DELETE CASCADE
+            )""",
+
+            # Wishlist
+            f"""CREATE TABLE IF NOT EXISTS wishlist (
+                id {id_type},
+                id_jogador INTEGER UNIQUE,
+                prioridade VARCHAR(20),
+                observacao TEXT,
+                adicionado_por VARCHAR(100),
+                adicionado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador) ON DELETE CASCADE
-            )
-            """
-            sql_alertas = """
-            CREATE TABLE IF NOT EXISTS alertas (
-                id_alerta INTEGER PRIMARY KEY AUTOINCREMENT,
+            )""",
+
+            # Notas Rápidas
+            f"""CREATE TABLE IF NOT EXISTS notas_rapidas (
+                id_nota {id_type},
                 id_jogador INTEGER,
-                tipo_alerta TEXT NOT NULL,
-                descricao TEXT,
-                prioridade TEXT,
-                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                ativo INTEGER DEFAULT 1,
+                texto TEXT NOT NULL,
+                autor VARCHAR(100),
+                tipo VARCHAR(50) DEFAULT 'observacao',
+                data_nota TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador) ON DELETE CASCADE
-            )
-            """
-            sql_avaliacoes = """
-            CREATE TABLE IF NOT EXISTS avaliacoes (
-                id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
-                id_jogador INTEGER,
-                data_avaliacao DATE NOT NULL,
-                nota_potencial REAL,
-                nota_tatico REAL,
-                nota_tecnico REAL,
-                nota_fisico REAL,
-                nota_mental REAL,
-                observacoes TEXT,
-                avaliador TEXT,
-                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador) ON DELETE CASCADE
-            )
-            """
+            )""",
+
+            # Buscas Salvas
+            f"""CREATE TABLE IF NOT EXISTS buscas_salvas (
+                id_busca {id_type},
+                nome_busca VARCHAR(100) NOT NULL,
+                filtros TEXT NOT NULL,
+                criado_por VARCHAR(100),
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )"""
+        ]
+
+        # --- 3. VIEWS (BENCHMARK) ---
+        # Nota: Views podem falhar se as tabelas ainda não existirem, mas como rodamos na ordem, deve funcionar.
+        view_benchmark = """
+        CREATE VIEW IF NOT EXISTS vw_benchmark_posicoes AS
+        SELECT 
+            v.posicao,
+            COUNT(j.id_jogador) as total_analisados,
+            AVG(a.nota_potencial) as med_potencial,
+            AVG(a.nota_tatico) as med_tatico,
+            AVG(a.nota_tecnico) as med_tecnico,
+            AVG(a.nota_fisico) as med_fisico,
+            AVG(a.nota_mental) as med_mental
+        FROM jogadores j
+        JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+        JOIN avaliacoes a ON j.id_jogador = a.id_jogador
+        GROUP BY v.posicao
+        """
         
+        view_alertas_inteligentes = """
+        CREATE VIEW IF NOT EXISTS vw_alertas_inteligentes AS
+        -- 1. Alertas Manuais
+        SELECT 
+            a.id_jogador,
+            j.nome,
+            v.clube,
+            a.tipo_alerta,
+            a.descricao,
+            a.prioridade,
+            a.data_criacao
+        FROM alertas a
+        JOIN jogadores j ON a.id_jogador = j.id_jogador
+        LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+        WHERE a.ativo = 1 OR a.ativo = TRUE
+        
+        UNION ALL
+        
+        -- 2. Alertas Automáticos (Contratos Vencendo em 6 meses)
+        SELECT 
+            j.id_jogador,
+            j.nome,
+            v.clube,
+            'Contrato' as tipo_alerta,
+            'Contrato expira em menos de 6 meses' as descricao,
+            'alta' as prioridade,
+            v.data_atualizacao as data_criacao
+        FROM vinculos_clubes v
+        JOIN jogadores j ON v.id_jogador = j.id_jogador
+        WHERE v.data_fim_contrato <= DATE(CURRENT_DATE, '+6 months') 
+           OR v.data_fim_contrato <= (CURRENT_DATE + INTERVAL '6 months')
+        """
+
+        # Adicione a execução no bloco try/except final:
         try:
             with self.engine.connect() as conn:
-                conn.execute(text(sql_jogadores))
-                conn.execute(text(sql_vinculos))
-                conn.execute(text(sql_alertas))
-                conn.execute(text(sql_avaliacoes))
+                # ... (execução dos commands anteriores) ...
+                
+                # Executa Benchmark
+                conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes"))
+                conn.execute(text(view_benchmark))
+                
+                # Executa Alertas Inteligentes (NOVO)
+                try:
+                    conn.execute(text("DROP VIEW IF EXISTS vw_alertas_inteligentes"))
+                    conn.execute(text(view_alertas_inteligentes))
+                except Exception as ev:
+                    print(f"⚠️ Aviso View Alertas: {ev}")
+
                 conn.commit()
-                print("✅ Tabelas básicas verificadas!")
-        except Exception as e:
-            print(f"❌ Erro ao criar tabelas: {e}")
+        
+        # SQLite não suporta "CREATE VIEW IF NOT EXISTS" em versões antigas, então tratamos exceção se necessário
+        # mas versões recentes suportam.
 
-    # --- MÉTODOS CORE (OPERAÇÕES BÁSICAS) ---
-
-    def buscar_jogador_por_tm_id(self, tm_id: str) -> Optional[int]:
-        """Busca ID do jogador pelo ID do Transfermarkt"""
-        if not tm_id:
-            return None
-            
-        query = "SELECT id_jogador FROM jogadores WHERE transfermarkt_id = :tm_id"
         try:
             with self.engine.connect() as conn:
-                result = conn.execute(text(query), {"tm_id": tm_id})
-                row = result.fetchone()
-                return row[0] if row else None
-        except Exception as e:
-            print(f"❌ Erro ao buscar jogador por TM ID: {e}")
-            return None
+                for sql in commands:
+                    conn.execute(text(sql))
+                
+                # Tenta criar a view separadamente
+                try:
+                    conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes")) # Garante atualização da view se mudou lógica
+                    conn.execute(text(view_benchmark))
+                except Exception as ev:
+                    print(f"⚠️ Aviso ao criar View (pode ser ignorado se for primeiro run): {ev}")
 
-    def inserir_jogador(self, dados_jogador: dict) -> Optional[int]:
-        """
-        Insere ou atualiza um jogador no banco.
-        Prioriza a busca por transfermarkt_id para evitar duplicidade.
-        Se não tiver tm_id, usa o nome como fallback.
-        """
-        try:
-            id_jogador = None
-            tm_id = dados_jogador.get('transfermarkt_id')
-            nome = dados_jogador.get('nome')
-            
-            # 1. Tenta encontrar pelo ID do Transfermarkt (Mais preciso)
-            if tm_id:
-                id_jogador = self.buscar_jogador_por_tm_id(tm_id)
-            
-            # 2. Se não achou e tem nome, tenta pelo nome (Fallback)
-            if not id_jogador and nome:
-                query_check_nome = "SELECT id_jogador FROM jogadores WHERE nome = :nome"
-                with self.engine.connect() as conn:
-                    result = conn.execute(text(query_check_nome), {"nome": nome})
-                    row = result.fetchone()
-                    if row:
-                        id_jogador = row[0]
-            
-            with self.engine.connect() as conn:
-                if id_jogador:
-                    # Atualiza jogador existente
-                    query_update = """
-                    UPDATE jogadores SET
-                        nome = :nome,
-                        nacionalidade = :nacionalidade,
-                        ano_nascimento = :ano_nascimento,
-                        idade_atual = :idade_atual,
-                        altura = :altura,
-                        pe_dominante = :pe_dominante,
-                        transfermarkt_id = :transfermarkt_id,
-                        data_atualizacao = CURRENT_TIMESTAMP
-                    WHERE id_jogador = :id_jogador
-                    """
-                    dados_jogador['id_jogador'] = id_jogador
-                    conn.execute(text(query_update), dados_jogador)
-                    conn.commit()
-                else:
-                    # Insere novo jogador
-                    query_insert = """
-                    INSERT INTO jogadores 
-                    (nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id)
-                    VALUES 
-                    (:nome, :nacionalidade, :ano_nascimento, :idade_atual, :altura, :pe_dominante, :transfermarkt_id)
-                    """
-                    if self.db_type == 'postgresql':
-                        query_insert += " RETURNING id_jogador"
-                        result = conn.execute(text(query_insert), dados_jogador)
-                        id_jogador = result.fetchone()[0]
-                        conn.commit()
-                    else:
-                        conn.execute(text(query_insert), dados_jogador)
-                        conn.commit()
-                        result = conn.execute(text("SELECT last_insert_rowid()"))
-                        id_jogador = result.fetchone()[0]
-                
-                return id_jogador
-                
+                conn.commit()
+                print(f"✅ Estrutura do banco de dados ({self.db_type}) atualizada com sucesso (V3.0)!")
         except Exception as e:
-            print(f"❌ Erro ao inserir jogador {dados_jogador.get('nome', 'Desconhecido')}: {e}")
-            return None
+            print(f"❌ Erro crítico ao criar tabelas: {e}")
 
     def inserir_vinculo(self, id_jogador: int, dados_vinculo: dict) -> bool:
         try:
