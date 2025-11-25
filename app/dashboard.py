@@ -3149,30 +3149,11 @@ def main():
 
     # Carregar dados COM CACHE ← MUDANÇA AQUI
     df_jogadores = carregar_jogadores(db)
-    
+
     # Dashboard principal continua aqui
 
     # --- BARRA LATERAL (SIDEBAR) COM SINCRONIZAÇÃO ---
     st.sidebar.header("🔄 Sincronização")
-
-    # Botão para puxar dados do Google Sheets
-    if st.sidebar.button("Baixar Dados da Planilha", type="primary"):
-        with st.spinner("Sincronizando..."):
-            try:
-                from google_sheets_sync_streamlit import GoogleSheetsSync
-                sync = GoogleSheetsSync()
-                sucesso = sync.sincronizar_para_banco(limpar_antes=False)
-                
-                if sucesso:
-                    st.sidebar.success("✅ Sincronização concluída!")
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    st.sidebar.error("❌ Falha na sincronização.")
-            except Exception as e:
-                st.sidebar.error(f"❌ Erro: {str(e)}")
-
-    st.sidebar.markdown("---")
 
     # Sidebar - Filtros normais
     st.sidebar.header("🔍 Filtros")
