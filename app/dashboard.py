@@ -3361,99 +3361,99 @@ def main():
             st.warning("Nenhum jogador encontrado com os filtros aplicados.")
     
     # ============== TAB 2: LISTA DE JOGADORES ==============
-with tab2:
-    st.subheader(f"📋 Lista Completa: {len(df_filtrado)} jogadores")
-    
-    if len(df_filtrado) > 0:
-        # Opções de visualização
-        view_mode = st.radio(
-            "Modo de Visualização",
-            ["📸 Cards com Fotos", "📊 Tabela"],
-            horizontal=True,
-            key="view_mode_tab2"
-        )
-        
-        st.markdown("---")
-        
-        if view_mode == "📸 Cards com Fotos":
-            # Exibir cards (código existente)
-            exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
-        
-        else:  # Tabela
-            # Preparar DataFrame para exibição
-            df_display = df_filtrado.copy()
+        with tab2:
+            st.subheader(f"📋 Lista Completa: {len(df_filtrado)} jogadores")
             
-            # Criar coluna com link clicável
-            base_url = st.query_params.get("base_url", "https://scoutingscr-kqoj2ctskq2nv4a4wvrc.streamlit.app")
-            
-            df_display['🔗 Perfil'] = df_display['id_jogador'].apply(
-                lambda x: f'<a href="{base_url}?jogador={x}" target="_blank">Ver Perfil</a>'
-            )
-            
-            # Selecionar colunas
-            colunas_exibir = ['nome', 'posicao', 'clube', 'liga_clube', 'nacionalidade', 
-                            'idade_atual', 'altura', 'pe_dominante', 'data_fim_contrato', '🔗 Perfil']
-            
-            # Filtrar apenas colunas que existem
-            colunas_disponiveis = [col for col in colunas_exibir if col in df_display.columns or col == '🔗 Perfil']
-            df_tabela = df_display[colunas_disponiveis].copy()
-            
-            # Renomear colunas
-            rename_map = {
-                'nome': 'Nome',
-                'posicao': 'Posição',
-                'clube': 'Clube',
-                'liga_clube': 'Liga',
-                'nacionalidade': 'Nacionalidade',
-                'idade_atual': 'Idade',
-                'altura': 'Altura (cm)',
-                'pe_dominante': 'Pé',
-                'data_fim_contrato': 'Fim Contrato'
-            }
-            df_tabela = df_tabela.rename(columns=rename_map)
-            
-            # Paginação
-            jogadores_por_pagina = 50
-            total_paginas = (len(df_tabela) - 1) // jogadores_por_pagina + 1
-            
-            if total_paginas > 1:
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col2:
-                    pagina_atual = st.number_input(
-                        "Página",
-                        min_value=1,
-                        max_value=total_paginas,
-                        value=1,
-                        key="paginacao_tabela"
+            if len(df_filtrado) > 0:
+                # Opções de visualização
+                view_mode = st.radio(
+                    "Modo de Visualização",
+                    ["📸 Cards com Fotos", "📊 Tabela"],
+                    horizontal=True,
+                    key="view_mode_tab2"
+                )
+                
+                st.markdown("---")
+                
+                if view_mode == "📸 Cards com Fotos":
+                    # Exibir cards (código existente)
+                    exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
+                
+                else:  # Tabela
+                    # Preparar DataFrame para exibição
+                    df_display = df_filtrado.copy()
+                    
+                    # Criar coluna com link clicável
+                    base_url = st.query_params.get("base_url", "https://scoutingscr-kqoj2ctskq2nv4a4wvrc.streamlit.app")
+                    
+                    df_display['🔗 Perfil'] = df_display['id_jogador'].apply(
+                        lambda x: f'<a href="{base_url}?jogador={x}" target="_blank">Ver Perfil</a>'
+                    )
+                    
+                    # Selecionar colunas
+                    colunas_exibir = ['nome', 'posicao', 'clube', 'liga_clube', 'nacionalidade', 
+                                    'idade_atual', 'altura', 'pe_dominante', 'data_fim_contrato', '🔗 Perfil']
+                    
+                    # Filtrar apenas colunas que existem
+                    colunas_disponiveis = [col for col in colunas_exibir if col in df_display.columns or col == '🔗 Perfil']
+                    df_tabela = df_display[colunas_disponiveis].copy()
+                    
+                    # Renomear colunas
+                    rename_map = {
+                        'nome': 'Nome',
+                        'posicao': 'Posição',
+                        'clube': 'Clube',
+                        'liga_clube': 'Liga',
+                        'nacionalidade': 'Nacionalidade',
+                        'idade_atual': 'Idade',
+                        'altura': 'Altura (cm)',
+                        'pe_dominante': 'Pé',
+                        'data_fim_contrato': 'Fim Contrato'
+                    }
+                    df_tabela = df_tabela.rename(columns=rename_map)
+                    
+                    # Paginação
+                    jogadores_por_pagina = 50
+                    total_paginas = (len(df_tabela) - 1) // jogadores_por_pagina + 1
+                    
+                    if total_paginas > 1:
+                        col1, col2, col3 = st.columns([1, 2, 1])
+                        with col2:
+                            pagina_atual = st.number_input(
+                                "Página",
+                                min_value=1,
+                                max_value=total_paginas,
+                                value=1,
+                                key="paginacao_tabela"
+                            )
+                    else:
+                        pagina_atual = 1
+                    
+                    inicio = (pagina_atual - 1) * jogadores_por_pagina
+                    fim = min(inicio + jogadores_por_pagina, len(df_tabela))
+                    df_pagina = df_tabela.iloc[inicio:fim]
+                    
+                    st.caption(f"Exibindo jogadores {inicio + 1} a {fim} de {len(df_tabela)}")
+                    
+                    # Exibir tabela com HTML para permitir links clicáveis
+                    st.markdown(
+                        df_pagina.to_html(escape=False, index=False),
+                        unsafe_allow_html=True
+                    )
+                    
+                    # Botão de export
+                    st.markdown("---")
+                    csv = df_filtrado.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥 Exportar Lista (CSV)",
+                        data=csv,
+                        file_name=f"jogadores_scout_pro_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        key="export_csv_tab2"
                     )
             else:
-                pagina_atual = 1
-            
-            inicio = (pagina_atual - 1) * jogadores_por_pagina
-            fim = min(inicio + jogadores_por_pagina, len(df_tabela))
-            df_pagina = df_tabela.iloc[inicio:fim]
-            
-            st.caption(f"Exibindo jogadores {inicio + 1} a {fim} de {len(df_tabela)}")
-            
-            # Exibir tabela com HTML para permitir links clicáveis
-            st.markdown(
-                df_pagina.to_html(escape=False, index=False),
-                unsafe_allow_html=True
-            )
-            
-            # Botão de export
-            st.markdown("---")
-            csv = df_filtrado.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Exportar Lista (CSV)",
-                data=csv,
-                file_name=f"jogadores_scout_pro_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="export_csv_tab2"
-            )
-    else:
-        st.warning("Nenhum jogador encontrado com os filtros aplicados.")
+                st.warning("Nenhum jogador encontrado com os filtros aplicados.")
     
     # ============== TAB 3: WISHLIST ==============
     with tab3:
