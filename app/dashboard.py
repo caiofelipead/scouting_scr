@@ -659,21 +659,14 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True, coordenadas_fixas=None)
     pitch = Pitch(pitch_type="statsbomb", pitch_color="#22312b", line_color="#c7d5cc")
     fig, ax = pitch.draw(figsize=(12, 8))
 
-    # Dicionário de coordenadas aproximadas (X, Y) - Fallback
-    coord_map_fallback = {
-        "goleiro": (10, 40),
-        "zagueiro": (30, 40),
-        "lateral": (35, 10),
-        "volante": (50, 40),
-        "meia": (75, 40),
-        "atacante": (105, 40),
-    }
-
     # Listas para plotagem
     x_list = []
     y_list = []
     names = []
     colors = []
+    
+    # Contador para espalhar jogadores da mesma posição
+    posicao_counter = {}
 
     for _, row in df_jogadores.iterrows():
         # 1. Usa coordenada fixa (Shadow Team Interativo) se existir
@@ -686,21 +679,87 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True, coordenadas_fixas=None)
         # 2. Fallback (Visualização Geral / Mapa de Calor)
         else:
             pos_str = str(row["posicao"]).lower().strip()
-            base_coord = (60, 40)  # Centro por padrão
-
-            match_found = False
-            for key, coord in coord_map_fallback.items():
-                if key in pos_str:
-                    base_coord = coord
-                    match_found = True
-                    break
-
-            if not match_found:
-                base_coord = (random.uniform(10, 110), 40)
+            
+            # Mapeamento melhorado de posições
+            # Goleiros
+            if "goleiro" in pos_str or "gk" in pos_str:
+                base_coord = (10, 40)
+            
+            # Zagueiros
+            elif "zagueiro" in pos_str or "zag" in pos_str or "defensor" in pos_str or "cb" in pos_str:
+                count = posicao_counter.get("zagueiro", 0)
+                if count % 2 == 0:
+                    base_coord = (30, 25)
+                else:
+                    base_coord = (30, 55)
+                posicao_counter["zagueiro"] = count + 1
+            
+            # Laterais
+            elif "lateral esquerdo" in pos_str or "le" in pos_str or "lb" in pos_str:
+                base_coord = (35, 10)
+            elif "lateral direito" in pos_str or "ld" in pos_str or "rb" in pos_str:
+                base_coord = (35, 70)
+            elif "lateral" in pos_str:
+                count = posicao_counter.get("lateral", 0)
+                if count % 2 == 0:
+                    base_coord = (35, 10)
+                else:
+                    base_coord = (35, 70)
+                posicao_counter["lateral"] = count + 1
+            
+            # Volantes
+            elif "volante" in pos_str or "cdm" in pos_str or "dm" in pos_str:
+                count = posicao_counter.get("volante", 0)
+                if count % 2 == 0:
+                    base_coord = (50, 30)
+                else:
+                    base_coord = (50, 50)
+                posicao_counter["volante"] = count + 1
+            
+            # Meias
+            elif "meia" in pos_str or "cam" in pos_str or "cm" in pos_str or "am" in pos_str:
+                count = posicao_counter.get("meia", 0)
+                # Distribuir em 3 posições
+                if count % 3 == 0:
+                    base_coord = (70, 20)
+                elif count % 3 == 1:
+                    base_coord = (70, 40)
+                else:
+                    base_coord = (70, 60)
+                posicao_counter["meia"] = count + 1
+            
+            # Pontas e Extremos
+            elif "ponta esquerda" in pos_str or "pe" in pos_str or "lw" in pos_str or "extremo esquerdo" in pos_str:
+                base_coord = (100, 15)
+            elif "ponta direita" in pos_str or "pd" in pos_str or "rw" in pos_str or "extremo direito" in pos_str:
+                base_coord = (100, 65)
+            elif "ponta" in pos_str or "extremo" in pos_str or "ala" in pos_str or "wing" in pos_str:
+                count = posicao_counter.get("ponta", 0)
+                if count % 2 == 0:
+                    base_coord = (100, 15)  # Esquerda
+                else:
+                    base_coord = (100, 65)  # Direita
+                posicao_counter["ponta"] = count + 1
+            
+            # Atacantes / Centroavantes
+            elif "atacante" in pos_str or "centroavante" in pos_str or "st" in pos_str or "cf" in pos_str or "fw" in pos_str:
+                count = posicao_counter.get("atacante", 0)
+                # Distribuir em 3 posições (ponta esq, centro, ponta dir)
+                if count % 3 == 0:
+                    base_coord = (105, 20)  # Esquerda
+                elif count % 3 == 1:
+                    base_coord = (105, 40)  # Centro
+                else:
+                    base_coord = (105, 60)  # Direita
+                posicao_counter["atacante"] = count + 1
+            
+            # Posição desconhecida
+            else:
+                base_coord = (60, 40)  # Centro do campo
 
             # Jitter maior para espalhar na visualização geral
-            x_jitter = random.uniform(-6, 6)
-            y_jitter = random.uniform(-6, 6)
+            x_jitter = random.uniform(-4, 4)
+            y_jitter = random.uniform(-4, 4)
 
         x_list.append(base_coord[0] + x_jitter)
         y_list.append(base_coord[1] + y_jitter)
