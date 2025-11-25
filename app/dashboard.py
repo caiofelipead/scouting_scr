@@ -3180,33 +3180,9 @@ def main():
 
     # Dashboard principal continua aqui
 
-    # --- BARRA LATERAL (SIDEBAR) COM SINCRONIZAÇÃO ---
-    st.sidebar.header("🔄 Sincronização")
-
-    # Botão para puxar dados do Google Sheets
-    if st.sidebar.button("Baixar Dados da Planilha", type="primary"):
-        with st.spinner("Sincronizando..."):
-            try:
-                from google_sheets_sync_streamlit import GoogleSheetsSync
-                sync = GoogleSheetsSync()
-                sucesso = sync.sincronizar_para_banco(limpar_antes=False)
-                
-                if sucesso:
-                    st.sidebar.success("✅ Sincronização concluída!")
-                    # Limpar cache após sincronização
-                    st.cache_data.clear()  # ← LIMPA O CACHE
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    st.sidebar.error("❌ Falha na sincronização.")
-            except Exception as e:
-                st.sidebar.error(f"❌ Erro: {str(e)}")
-
-     st.sidebar.markdown("---")
-    
     # --- BARRA LATERAL: SINCRONIZAÇÃO ---
     st.sidebar.header("🔄 Sincronização")
-    
+
     # Botão para puxar dados do Google Sheets
     if st.sidebar.button("Baixar Dados da Planilha", type="primary"):
         with st.spinner("Sincronizando..."):
@@ -3225,7 +3201,7 @@ def main():
             except Exception as e:
                 st.sidebar.error(f"❌ Erro: {str(e)}")
     
-    st.sidebar.markdown("---")
+    st.sidebar.markdown("---") 
     
     # --- BARRA LATERAL: FILTROS ---
     st.sidebar.header("🔍 Filtros")
@@ -3331,193 +3307,171 @@ def main():
     
     st.markdown("---")
     
-    # ============== NAVEGAÇÃO OTIMIZADA (LAZY LOADING) ==============
-st.markdown("---")
-
-tab_selecionada = st.selectbox(
-    "📍 Navegação",
-    [
-        "📊 Visão Geral",
-        "👥 Lista de Jogadores", 
-        "⭐ Wishlist",
-        "🏆 Ranking",
-        "⚖️ Comparador",
-        "⚽ Shadow Team",
-        "🔍 Busca Avançada",
-        "📈 Análise de Mercado",
-        "🔔 Alertas",
-        "💰 Financeiro"
-    ],
-    key="nav_principal",
-    label_visibility="collapsed"
-)
-
-st.markdown("---")
-
-# Renderizar APENAS a tab selecionada
-if tab_selecionada == "📊 Visão Geral":
-    with st.spinner("Carregando visão geral..."):
-        st.subheader(f"📋 Visão Geral do Sistema")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Total de Jogadores", len(df_filtrado))
-        
-        with col2:
-            try:
-                with db.engine.connect() as conn:
-                    result = conn.execute(text("SELECT COUNT(*) as total FROM avaliacoes"))
-                    total_avaliacoes = result.fetchone()[0]
-            except:
-                total_avaliacoes = 0
-            st.metric("Total de Avaliações", total_avaliacoes)
-        
-        with col3:
-            try:
-                wishlist = db.get_wishlist()
-                wishlist_count = len(wishlist)
-            except:
-                wishlist_count = 0
-            st.metric("Jogadores na Wishlist", wishlist_count)
-        
-        with col4:
-            try:
-                with db.engine.connect() as conn:
-                    result = conn.execute(text("SELECT COUNT(DISTINCT id_jogador) as total FROM jogador_tags"))
-                    tags_count = result.fetchone()[0]
-            except:
-                tags_count = 0
-            st.metric("Jogadores com Tags", tags_count)
-        
-        st.markdown("---")
-        
-        if len(df_filtrado) > 0:
-            st.markdown("#### 🎯 Primeiros Jogadores")
-            exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key="overview")
+    # Renderizar APENAS a tab selecionada
+    if tab_selecionada == "📊 Visão Geral":
+        with st.spinner("Carregando visão geral..."):
+            st.subheader(f"📋 Visão Geral do Sistema")
             
-            if len(df_filtrado) > 10:
-                st.info(f"Mostrando os primeiros 10 de {len(df_filtrado)} jogadores. Use as outras tabs para explorar mais.")
-        else:
-            st.warning("Nenhum jogador encontrado com os filtros aplicados.")
-
-elif tab_selecionada == "👥 Lista de Jogadores":
-    with st.spinner("Carregando lista de jogadores..."):
-        st.subheader(f"📋 Lista Completa: {len(df_filtrado)} jogadores")
-        
-        if len(df_filtrado) > 0:
-            view_mode = st.radio(
-                "Modo de Visualização",
-                ["📸 Cards com Fotos", "📊 Tabela"],
-                horizontal=True,
-                key="view_mode_tab2"
-            )
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Total de Jogadores", len(df_filtrado))
+            
+            with col2:
+                try:
+                    with db.engine.connect() as conn:
+                        result = conn.execute(text("SELECT COUNT(*) as total FROM avaliacoes"))
+                        total_avaliacoes = result.fetchone()[0]
+                except:
+                    total_avaliacoes = 0
+                st.metric("Total de Avaliações", total_avaliacoes)
+            
+            with col3:
+                try:
+                    wishlist = db.get_wishlist()
+                    wishlist_count = len(wishlist)
+                except:
+                    wishlist_count = 0
+                st.metric("Jogadores na Wishlist", wishlist_count)
+            
+            with col4:
+                try:
+                    with db.engine.connect() as conn:
+                        result = conn.execute(text("SELECT COUNT(DISTINCT id_jogador) as total FROM jogador_tags"))
+                        tags_count = result.fetchone()[0]
+                except:
+                    tags_count = 0
+                st.metric("Jogadores com Tags", tags_count)
             
             st.markdown("---")
             
-            if view_mode == "📸 Cards com Fotos":
-                exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
+            if len(df_filtrado) > 0:
+                st.markdown("#### 🎯 Primeiros Jogadores")
+                exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key="overview")
+                
+                if len(df_filtrado) > 10:
+                    st.info(f"Mostrando os primeiros 10 de {len(df_filtrado)} jogadores. Use as outras tabs para explorar mais.")
+            else:
+                st.warning("Nenhum jogador encontrado com os filtros aplicados.")
+
+    elif tab_selecionada == "👥 Lista de Jogadores":
+        with st.spinner("Carregando lista de jogadores..."):
+            st.subheader(f"📋 Lista Completa: {len(df_filtrado)} jogadores")
             
-            else:  # Tabela
-                df_display = df_filtrado.copy()
-                
-                base_url = "https://scoutingscr-kqoj2ctskq2nv4a4wvrc.streamlit.app"
-                
-                df_display['🔗 Perfil'] = df_display['id_jogador'].apply(
-                    lambda x: f'<a href="{base_url}?jogador={x}" target="_blank">Ver Perfil</a>'
-                )
-                
-                colunas_exibir = ['nome', 'posicao', 'clube', 'liga_clube', 'nacionalidade', 
-                                'idade_atual', 'altura', 'pe_dominante', 'data_fim_contrato', '🔗 Perfil']
-                
-                colunas_disponiveis = [col for col in colunas_exibir if col in df_display.columns or col == '🔗 Perfil']
-                df_tabela = df_display[colunas_disponiveis].copy()
-                
-                rename_map = {
-                    'nome': 'Nome',
-                    'posicao': 'Posição',
-                    'clube': 'Clube',
-                    'liga_clube': 'Liga',
-                    'nacionalidade': 'Nacionalidade',
-                    'idade_atual': 'Idade',
-                    'altura': 'Altura (cm)',
-                    'pe_dominante': 'Pé',
-                    'data_fim_contrato': 'Fim Contrato'
-                }
-                df_tabela = df_tabela.rename(columns=rename_map)
-                
-                jogadores_por_pagina = 50
-                total_paginas = (len(df_tabela) - 1) // jogadores_por_pagina + 1
-                
-                if total_paginas > 1:
-                    col1, col2, col3 = st.columns([1, 2, 1])
-                    with col2:
-                        pagina_atual = st.number_input(
-                            "Página",
-                            min_value=1,
-                            max_value=total_paginas,
-                            value=1,
-                            key="paginacao_tabela"
-                        )
-                else:
-                    pagina_atual = 1
-                
-                inicio = (pagina_atual - 1) * jogadores_por_pagina
-                fim = min(inicio + jogadores_por_pagina, len(df_tabela))
-                df_pagina = df_tabela.iloc[inicio:fim]
-                
-                st.caption(f"Exibindo jogadores {inicio + 1} a {fim} de {len(df_tabela)}")
-                
-                st.markdown(
-                    df_pagina.to_html(escape=False, index=False),
-                    unsafe_allow_html=True
+            if len(df_filtrado) > 0:
+                view_mode = st.radio(
+                    "Modo de Visualização",
+                    ["📸 Cards com Fotos", "📊 Tabela"],
+                    horizontal=True,
+                    key="view_mode_tab2"
                 )
                 
                 st.markdown("---")
-                csv = df_filtrado.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📥 Exportar Lista (CSV)",
-                    data=csv,
-                    file_name=f"jogadores_scout_pro_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                    key="export_csv_tab2"
-                )
-        else:
-            st.warning("Nenhum jogador encontrado com os filtros aplicados.")
+                
+                if view_mode == "📸 Cards com Fotos":
+                    exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
+                
+                else:  # Tabela
+                    df_display = df_filtrado.copy()
+                    
+                    base_url = "https://scoutingscr-kqoj2ctskq2nv4a4wvrc.streamlit.app"
+                    
+                    df_display['🔗 Perfil'] = df_display['id_jogador'].apply(
+                        lambda x: f'<a href="{base_url}?jogador={x}" target="_blank">Ver Perfil</a>'
+                    )
+                    
+                    colunas_exibir = ['nome', 'posicao', 'clube', 'liga_clube', 'nacionalidade', 
+                                    'idade_atual', 'altura', 'pe_dominante', 'data_fim_contrato', '🔗 Perfil']
+                    
+                    colunas_disponiveis = [col for col in colunas_exibir if col in df_display.columns or col == '🔗 Perfil']
+                    df_tabela = df_display[colunas_disponiveis].copy()
+                    
+                    rename_map = {
+                        'nome': 'Nome',
+                        'posicao': 'Posição',
+                        'clube': 'Clube',
+                        'liga_clube': 'Liga',
+                        'nacionalidade': 'Nacionalidade',
+                        'idade_atual': 'Idade',
+                        'altura': 'Altura (cm)',
+                        'pe_dominante': 'Pé',
+                        'data_fim_contrato': 'Fim Contrato'
+                    }
+                    df_tabela = df_tabela.rename(columns=rename_map)
+                    
+                    jogadores_por_pagina = 50
+                    total_paginas = (len(df_tabela) - 1) // jogadores_por_pagina + 1
+                    
+                    if total_paginas > 1:
+                        col1, col2, col3 = st.columns([1, 2, 1])
+                        with col2:
+                            pagina_atual = st.number_input(
+                                "Página",
+                                min_value=1,
+                                max_value=total_paginas,
+                                value=1,
+                                key="paginacao_tabela"
+                            )
+                    else:
+                        pagina_atual = 1
+                    
+                    inicio = (pagina_atual - 1) * jogadores_por_pagina
+                    fim = min(inicio + jogadores_por_pagina, len(df_tabela))
+                    df_pagina = df_tabela.iloc[inicio:fim]
+                    
+                    st.caption(f"Exibindo jogadores {inicio + 1} a {fim} de {len(df_tabela)}")
+                    
+                    st.markdown(
+                        df_pagina.to_html(escape=False, index=False),
+                        unsafe_allow_html=True
+                    )
+                    
+                    st.markdown("---")
+                    csv = df_filtrado.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥 Exportar Lista (CSV)",
+                        data=csv,
+                        file_name=f"jogadores_scout_pro_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        key="export_csv_tab2"
+                    )
+            else:
+                st.warning("Nenhum jogador encontrado com os filtros aplicados.")
 
-elif tab_selecionada == "⭐ Wishlist":
-    with st.spinner("Carregando wishlist..."):
-        tab_wishlist(db)
+    elif tab_selecionada == "⭐ Wishlist":
+        with st.spinner("Carregando wishlist..."):
+            tab_wishlist(db)
 
-elif tab_selecionada == "🏆 Ranking":
-    with st.spinner("Carregando ranking..."):
-        tab_ranking(db, df_filtrado)
+    elif tab_selecionada == "🏆 Ranking":
+        with st.spinner("Carregando ranking..."):
+            tab_ranking(db, df_filtrado)
 
-elif tab_selecionada == "⚖️ Comparador":
-    with st.spinner("Carregando comparador..."):
-        tab_comparador(db, df_filtrado)
+    elif tab_selecionada == "⚖️ Comparador":
+        with st.spinner("Carregando comparador..."):
+            tab_comparador(db, df_filtrado)
 
-elif tab_selecionada == "⚽ Shadow Team":
-    with st.spinner("Carregando shadow team..."):
-        tab_shadow_team(db, df_jogadores)
+    elif tab_selecionada == "⚽ Shadow Team":
+        with st.spinner("Carregando shadow team..."):
+            tab_shadow_team(db, df_jogadores)
 
-elif tab_selecionada == "🔍 Busca Avançada":
-    with st.spinner("Carregando busca avançada..."):
-        tab_busca_avancada(db, df_filtrado)
+    elif tab_selecionada == "🔍 Busca Avançada":
+        with st.spinner("Carregando busca avançada..."):
+            tab_busca_avancada(db, df_filtrado)
 
-elif tab_selecionada == "📈 Análise de Mercado":
-    with st.spinner("Carregando análise de mercado..."):
-        tab_analise_mercado(db, df_filtrado)
+    elif tab_selecionada == "📈 Análise de Mercado":
+        with st.spinner("Carregando análise de mercado..."):
+            tab_analise_mercado(db, df_filtrado)
 
-elif tab_selecionada == "🔔 Alertas":
-    with st.spinner("Carregando alertas..."):
-        tab_alertas_inteligentes(db)
+    elif tab_selecionada == "🔔 Alertas":
+        with st.spinner("Carregando alertas..."):
+            tab_alertas_inteligentes(db)
 
-elif tab_selecionada == "💰 Financeiro":
-    with st.spinner("Carregando financeiro..."):
-        aba_financeira()
+    elif tab_selecionada == "💰 Financeiro":
+        with st.spinner("Carregando financeiro..."):
+            aba_financeira()
 
 
 if __name__ == "__main__":
     main()
+    
