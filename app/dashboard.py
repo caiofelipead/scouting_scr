@@ -695,7 +695,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     except Exception:
         id_busca = id_jogador
 
-    query = """
+    query = text("""
     SELECT 
         j.*,
         v.clube,
@@ -706,13 +706,12 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     FROM jogadores j
     LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
     WHERE j.id_jogador = :id
-    """
-
-    # Compatibilidade SQL (Postgres/SQLite)
-    # O parametro :id é mais seguro
-    jogador = pd.read_sql_query(query, conn, params={'id': id_busca})
-    conn.close()
-
+    """)
+    
+    # Executar com SQLAlchemy
+    result = conn.execute(query, {"id": id_busca})
+    jogador = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
     if len(jogador) == 0:
         st.error(f"Jogador não encontrado! (ID buscado: {id_busca})")
         if st.button("Voltar para Lista"):
