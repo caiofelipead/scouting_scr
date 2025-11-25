@@ -1283,54 +1283,59 @@ def exibir_lista_com_fotos(df_display, db, debug=False):
         subset=["id_jogador"], keep="first"
     ).reset_index(drop=True)
 
+    def exibir_lista_com_fotos(df_display, db, debug=False):
+    """Exibe lista de jogadores com fotos em formato de cards"""
+    st.markdown("### Jogadores")
+    
+    # CORREÇÃO: Remover duplicatas E resetar index para garantir IDs únicos
+    df_display = df_display.drop_duplicates(subset=['id_jogador'], keep='first').reset_index(drop=True)
+    
     for i in range(0, len(df_display), 4):
         cols = st.columns(4)
-
         for j, col in enumerate(cols):
             idx = i + j
             if idx < len(df_display):
                 jogador = df_display.iloc[idx]
-
                 with col:
-                    # Tentar pegar foto com ambos os IDs
+                    # Foto
                     tm_id = jogador.get('transfermarkt_id', None)
                     foto_path = get_foto_jogador(
-                        jogador["id_jogador"], 
+                        jogador['id_jogador'],
                         transfermarkt_id=tm_id,
-                        debug=debug and idx == 0  # Debug apenas no primeiro
+                        debug=(debug and idx == 0)
                     )
-
+                    
                     if foto_path:
                         st.image(foto_path, use_container_width=True)
                     else:
                         st.markdown(
-                            """
-                        <div style='
-                            width: 100%; 
-                            padding-top: 100%;
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            border-radius: 10px;
-                            position: relative;
-                        '>
-                            <div style='
-                                position: absolute;
-                                top: 50%;
-                                left: 50%;
-                                transform: translate(-50%, -50%);
-                                font-size: 60px;
-                            '>⚽</div>
-                        </div>
-                        """,
+                            f"""
+                            <div style="width: 100%; padding-top: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; position: relative;">
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px;">⚽</div>
+                            </div>
+                            """,
                             unsafe_allow_html=True,
                         )
-
+                    
                     st.markdown(f"**{jogador['nome']}**")
-                    st.caption(
-                        f"{jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'}"
-                    )
-                    st.caption(
-                        f"{jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}"
-                    )
+                    st.caption(f"{jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'}")
+                    st.caption(f"{jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}")
+                    
+                    perfil_url = get_perfil_url(jogador['id_jogador'])
+                    
+                    cola, colb = st.columns(2)
+                    with cola:
+                        # CORREÇÃO: Key única combinando id_jogador + idx + timestamp
+                        # Isso garante que NUNCA haverá duplicatas mesmo se o DataFrame tiver problemas
+                        if st.button(
+                            "Ver Perfil",
+                            key=f"perfil_{jogador['id_jogador']}_{idx}_{i}",  # Adicionar i também
+                            use_container_width=True,
+                        ):
+                            st.session_state.pagina = "perfil"
+                            st.session_state.jogador_selecionado = jogador['id_jogador']
+                            st.query_params["jogador"] = jogador['id_jogador']
+                            st.rerun()
 
                     # Criar link para abrir em nova aba
                     perfil_url = get_perfil_url(jogador["id_jogador"])
@@ -1509,7 +1514,7 @@ def tab_ranking(db, df_jogadores):
             return
         
         # Exibir cada jogador do Top 20
-        for idx, jogador in df_top20.iterrows():
+        for idx, jogador in enumerate(df_top20.itertuples()):
             rank_pos = jogador["rank"]
             
             # Determinar classe CSS e emoji
@@ -2110,7 +2115,7 @@ def criar_seletor_posicao(posicao, df_jogadores, db):
             f"**{posicao}**",
             options=opcoes,
             index=default_index,
-            key=f"shadow_{posicao}"
+            key=f"shadow_{posicao}_{hash(posicao)}"
         )
         
         if selecionado != "Nenhum":
@@ -2204,7 +2209,7 @@ def render_tags_widget(db, id_jogador):
                     key=f"add_tag_{id_jogador}"
                 )
                 
-                if st.button("Adicionar", key=f"btn_add_tag_{id_jogador}"):
+                if st.button("Adicionar", key=f"btn_add_tag_{id_jogador}_{tag_selecionada}"):
                     if db.adicionar_tag_jogador(id_jogador, tag_selecionada):
                         st.success("Tag adicionada!")
                         st.rerun()
@@ -2221,7 +2226,7 @@ def render_tags_widget(db, id_jogador):
                     key=f"rem_tag_{id_jogador}"
                 )
                 
-                if st.button("Remover", key=f"btn_rem_tag_{id_jogador}", type="secondary"):
+                if st.button("Remover", key=f"btn_rem_tag_{id_jogador}_{tag_remover}"):, type="secondary"):
                     if db.remover_tag_jogador(id_jogador, tag_remover):
                         st.success("Tag removida!")
                         st.rerun()
@@ -2554,7 +2559,7 @@ def tab_wishlist(db):
     st.markdown("---")
     
     # Mostrar jogadores
-    for _, jogador in wishlist.iterrows():
+    for idx, jogador in enumerate(wishlist.iterrows()):
         prioridade_color = {'alta': '#dc3545', 'media': '#ffc107', 'baixa': '#28a745'}[jogador['prioridade']]
         prioridade_label = {'alta': '🔴 ALTA', 'media': '🟡 MÉDIA', 'baixa': '🟢 BAIXA'}[jogador['prioridade']]
         
@@ -2577,13 +2582,13 @@ def tab_wishlist(db):
                 st.metric("Adicionado em", data_add)
             
             with col4:
-                if st.button("Ver Perfil", key=f"wishlist_perfil_{jogador['id_jogador']}"):
+                if st.button("Ver Perfil", key=f"wishlist_perfil_{jogador['id_jogador']}_{idx}"):
                     st.session_state.pagina = "perfil"
                     st.session_state.jogador_selecionado = jogador['id_jogador']
                     st.query_params["jogador"] = jogador['id_jogador']
                     st.rerun()
                 
-                if st.button("Remover", key=f"wishlist_rem_{jogador['id_jogador']}", type="secondary"):
+                if st.button("Remover", key=f"wishlist_rem_{jogador['id_jogador']}_{idx}"):, type="secondary"):
                     if db.remover_wishlist(jogador['id_jogador']):
                         st.success("Removido!")
                         st.rerun()
@@ -2850,7 +2855,7 @@ def tab_busca_avancada(db, df_jogadores):
         
         if view_mode == 'Cards':
             # Mostrar em cards
-            for i in range(0, len(resultado), 3):
+            for i in range(for i in range(0, len(resultado), 3):, len(resultado), 3):
                 cols = st.columns(3)
                 for j, col in enumerate(cols):
                     idx = i + j
@@ -2866,7 +2871,7 @@ def tab_busca_avancada(db, df_jogadores):
                                 
                                 st.metric("Idade", f"{jogador.get('idade_atual', 'N/A')} anos")
                                 
-                                if st.button("Ver Perfil", key=f"busca_perfil_{jogador['id_jogador']}"):
+                                if st.button("Ver Perfil", key=f"busca_perfil_{jogador['id_jogador']}_{idx}_{i}"):
                                     st.session_state.pagina = "perfil"
                                     st.session_state.jogador_selecionado = jogador['id_jogador']
                                     st.query_params["jogador"] = jogador['id_jogador']
@@ -3107,7 +3112,7 @@ def tab_analise_mercado(db, df_jogadores):
                 with st.expander(f"{tipo} ({len(df_oport[df_oport['tipo'] == tipo])})", expanded=True):
                     df_tipo = df_oport[df_oport['tipo'] == tipo]
                     
-                    for _, oport in df_tipo.iterrows():
+                    for idx, (_, oport) in enumerate(df_tipo.iterrows()):
                         col1, col2, col3 = st.columns([3, 2, 1])
                         
                         with col1:
@@ -3117,7 +3122,7 @@ def tab_analise_mercado(db, df_jogadores):
                             st.caption(oport['detalhes'])
                         
                         with col3:
-                            if st.button("Ver", key=f"oport_{oport['id_jogador']}"):
+                            if st.button("Ver", key=f"oport_{oport['id_jogador']}_{idx}"):
                                 st.session_state.pagina = "perfil"
                                 st.session_state.jogador_selecionado = oport['id_jogador']
                                 st.query_params["jogador"] = oport['id_jogador']
