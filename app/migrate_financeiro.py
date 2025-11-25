@@ -4,6 +4,12 @@ Script de migração para adicionar colunas financeiras à tabela jogadores
 Execute uma vez para atualizar a estrutura do banco
 """
 
+import sys
+import os
+
+# Força o Python a encontrar a pasta "pai" onde está o database.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from database import ScoutingDatabase
 from sqlalchemy import text
 
