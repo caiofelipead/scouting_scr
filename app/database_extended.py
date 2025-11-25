@@ -1,40 +1,138 @@
 """
 Extensão Database - Scout Pro
-Adiciona funcionalidades financeiras mantendo compatibilidade com SQLite
+Suporta SQLite (local) e PostgreSQL (Railway) de forma híbrida
 """
 
-import sqlite3
+import os
 import pandas as pd
 import streamlit as st
 from datetime import datetime
-import os
+
+# Detecção automática do tipo de banco
+USE_POSTGRESQL = bool(os.getenv('DATABASE_URL'))
+
+if USE_POSTGRESQL:
+    import psycopg2
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.pool import NullPool
+else:
+    import sqlite3
 
 
 class ScoutingDatabaseExtended:
-    """Extensão do banco de dados SQLite com funcionalidades adicionais"""
+    """Extensão do banco de dados com suporte híbrido SQLite/PostgreSQL"""
     
     def __init__(self):
-        # Usa o mesmo caminho do ScoutingDatabase principal
-        if os.getenv("RAILWAY_VOLUME_MOUNT_PATH"):
-            self.db_path = os.path.join(
-                os.getenv("RAILWAY_VOLUME_MOUNT_PATH"), "scouting.db"
-            )
+        self.use_postgresql = USE_POSTGRESQL
+        
+        if self.use_postgresql:
+            # Configuração PostgreSQL (Railway)
+            self.database_url = os.getenv('DATABASE_URL')
+            if self.database_url.startswith("postgres://"):
+                self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
+            print("🔵 Usando PostgreSQL (Railway)")
         else:
-            self.db_path = "scouting.db"
+            # Configuração SQLite (Local)
+            if os.getenv("RAILWAY_VOLUME_MOUNT_PATH"):
+                self.db_path = os.path.join(os.getenv("RAILWAY_VOLUME_MOUNT_PATH"), "scouting.db")
+            else:
+                self.db_path = "scouting.db"
+            print("🟢 Usando SQLite (Local)")
         
         self._criar_tabelas_estendidas()
     
     def get_connection(self):
-        """Estabelece conexão com o banco SQLite"""
-        return sqlite3.connect(self.db_path)
+        """Estabelece conexão com o banco (SQLite ou PostgreSQL)"""
+        if self.use_postgresql:
+            return psycopg2.connect(self.database_url)
+        else:
+            return sqlite3.connect(self.db_path)
     
     def _criar_tabelas_estendidas(self):
         """Cria/atualiza estrutura do banco com funcionalidades financeiras"""
+        if self.use_postgresql:
+            self._criar_tabelas_postgresql()
+        else:
+            self._criar_tabelas_sqlite()
+    
+    def _criar_tabelas_postgresql(self):
+        """Cria tabelas no PostgreSQL"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
         try:
-            # Adiciona colunas financeiras à tabela jogadores existente
+            # Adiciona colunas financeiras à tabela jogadores
+            colunas = [
+                "ADD COLUMN IF NOT EXISTS salario_mensal_min DECIMAL(12,2)",
+                "ADD COLUMN IF NOT EXISTS salario_mensal_max DECIMAL(12,2)",
+                "ADD COLUMN IF NOT EXISTS moeda_salario VARCHAR(10) DEFAULT 'BRL'",
+                "ADD COLUMN IF NOT EXISTS bonificacoes TEXT",
+                "ADD COLUMN IF NOT EXISTS custo_transferencia DECIMAL(12,2)",
+                "ADD COLUMN IF NOT EXISTS condicoes_negocio TEXT",
+                "ADD COLUMN IF NOT EXISTS clausula_rescisoria DECIMAL(12,2)",
+                "ADD COLUMN IF NOT EXISTS percentual_direitos INTEGER DEFAULT 100",
+                "ADD COLUMN IF NOT EXISTS observacoes_financeiras TEXT",
+                "ADD COLUMN IF NOT EXISTS agente_nome VARCHAR(100)",
+                "ADD COLUMN IF NOT EXISTS agente_empresa VARCHAR(150)",
+                "ADD COLUMN IF NOT EXISTS agente_telefone VARCHAR(20)",
+                "ADD COLUMN IF NOT EXISTS agente_email VARCHAR(100)",
+                "ADD COLUMN IF NOT EXISTS agente_comissao DECIMAL(5,2)",
+                "ADD COLUMN IF NOT EXISTS url_agente TEXT",
+                "ADD COLUMN IF NOT EXISTS agente_atualizado_em TIMESTAMP",
+                "ADD COLUMN IF NOT EXISTS financeiro_atualizado_em TIMESTAMP"
+            ]
+            
+            for coluna in colunas:
+                try:
+                    cursor.execute(f"ALTER TABLE jogadores {coluna}")
+                except:
+                    pass
+            
+            # TABELA DE PROPOSTAS
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS propostas (
+                    id_proposta SERIAL PRIMARY KEY,
+                    id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
+                    clube_interessado VARCHAR(100),
+                    valor_proposta DECIMAL(12,2),
+                    moeda VARCHAR(10) DEFAULT 'BRL',
+                    status VARCHAR(20) CHECK (status IN ('Em análise', 'Aceita', 'Recusada')),
+                    data_proposta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    observacoes TEXT,
+                    responsavel VARCHAR(255)
+                )
+            """)
+            
+            # TABELA DE LOG DE AUDITORIA
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS log_auditoria (
+                    id_log SERIAL PRIMARY KEY,
+                    usuario_id INTEGER,
+                    acao VARCHAR(100),
+                    tabela VARCHAR(50),
+                    registro_id INTEGER,
+                    dados_anteriores JSONB,
+                    dados_novos JSONB,
+                    data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            conn.commit()
+            
+        except Exception as e:
+            conn.rollback()
+            print(f"Erro ao criar tabelas: {e}")
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def _criar_tabelas_sqlite(self):
+        """Cria tabelas no SQLite"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Adiciona colunas financeiras no SQLite
             colunas = [
                 "ADD COLUMN salario_mensal_min REAL",
                 "ADD COLUMN salario_mensal_max REAL",
@@ -59,7 +157,6 @@ class ScoutingDatabaseExtended:
                 try:
                     cursor.execute(f"ALTER TABLE jogadores {coluna}")
                 except sqlite3.OperationalError:
-                    # Coluna já existe
                     pass
             
             # TABELA DE PROPOSTAS
@@ -107,37 +204,68 @@ class ScoutingDatabaseExtended:
         cursor = conn.cursor()
         
         try:
-            cursor.execute("""
-                UPDATE jogadores SET
-                    salario_mensal_min = ?,
-                    salario_mensal_max = ?,
-                    moeda_salario = ?,
-                    bonificacoes = ?,
-                    custo_transferencia = ?,
-                    condicoes_negocio = ?,
-                    clausula_rescisoria = ?,
-                    percentual_direitos = ?,
-                    observacoes_financeiras = ?,
-                    financeiro_atualizado_em = CURRENT_TIMESTAMP
-                WHERE id_jogador = ?
-            """, (
-                dados_financeiros.get('salario_min'),
-                dados_financeiros.get('salario_max'),
-                dados_financeiros.get('moeda', 'BRL'),
-                dados_financeiros.get('bonificacoes'),
-                dados_financeiros.get('custo_transferencia'),
-                dados_financeiros.get('condicoes'),
-                dados_financeiros.get('clausula'),
-                dados_financeiros.get('percentual_direitos'),
-                dados_financeiros.get('observacoes'),
-                id_jogador
-            ))
-            
-            # Registra log
-            cursor.execute("""
-                INSERT INTO log_auditoria (usuario_id, acao, tabela, registro_id)
-                VALUES (?, 'atualizar_financeiro', 'jogadores', ?)
-            """, (usuario_id, id_jogador))
+            if self.use_postgresql:
+                cursor.execute("""
+                    UPDATE jogadores SET
+                        salario_mensal_min = %s,
+                        salario_mensal_max = %s,
+                        moeda_salario = %s,
+                        bonificacoes = %s,
+                        custo_transferencia = %s,
+                        condicoes_negocio = %s,
+                        clausula_rescisoria = %s,
+                        percentual_direitos = %s,
+                        observacoes_financeiras = %s,
+                        financeiro_atualizado_em = CURRENT_TIMESTAMP
+                    WHERE id_jogador = %s
+                """, (
+                    dados_financeiros.get('salario_min'),
+                    dados_financeiros.get('salario_max'),
+                    dados_financeiros.get('moeda', 'BRL'),
+                    dados_financeiros.get('bonificacoes'),
+                    dados_financeiros.get('custo_transferencia'),
+                    dados_financeiros.get('condicoes'),
+                    dados_financeiros.get('clausula'),
+                    dados_financeiros.get('percentual_direitos'),
+                    dados_financeiros.get('observacoes'),
+                    id_jogador
+                ))
+                
+                cursor.execute("""
+                    INSERT INTO log_auditoria (usuario_id, acao, tabela, registro_id)
+                    VALUES (%s, 'atualizar_financeiro', 'jogadores', %s)
+                """, (usuario_id, id_jogador))
+            else:
+                cursor.execute("""
+                    UPDATE jogadores SET
+                        salario_mensal_min = ?,
+                        salario_mensal_max = ?,
+                        moeda_salario = ?,
+                        bonificacoes = ?,
+                        custo_transferencia = ?,
+                        condicoes_negocio = ?,
+                        clausula_rescisoria = ?,
+                        percentual_direitos = ?,
+                        observacoes_financeiras = ?,
+                        financeiro_atualizado_em = CURRENT_TIMESTAMP
+                    WHERE id_jogador = ?
+                """, (
+                    dados_financeiros.get('salario_min'),
+                    dados_financeiros.get('salario_max'),
+                    dados_financeiros.get('moeda', 'BRL'),
+                    dados_financeiros.get('bonificacoes'),
+                    dados_financeiros.get('custo_transferencia'),
+                    dados_financeiros.get('condicoes'),
+                    dados_financeiros.get('clausula'),
+                    dados_financeiros.get('percentual_direitos'),
+                    dados_financeiros.get('observacoes'),
+                    id_jogador
+                ))
+                
+                cursor.execute("""
+                    INSERT INTO log_auditoria (usuario_id, acao, tabela, registro_id)
+                    VALUES (?, 'atualizar_financeiro', 'jogadores', ?)
+                """, (usuario_id, id_jogador))
             
             conn.commit()
             return True
@@ -179,17 +307,30 @@ class ScoutingDatabaseExtended:
                         ROW_NUMBER() OVER (PARTITION BY id_jogador ORDER BY data_avaliacao DESC) as rn
                     FROM avaliacoes
                 ) a ON j.id_jogador = a.id_jogador AND a.rn = 1
-                WHERE j.moeda_salario = ?
             """
-            params = [moeda]
             
-            if salario_min is not None:
-                query += " AND j.salario_mensal_max >= ?"
-                params.append(salario_min)
-            
-            if salario_max is not None:
-                query += " AND j.salario_mensal_min <= ?"
-                params.append(salario_max)
+            if self.use_postgresql:
+                query += " WHERE j.moeda_salario = %s"
+                params = [moeda]
+                
+                if salario_min is not None:
+                    query += " AND j.salario_mensal_max >= %s"
+                    params.append(salario_min)
+                
+                if salario_max is not None:
+                    query += " AND j.salario_mensal_min <= %s"
+                    params.append(salario_max)
+            else:
+                query += " WHERE j.moeda_salario = ?"
+                params = [moeda]
+                
+                if salario_min is not None:
+                    query += " AND j.salario_mensal_max >= ?"
+                    params.append(salario_min)
+                
+                if salario_max is not None:
+                    query += " AND j.salario_mensal_min <= ?"
+                    params.append(salario_max)
             
             query += " ORDER BY j.salario_mensal_max DESC"
             
@@ -205,7 +346,9 @@ class ScoutingDatabaseExtended:
         cursor = conn.cursor()
         
         try:
-            cursor.execute("""
+            placeholder = "%s" if self.use_postgresql else "?"
+            
+            cursor.execute(f"""
                 SELECT 
                     salario_mensal_min,
                     salario_mensal_max,
@@ -223,7 +366,7 @@ class ScoutingDatabaseExtended:
                     agente_email,
                     agente_comissao
                 FROM jogadores
-                WHERE id_jogador = ?
+                WHERE id_jogador = {placeholder}
             """, (id_jogador,))
             
             resultado = cursor.fetchone()
@@ -268,19 +411,34 @@ class ScoutingDatabaseExtended:
         cursor = conn.cursor()
         
         try:
-            cursor.execute("""
-                SELECT 
-                    COUNT(*) as total,
-                    COUNT(CASE WHEN salario_mensal_min IS NOT NULL THEN 1 END) as com_info_financeira,
-                    COUNT(CASE WHEN agente_nome IS NOT NULL THEN 1 END) as com_agente,
-                    COUNT(DISTINCT v.liga_clube) as ligas_diferentes,
-                    COUNT(DISTINCT v.clube) as clubes_diferentes,
-                    COUNT(DISTINCT v.posicao) as posicoes_diferentes,
-                    ROUND(AVG(CASE WHEN idade_atual IS NOT NULL THEN idade_atual END), 1) as idade_media,
-                    COUNT(CASE WHEN v.data_fim_contrato < date('now') THEN 1 END) as contratos_vencidos
-                FROM jogadores j
-                LEFT JOIN vinculos v ON j.id_jogador = v.id_jogador
-            """)
+            if self.use_postgresql:
+                cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total,
+                        COUNT(CASE WHEN salario_mensal_min IS NOT NULL THEN 1 END) as com_info_financeira,
+                        COUNT(CASE WHEN agente_nome IS NOT NULL THEN 1 END) as com_agente,
+                        COUNT(DISTINCT v.liga_clube) as ligas_diferentes,
+                        COUNT(DISTINCT v.clube) as clubes_diferentes,
+                        COUNT(DISTINCT v.posicao) as posicoes_diferentes,
+                        ROUND(AVG(CASE WHEN idade_atual IS NOT NULL THEN idade_atual END), 1) as idade_media,
+                        COUNT(CASE WHEN v.data_fim_contrato < CURRENT_DATE THEN 1 END) as contratos_vencidos
+                    FROM jogadores j
+                    LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                """)
+            else:
+                cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total,
+                        COUNT(CASE WHEN salario_mensal_min IS NOT NULL THEN 1 END) as com_info_financeira,
+                        COUNT(CASE WHEN agente_nome IS NOT NULL THEN 1 END) as com_agente,
+                        COUNT(DISTINCT v.liga_clube) as ligas_diferentes,
+                        COUNT(DISTINCT v.clube) as clubes_diferentes,
+                        COUNT(DISTINCT v.posicao) as posicoes_diferentes,
+                        ROUND(AVG(CASE WHEN idade_atual IS NOT NULL THEN idade_atual END), 1) as idade_media,
+                        COUNT(CASE WHEN v.data_fim_contrato < date('now') THEN 1 END) as contratos_vencidos
+                    FROM jogadores j
+                    LEFT JOIN vinculos v ON j.id_jogador = v.id_jogador
+                """)
             
             row = cursor.fetchone()
             
@@ -348,7 +506,6 @@ class ScoutingDatabaseExtended:
             conn.close()
     
     def _estatisticas_vazias(self):
-        """Retorna estatísticas zeradas"""
         return {
             'total': 0,
             'com_info_financeira': 0,
@@ -361,7 +518,6 @@ class ScoutingDatabaseExtended:
         }
     
     def _propostas_vazias(self):
-        """Retorna propostas zeradas"""
         return {
             'total_propostas': 0,
             'aceitas': 0,
@@ -373,8 +529,6 @@ class ScoutingDatabaseExtended:
             'menor_proposta': 0.0
         }
 
-
-# FUNÇÕES AUXILIARES
 
 def criar_backup_automatico(db_extended):
     """Cria backup de todas as tabelas importantes"""
