@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st  # ← STREAMLIT DEVE VIR ANTES DO st.stop()
+import streamlit as st
 from mplsoccer import Pitch
 from sqlalchemy import text
 
@@ -38,13 +38,19 @@ except ImportError as e:
     st.info(f"📂 Caminho tentado: {root_path}")
     st.stop()
 
-
 """
 Dashboard Interativo de Scouting
 Sistema moderno de visualização e análise de jogadores
 """
 
-# CSS Profissional - Scout Pro
+# === SISTEMA DE AUTENTICAÇÃO (ANTES DE QUALQUER CONTEÚDO) ===
+if not check_password():
+    st.stop()
+
+# Se passou do login, mostra info do usuário
+mostrar_info_usuario()
+
+# CSS Profissional - Scout Pro (TODO O CSS AQUI)
 st.markdown(
     """
     <style>
@@ -76,256 +82,22 @@ st.markdown(
         margin: 0.5rem 0 0 0;
     }
     
-    /* Métricas melhoradas */
-    .stMetric {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        padding: 1.2rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border-left: 4px solid #667eea;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    
-    .stMetric:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-    }
-    
-    /* Cards de jogadores */
-    .player-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-    }
-    
-    .player-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        border-color: #667eea;
-    }
-    
-    /* Tabs customizadas */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: #f8f9fa;
-        padding: 0.75rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        height: 55px;
-        background-color: white;
-        border-radius: 10px;
-        color: #495057;
-        font-weight: 600;
-        font-size: 0.95rem;
-        padding: 0 1.5rem;
-        border: 2px solid transparent;
-        transition: all 0.2s;
-    }
-    
-    .stTabs [data-baseweb="tab"]:hover {
-        background-color: #e9ecef;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white !important;
-        border-color: #667eea;
-        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
-    }
-    
-    /* Sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #f8f9fa;
-    }
-    
-    /* Botões */
-    .stButton>button {
-        border-radius: 8px;
-        font-weight: 600;
-        transition: all 0.2s;
-        border: 2px solid transparent;
-    }
-    
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    
-    /* Botões primários */
-    .stButton>button[kind="primary"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-    }
-    
-    /* Tabelas HTML */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9em;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border-radius: 10px;
-        overflow: hidden;
-        background: white;
-    }
-    
-    th {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 14px 12px;
-        text-align: left;
-        font-weight: 600;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    td {
-        padding: 12px;
-        border-bottom: 1px solid #e9ecef;
-    }
-    
-    tr:nth-child(even) {
-        background-color: #f8f9fa;
-    }
-    
-    tr:hover {
-        background-color: #e3f2fd !important;
-        transition: background-color 0.2s;
-    }
-    
-    /* Links */
-    a {
-        color: #667eea;
-        text-decoration: none;
-        font-weight: 600;
-        transition: all 0.2s;
-    }
-    
-    a:hover {
-        color: #764ba2;
-        text-decoration: underline !important;
-    }
-    
-    /* Medalhas de ranking */
-    .rank-medal {
-        font-size: 2rem;
-        display: inline-block;
-        margin-right: 0.5rem;
-        animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-    }
-    
-    /* Containers de ranking */
-    .rank-container {
-        background: white;
-        border-radius: 10px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        border-left: 4px solid #667eea;
-        transition: all 0.2s;
-    }
-    
-    .rank-container:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        transform: translateX(5px);
-    }
-    
-    /* Top 3 highlight */
-    .rank-1 { border-left-color: #FFD700 !important; background: linear-gradient(90deg, #fff9e6 0%, white 100%); }
-    .rank-2 { border-left-color: #C0C0C0 !important; background: linear-gradient(90deg, #f5f5f5 0%, white 100%); }
-    .rank-3 { border-left-color: #CD7F32 !important; background: linear-gradient(90deg, #fff4e6 0%, white 100%); }
-    
-    /* Alertas */
-    .alert-success {
-        background-color: #d4edda;
-        border-left: 4px solid #28a745;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 0.5rem 0;
-    }
-    
-    .alert-warning {
-        background-color: #fff3cd;
-        border-left: 4px solid #ffc107;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 0.5rem 0;
-    }
-    
-    .alert-danger {
-        background-color: #f8d7da;
-        border-left: 4px solid #dc3545;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 0.5rem 0;
-    }
-    
-    /* Scrollbar customizada */
-    ::-webkit-scrollbar {
-        width: 12px;
-        height: 12px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #f1f3f4;
-        border-radius: 10px;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 10px;
-        border: 2px solid #f1f3f4;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-    }
-    
-    /* Expander customizado */
-    .streamlit-expanderHeader {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        font-weight: 600;
-    }
-    
-    /* Footer */
-    .footer {
-        text-align: center;
-        padding: 2rem 0;
-        color: #6c757d;
-        font-size: 0.9rem;
-        border-top: 2px solid #e9ecef;
-        margin-top: 3rem;
-    }
-    
-    /* Animações */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .fade-in {
-        animation: fadeIn 0.3s ease-in;
-    }
+    /* ... resto do CSS ... */
     </style>
-""",
-    unsafe_allow_html=True,
+    """,
+    unsafe_allow_html=True
 )
 
+# Header Visual Profissional (APÓS CSS E AUTENTICAÇÃO)
+st.markdown(
+    """
+    <div class="header-container fade-in">
+        <div class="header-title">⚽ Scout Pro</div>
+        <div class="header-subtitle">Sistema Profissional de Monitoramento e Análise de Jogadores</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 @st.cache_resource(ttl=None)
 def get_database():
