@@ -11,6 +11,7 @@ numpy>=1.24.0
 sqlalchemy>=2.0.0
 psycopg2-binary>=2.9.9  # PostgreSQL adapter
 alembic>=1.12.0  # Database migrations (opcional)
+bcrypt==4.1.2
 
 # ===== GOOGLE SHEETS =====
 gspread>=5.11.0
