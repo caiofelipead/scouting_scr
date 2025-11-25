@@ -35,38 +35,42 @@ def aba_financeira():
     
     db = ScoutingDatabaseExtended()
     
-    # Estatísticas gerais
-    stats = db.estatisticas_financeiras()
+    # Estatísticas separadas
+    stats_jogadores = db.estatisticas_jogadores()
+    stats_propostas = db.estatisticas_financeiras()
     
+    # Cabeçalho com métricas
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Total de Jogadores", stats['total'])
+        st.metric(
+            "Total de Jogadores", 
+            stats_jogadores['total'],
+            delta=f"{stats_jogadores['com_info_financeira']} com dados financeiros"
+        )
     
     with col2:
-        percentual_salario = (stats['com_salario'] / stats['total'] * 100) if stats['total'] > 0 else 0
+        percentual_salario = (stats_jogadores['com_info_financeira'] / stats_jogadores['total'] * 100) if stats_jogadores['total'] > 0 else 0
         st.metric(
             "Com Info Salarial", 
-            stats['com_salario'],
+            stats_jogadores['com_info_financeira'],
             f"{percentual_salario:.1f}%"
         )
     
     with col3:
-        percentual_agente = (stats['com_agente'] / stats['total'] * 100) if stats['total'] > 0 else 0
+        percentual_agente = (stats_jogadores['com_agente'] / stats_jogadores['total'] * 100) if stats_jogadores['total'] > 0 else 0
         st.metric(
             "Com Agente", 
-            stats['com_agente'],
+            stats_jogadores['com_agente'],
             f"{percentual_agente:.1f}%"
         )
     
     with col4:
-        if stats['media_salarial']:
-            st.metric(
-                "Média Salarial",
-                formatar_moeda(stats['media_salarial'])
-            )
-        else:
-            st.metric("Média Salarial", "N/A")
+        st.metric(
+            "Propostas em Análise",
+            stats_propostas['em_analise'],
+            delta=f"{stats_propostas['total_propostas']} total"
+        )
     
     st.markdown("---")
     
@@ -178,18 +182,18 @@ def aba_financeira():
                         
                         with col3:
                             st.markdown("**Agente**")
-                            if pd.notna(jogador['agente_nome']):
+                            if pd.notna(jogador.get('agente_nome')):
                                 st.write(jogador['agente_nome'])
-                                if pd.notna(jogador['agente_empresa']):
+                                if pd.notna(jogador.get('agente_empresa')):
                                     st.caption(jogador['agente_empresa'])
                             else:
                                 st.caption("Não informado")
                         
                         with col4:
                             st.markdown("**Avaliação**")
-                            if pd.notna(jogador['potencial']):
+                            if pd.notna(jogador.get('potencial')):
                                 st.write(f"⭐ {jogador['potencial']}/5")
-                                st.caption(f"Tático: {jogador['tatico']}/5")
+                                st.caption(f"Tático: {jogador.get('tatico', 0)}/5")
                             else:
                                 st.caption("Não avaliado")
                         
@@ -266,6 +270,10 @@ def aba_financeira():
         df_jogadores = pd.read_sql("SELECT id, nome, posicao, clube FROM jogadores ORDER BY nome", conn)
         conn.close()
         
+        if df_jogadores.empty:
+            st.warning("⚠️ Nenhum jogador cadastrado")
+            return
+        
         jogador_selecionado = st.selectbox(
             "Selecione o Jogador",
             options=df_jogadores['id'].tolist(),
@@ -275,6 +283,22 @@ def aba_financeira():
         if jogador_selecionado:
             # Busca dados atuais
             dados_atuais = db.obter_dados_financeiros(jogador_selecionado)
+            
+            if dados_atuais is None:
+                dados_atuais = {
+                    'salario_min': 0,
+                    'salario_max': 0,
+                    'moeda': 'BRL',
+                    'bonificacoes': '',
+                    'custo_transferencia': 0,
+                    'clausula': 0,
+                    'percentual_direitos': 100,
+                    'condicoes': '',
+                    'observacoes': '',
+                    'agente_telefone': '',
+                    'agente_email': '',
+                    'agente_comissao': 0
+                }
             
             with st.form("form_financeiro"):
                 st.markdown("#### 💰 Informações Salariais")
@@ -321,7 +345,7 @@ def aba_financeira():
                 
                 with col2:
                     clausula = st.number_input(
-                        "Cláusula de Rescisão",
+                        "Cláusula de Recisão",
                         value=float(dados_atuais['clausula'] or 0),
                         step=10000.0
                     )
@@ -385,7 +409,10 @@ def aba_financeira():
                         'observacoes': observacoes if observacoes else None
                     }
                     
-                    if db.atualizar_financeiro(jogador_selecionado, dados_financeiros, st.session_state.usuario['id']):
+                    # Usuario padrão (pode ser ajustado se tiver sistema de login)
+                    usuario_id = st.session_state.get('usuario', {}).get('id', 1)
+                    
+                    if db.atualizar_financeiro(jogador_selecionado, dados_financeiros, usuario_id):
                         st.success("✅ Informações financeiras atualizadas com sucesso!")
                         st.rerun()
                     else:
