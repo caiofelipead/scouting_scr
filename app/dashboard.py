@@ -3,6 +3,8 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from utils_fotos import get_foto_jogador, get_foto_jogador_rapido
+
 
 import numpy as np
 import pandas as pd
@@ -329,57 +331,36 @@ def get_database():
     return ScoutingDatabase()
 
 
-def get_foto_jogador(id_jogador, transfermarkt_id=None, debug=False):
+def exibir_foto_jogador(id_jogador, transfermarkt_id=None, nome="Jogador", width=150):
     """
-    Retorna a URL da foto do jogador do Transfermarkt
-    Fallback para foto local se Transfermarkt falhar
+    Exibe foto do jogador no Streamlit (uso simplificado)
+    
+    Exemplo de uso:
+        exibir_foto_jogador(
+            id_jogador=123,
+            transfermarkt_id="68290",
+            nome="Neymar",
+            width=150
+        )
     """
-    import streamlit as st
-    from pathlib import Path
-    import re
+    url_foto = get_foto_jogador(id_jogador, transfermarkt_id, nome)
+    st.image(url_foto, width=width)
+
+
+def get_foto_jogador_rapido(transfermarkt_id):
+    """
+    Versão ultra-rápida: apenas URL padrão, sem scraping
+    Use quando performance é crítica (lista com muitos jogadores)
+    """
+    if not transfermarkt_id:
+        return "https://via.placeholder.com/150?text=Sem+Foto"
     
-    # 1️⃣ PRIORIDADE: Transfermarkt (online)
-    if transfermarkt_id:
-        tm_id = str(transfermarkt_id)
-        match = re.search(r'\d+', tm_id)
-        
-        if match:
-            tm_id_num = match.group(0)
-            # URL das fotos do Transfermarkt (alta qualidade)
-            foto_url = f"https://img.a.transfermarkt.technology/portrait/big/{tm_id_num}.jpg"
-            
-            if debug:
-                st.sidebar.write(f"🌐 **Foto do Transfermarkt**")
-                st.sidebar.write(f"   ID TM: `{tm_id_num}`")
-                st.sidebar.write(f"   URL: `{foto_url}`")
-            
-            return foto_url
+    tm_id = extrair_id_da_url(transfermarkt_id)
     
-    # 2️⃣ FALLBACK: Foto local (se existir)
-    current_file = Path(__file__).resolve()
-    possivel_fotos_dirs = [
-        current_file.parent / "fotos",
-        current_file.parent.parent / "fotos",
-    ]
+    if tm_id:
+        return f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg"
     
-    for fotos_dir in possivel_fotos_dirs:
-        if fotos_dir.exists() and fotos_dir.is_dir():
-            foto_path = fotos_dir / f"{id_jogador}.jpg"
-            
-            if foto_path.exists():
-                if debug:
-                    st.sidebar.write(f"📁 **Foto Local**")
-                    st.sidebar.write(f"   Caminho: `{foto_path}`")
-                
-                return str(foto_path)
-    
-    # 3️⃣ FALLBACK FINAL: Placeholder
-    if debug:
-        st.sidebar.warning(f"⚠️ Nenhuma foto encontrada para ID {id_jogador}")
-    
-    # Placeholder SVG profissional
-    placeholder_url = "https://ui-avatars.com/api/?name=Jogador&size=150&background=1a1a1a&color=ffffff&bold=true"
-    return placeholder_url
+    return "https://via.placeholder.com/150?text=Sem+Foto"
 
 
 def get_perfil_url(id_jogador):
