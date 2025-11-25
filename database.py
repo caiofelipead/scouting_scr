@@ -1,7 +1,6 @@
 """
 Sistema de Banco de Dados para Scout Pro v3.0
 Suporta SQLite (desenvolvimento) e PostgreSQL (produção/Railway)
-Inclui TODAS as funcionalidades: Tags, Wishlist, Notas Rápidas, Benchmark, etc.
 """
 
 import os
@@ -12,7 +11,6 @@ import pandas as pd
 from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
-
 
 # Carregar variáveis de ambiente do .env
 load_dotenv()
@@ -55,7 +53,7 @@ class ScoutingDatabase:
     def criar_tabelas(self):
         """Cria todas as tabelas e views (v3.0) - Compatível com SQLite e PostgreSQL"""
         
-        # Definições de tipos para ID (Postgres usa SERIAL, SQLite usa AUTOINCREMENT)
+        # Definições de tipos para ID
         if self.db_type == 'postgresql':
             id_type = "SERIAL PRIMARY KEY"
             bool_true = "TRUE"
@@ -63,7 +61,7 @@ class ScoutingDatabase:
             id_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
             bool_true = "1"
 
-        # --- 1. TABELAS CORE (JOGADORES, VINCULOS, AVALIACOES, ALERTAS) ---
+        # --- 1. DEFINIÇÃO DAS TABELAS ---
         commands = [
             # Jogadores
             f"""CREATE TABLE IF NOT EXISTS jogadores (
@@ -118,8 +116,6 @@ class ScoutingDatabase:
                 data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )""",
 
-            # --- 2. NOVAS TABELAS V3.0 (TAGS, WISHLIST, NOTAS, BUSCAS) ---
-            
             # Tags
             f"""CREATE TABLE IF NOT EXISTS tags (
                 id_tag {id_type},
@@ -171,8 +167,7 @@ class ScoutingDatabase:
             )"""
         ]
 
-        # --- 3. VIEWS (BENCHMARK) ---
-        # Nota: Views podem falhar se as tabelas ainda não existirem, mas como rodamos na ordem, deve funcionar.
+        # --- 2. DEFINIÇÃO DAS VIEWS ---
         view_benchmark = """
         CREATE VIEW IF NOT EXISTS vw_benchmark_posicoes AS
         SELECT 
@@ -222,38 +217,25 @@ class ScoutingDatabase:
            OR v.data_fim_contrato <= (CURRENT_DATE + INTERVAL '6 months')
         """
 
-        # Adicione a execução no bloco try/except final:
+        # --- 3. EXECUÇÃO UNIFICADA ---
         try:
             with self.engine.connect() as conn:
-                # ... (execução dos commands anteriores) ...
+                # 1. Cria Tabelas
+                for sql in commands:
+                    conn.execute(text(sql))
                 
-                # Executa Benchmark
-                conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes"))
-                conn.execute(text(view_benchmark))
-                
-                # Executa Alertas Inteligentes (NOVO)
+                # 2. Cria Views (Drops garantem atualização)
+                try:
+                    conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes"))
+                    conn.execute(text(view_benchmark))
+                except Exception as ev:
+                    print(f"⚠️ Aviso View Benchmark: {ev}")
+
                 try:
                     conn.execute(text("DROP VIEW IF EXISTS vw_alertas_inteligentes"))
                     conn.execute(text(view_alertas_inteligentes))
                 except Exception as ev:
                     print(f"⚠️ Aviso View Alertas: {ev}")
-
-                conn.commit()
-        
-        # SQLite não suporta "CREATE VIEW IF NOT EXISTS" em versões antigas, então tratamos exceção se necessário
-        # mas versões recentes suportam.
-
-        try:
-            with self.engine.connect() as conn:
-                for sql in commands:
-                    conn.execute(text(sql))
-                
-                # Tenta criar a view separadamente
-                try:
-                    conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes")) # Garante atualização da view se mudou lógica
-                    conn.execute(text(view_benchmark))
-                except Exception as ev:
-                    print(f"⚠️ Aviso ao criar View (pode ser ignorado se for primeiro run): {ev}")
 
                 conn.commit()
                 print(f"✅ Estrutura do banco de dados ({self.db_type}) atualizada com sucesso (V3.0)!")
@@ -294,6 +276,79 @@ class ScoutingDatabase:
         except Exception as e:
             print(f"❌ Erro ao inserir vínculo: {e}")
             return False
+
+    def inserir_jogador(self, dados_jogador: dict) -> Optional[int]:
+        """Insere ou atualiza um jogador no banco."""
+        try:
+            id_jogador = None
+            tm_id = dados_jogador.get('transfermarkt_id')
+            nome = dados_jogador.get('nome')
+            
+            if tm_id:
+                id_jogador = self.buscar_jogador_por_tm_id(tm_id)
+            
+            if not id_jogador and nome:
+                query_check_nome = "SELECT id_jogador FROM jogadores WHERE nome = :nome"
+                with self.engine.connect() as conn:
+                    result = conn.execute(text(query_check_nome), {"nome": nome})
+                    row = result.fetchone()
+                    if row:
+                        id_jogador = row[0]
+            
+            with self.engine.connect() as conn:
+                if id_jogador:
+                    query_update = """
+                    UPDATE jogadores SET
+                        nome = :nome,
+                        nacionalidade = :nacionalidade,
+                        ano_nascimento = :ano_nascimento,
+                        idade_atual = :idade_atual,
+                        altura = :altura,
+                        pe_dominante = :pe_dominante,
+                        transfermarkt_id = :transfermarkt_id,
+                        data_atualizacao = CURRENT_TIMESTAMP
+                    WHERE id_jogador = :id_jogador
+                    """
+                    dados_jogador['id_jogador'] = id_jogador
+                    conn.execute(text(query_update), dados_jogador)
+                    conn.commit()
+                else:
+                    query_insert = """
+                    INSERT INTO jogadores 
+                    (nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id)
+                    VALUES 
+                    (:nome, :nacionalidade, :ano_nascimento, :idade_atual, :altura, :pe_dominante, :transfermarkt_id)
+                    """
+                    if self.db_type == 'postgresql':
+                        query_insert += " RETURNING id_jogador"
+                        result = conn.execute(text(query_insert), dados_jogador)
+                        id_jogador = result.fetchone()[0]
+                        conn.commit()
+                    else:
+                        conn.execute(text(query_insert), dados_jogador)
+                        conn.commit()
+                        result = conn.execute(text("SELECT last_insert_rowid()"))
+                        id_jogador = result.fetchone()[0]
+                
+                return id_jogador
+                
+        except Exception as e:
+            print(f"❌ Erro ao inserir jogador {dados_jogador.get('nome', 'Desconhecido')}: {e}")
+            return None
+
+    def buscar_jogador_por_tm_id(self, tm_id: str) -> Optional[int]:
+        if not tm_id:
+            return None
+            
+        query = "SELECT id_jogador FROM jogadores WHERE transfermarkt_id = :tm_id"
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(text(query), {"tm_id": tm_id})
+                row = result.fetchone()
+                return row[0] if row else None
+        except Exception as e:
+            print(f"❌ Erro ao buscar jogador por TM ID: {e}")
+            return None
 
     def inserir_alerta(self, id_jogador: int, tipo_alerta: str, descricao: str, prioridade: str = 'média') -> bool:
         try:
@@ -400,7 +455,6 @@ class ScoutingDatabase:
                 else:
                     alertas = conn.execute(text("SELECT COUNT(*) FROM alertas WHERE ativo = 1")).fetchone()[0]
                 
-                # Compatível com SQLite e PostgreSQL
                 if self.db_type == 'postgresql':
                     contratos = conn.execute(text("""
                         SELECT COUNT(*) FROM vinculos_clubes 
@@ -426,7 +480,6 @@ class ScoutingDatabase:
             return {'total_jogadores': 0, 'alertas_ativos': 0, 'contratos_vencendo': 0, 'total_vinculos_ativos': 0}
 
     def connect(self):
-        """Retorna objeto de conexão para queries diretas (legado)"""
         return self.engine.connect()
         
     def fechar_conexao(self):
@@ -456,8 +509,7 @@ class ScoutingDatabase:
         except:
             return False
 
-    # --- CAMADA DE COMPATIBILIDADE (ALIASES PARA DASHBOARD V2.0) ---
-
+    # --- CAMADA DE COMPATIBILIDADE ---
     def get_estatisticas_gerais(self):
         return self.obter_estatisticas()
 
@@ -477,18 +529,15 @@ class ScoutingDatabase:
         return pd.DataFrame()
 
     def salvar_avaliacao(self, **kwargs):
-        """Wrapper para inserir_avaliacao usando kwargs"""
         id_jogador = kwargs.pop('id_jogador', None)
         if id_jogador:
             return self.inserir_avaliacao(id_jogador, kwargs)
         return False
 
     def criar_tabela_avaliacoes(self):
-        # Já é chamado no init, mantido para compatibilidade
         pass
 
     def get_dados_google_sheets(self):
-        """Tenta importar e usar o módulo de sync"""
         try:
             from google_sheets_sync_streamlit import GoogleSheetsSync
             sync = GoogleSheetsSync()
@@ -502,18 +551,15 @@ class ScoutingDatabase:
             return None
 
     def importar_dados_planilha(self, df):
-        """Importa dados de um DataFrame para o banco"""
         if df is None or df.empty:
             return False
         
         try:
-            # Usa a lógica de sync existente para parsing
             from google_sheets_sync_streamlit import GoogleSheetsSync
             sync = GoogleSheetsSync()
             
             sucesso = 0
             for _, row in df.iterrows():
-                # Extração do ID do Transfermarkt
                 tm_id = sync._extrair_tm_id(row.get('TM', ''))
                 
                 dados_jogador = {
@@ -546,14 +592,9 @@ class ScoutingDatabase:
             print(f"❌ Erro na importação manual: {e}")
             return False
 
-    # ============================================
-    # NOVAS FUNCIONALIDADES - SCOUT PRO V3.0
-    # ============================================
+    # --- FUNCIONALIDADES V3.0 (Tags, Wishlist, Notas, Benchmark) ---
 
-    # --- 1. SISTEMA DE TAGS ---
-    
     def get_all_tags(self):
-        """Retorna todas as tags disponíveis"""
         query = "SELECT * FROM tags ORDER BY nome"
         try:
             return pd.read_sql(text(query), self.engine)
@@ -562,7 +603,6 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def get_jogador_tags(self, id_jogador):
-        """Retorna tags de um jogador específico"""
         query = """
         SELECT t.id_tag, t.nome, t.cor, t.descricao, jt.adicionado_em
         FROM jogador_tags jt
@@ -577,7 +617,6 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def adicionar_tag_jogador(self, id_jogador, id_tag, adicionado_por=None):
-        """Adiciona uma tag a um jogador"""
         try:
             with self.engine.connect() as conn:
                 query = """
@@ -596,7 +635,6 @@ class ScoutingDatabase:
             return False
 
     def remover_tag_jogador(self, id_jogador, id_tag):
-        """Remove uma tag de um jogador"""
         try:
             with self.engine.connect() as conn:
                 query = "DELETE FROM jogador_tags WHERE id_jogador = :id_jogador AND id_tag = :id_tag"
@@ -608,7 +646,6 @@ class ScoutingDatabase:
             return False
 
     def get_jogadores_por_tag(self, id_tag):
-        """Retorna todos os jogadores com uma tag específica"""
         query = """
         SELECT 
             j.*,
@@ -628,19 +665,14 @@ class ScoutingDatabase:
             print(f"❌ Erro ao buscar jogadores por tag: {e}")
             return pd.DataFrame()
 
-    # --- 2. SISTEMA DE WISHLIST ---
-
     def adicionar_wishlist(self, id_jogador, prioridade='media', observacao=None, adicionado_por=None):
-        """Adiciona um jogador à wishlist"""
         try:
             with self.engine.connect() as conn:
-                # Verifica se já existe
                 check_query = "SELECT id FROM wishlist WHERE id_jogador = :id_jogador"
                 result = conn.execute(text(check_query), {'id_jogador': id_jogador})
                 existe = result.fetchone()
                 
                 if existe:
-                    # Atualiza
                     query = """
                     UPDATE wishlist SET 
                         prioridade = :prioridade,
@@ -648,7 +680,6 @@ class ScoutingDatabase:
                     WHERE id_jogador = :id_jogador
                     """
                 else:
-                    # Insere
                     query = """
                     INSERT INTO wishlist (id_jogador, prioridade, observacao, adicionado_por)
                     VALUES (:id_jogador, :prioridade, :observacao, :adicionado_por)
@@ -667,7 +698,6 @@ class ScoutingDatabase:
             return False
 
     def remover_wishlist(self, id_jogador):
-        """Remove um jogador da wishlist"""
         try:
             with self.engine.connect() as conn:
                 query = "DELETE FROM wishlist WHERE id_jogador = :id_jogador"
@@ -679,7 +709,6 @@ class ScoutingDatabase:
             return False
 
     def get_wishlist(self, prioridade=None):
-        """Retorna jogadores da wishlist"""
         if prioridade:
             query = """
             SELECT 
@@ -731,7 +760,6 @@ class ScoutingDatabase:
                 return pd.DataFrame()
 
     def esta_na_wishlist(self, id_jogador):
-        """Verifica se um jogador está na wishlist"""
         try:
             with self.engine.connect() as conn:
                 query = "SELECT COUNT(*) FROM wishlist WHERE id_jogador = :id_jogador"
@@ -742,10 +770,7 @@ class ScoutingDatabase:
             print(f"❌ Erro ao verificar wishlist: {e}")
             return False
 
-    # --- 3. NOTAS RÁPIDAS ---
-
     def adicionar_nota_rapida(self, id_jogador, texto, autor=None, tipo='observacao'):
-        """Adiciona uma nota rápida sobre um jogador"""
         try:
             with self.engine.connect() as conn:
                 query = """
@@ -765,7 +790,6 @@ class ScoutingDatabase:
             return False
 
     def get_notas_rapidas(self, id_jogador):
-        """Retorna notas rápidas de um jogador"""
         query = """
         SELECT *
         FROM notas_rapidas
@@ -779,7 +803,6 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def deletar_nota_rapida(self, id_nota):
-        """Deleta uma nota rápida"""
         try:
             with self.engine.connect() as conn:
                 query = "DELETE FROM notas_rapidas WHERE id_nota = :id_nota"
@@ -790,10 +813,7 @@ class ScoutingDatabase:
             print(f"❌ Erro ao deletar nota: {e}")
             return False
 
-    # --- 4. BENCHMARK ---
-
     def get_benchmark_posicao(self, posicao):
-        """Retorna benchmark (médias) de uma posição específica"""
         query = """
         SELECT * FROM vw_benchmark_posicoes
         WHERE posicao = :posicao
@@ -805,7 +825,6 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def get_all_benchmarks(self):
-        """Retorna benchmark de todas as posições"""
         query = "SELECT * FROM vw_benchmark_posicoes ORDER BY posicao"
         try:
             return pd.read_sql(text(query), self.engine)
@@ -813,10 +832,7 @@ class ScoutingDatabase:
             print(f"❌ Erro ao buscar benchmarks: {e}")
             return pd.DataFrame()
 
-    # --- 5. ALERTAS INTELIGENTES ---
-
     def get_alertas_inteligentes(self, tipo_alerta=None, prioridade=None):
-        """Retorna alertas inteligentes"""
         query = "SELECT * FROM vw_alertas_inteligentes WHERE 1=1"
         params = {}
         
@@ -839,23 +855,7 @@ class ScoutingDatabase:
             print(f"❌ Erro ao buscar alertas inteligentes: {e}")
             return pd.DataFrame()
 
-    # --- 6. BUSCA AVANÇADA ---
-
     def busca_avancada(self, filtros):
-        """
-        Busca avançada com múltiplos filtros
-        
-        filtros = {
-            'posicoes': ['Zagueiro', 'Lateral'],
-            'nacionalidades': ['Brasil', 'Argentina'],
-            'idade_min': 18,
-            'idade_max': 25,
-            'media_min': 3.5,
-            'contrato_vencendo': True,
-            'clubes': ['Flamengo', 'Palmeiras'],
-            'tags': [1, 2, 3]  # IDs das tags
-        }
-        """
         query = """
         SELECT DISTINCT
             j.*,
@@ -872,21 +872,18 @@ class ScoutingDatabase:
         
         params = {}
         
-        # Filtro de posições
         if filtros.get('posicoes'):
             placeholders = ', '.join([f':pos{i}' for i in range(len(filtros['posicoes']))])
             query += f" AND v.posicao IN ({placeholders})"
             for i, pos in enumerate(filtros['posicoes']):
                 params[f'pos{i}'] = pos
         
-        # Filtro de nacionalidades
         if filtros.get('nacionalidades'):
             placeholders = ', '.join([f':nac{i}' for i in range(len(filtros['nacionalidades']))])
             query += f" AND j.nacionalidade IN ({placeholders})"
             for i, nac in enumerate(filtros['nacionalidades']):
                 params[f'nac{i}'] = nac
         
-        # Filtro de idade
         if filtros.get('idade_min'):
             query += " AND j.idade_atual >= :idade_min"
             params['idade_min'] = filtros['idade_min']
@@ -895,21 +892,18 @@ class ScoutingDatabase:
             query += " AND j.idade_atual <= :idade_max"
             params['idade_max'] = filtros['idade_max']
         
-        # Filtro de clubes
         if filtros.get('clubes'):
             placeholders = ', '.join([f':clube{i}' for i in range(len(filtros['clubes']))])
             query += f" AND v.clube IN ({placeholders})"
             for i, clube in enumerate(filtros['clubes']):
                 params[f'clube{i}'] = clube
         
-        # Filtro de contrato vencendo
         if filtros.get('contrato_vencendo'):
             if self.db_type == 'postgresql':
                 query += " AND v.data_fim_contrato <= CURRENT_DATE + INTERVAL '12 months'"
             else:
                 query += " AND v.data_fim_contrato <= DATE('now', '+12 months')"
         
-        # Filtro de tags
         if filtros.get('tags'):
             placeholders = ', '.join([f':tag{i}' for i in range(len(filtros['tags']))])
             query += f" AND jt.id_tag IN ({placeholders})"
@@ -921,7 +915,6 @@ class ScoutingDatabase:
         try:
             df = pd.read_sql(text(query), self.engine, params=params if params else None)
             
-            # Filtro de média (precisa calcular depois)
             if filtros.get('media_min') and not df.empty:
                 medias = []
                 for _, jogador in df.iterrows():
@@ -936,7 +929,6 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def calcular_media_jogador(self, id_jogador):
-        """Calcula média geral de um jogador (helper)"""
         avals = self.get_ultima_avaliacao(id_jogador)
         if not avals.empty:
             return (
@@ -947,10 +939,7 @@ class ScoutingDatabase:
             ) / 4
         return 0.0
 
-    # --- 7. BUSCAS SALVAS ---
-
     def salvar_busca(self, nome_busca, filtros, criado_por=None):
-        """Salva uma busca para uso futuro"""
         import json
         try:
             with self.engine.connect() as conn:
@@ -970,7 +959,6 @@ class ScoutingDatabase:
             return False
 
     def get_buscas_salvas(self):
-        """Retorna todas as buscas salvas"""
         query = "SELECT * FROM buscas_salvas ORDER BY criado_em DESC"
         try:
             return pd.read_sql(text(query), self.engine)
@@ -979,7 +967,6 @@ class ScoutingDatabase:
             return pd.DataFrame()
 
     def executar_busca_salva(self, id_busca):
-        """Executa uma busca salva"""
         import json
         try:
             with self.engine.connect() as conn:
@@ -994,9 +981,7 @@ class ScoutingDatabase:
         except Exception as e:
             print(f"❌ Erro ao executar busca salva: {e}")
             return pd.DataFrame()
-    
-    # --- MÉTODO AUXILIAR PARA QUERIES DIRETAS ---
-    
+
     def execute_query(self, query_str):
         """Executa uma query SQL direta e retorna lista de dicionários"""
         try:
@@ -1009,25 +994,22 @@ class ScoutingDatabase:
             print(f"❌ Erro ao executar query: {e}")
             return []
 
-
 # Função auxiliar
 def get_database():
     return ScoutingDatabase()
 
 if __name__ == "__main__":
-    # Teste rápido
     print("🧪 Testando conexão com o banco de dados...\n")
     db = ScoutingDatabase()
     stats = db.obter_estatisticas()
     print(f"\n📊 Estatísticas:")
     print(f"   Total de jogadores: {stats['total_jogadores']}")
     
-    # Teste rápido das novas funcionalidades
     print(f"\n🆕 Testando novas funcionalidades:")
     try:
         tags = db.get_all_tags()
         print(f"   ✅ Tags: {len(tags)} disponíveis")
     except:
-        print(f"   ⚠️  Tags: Tabela ainda não criada (execute migration_completa_v3.sql)")
+        print(f"   ⚠️  Tags: Tabela ainda não criada")
     
     db.fechar_conexao()
