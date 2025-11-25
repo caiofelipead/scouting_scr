@@ -330,93 +330,56 @@ def get_database():
 
 
 def get_foto_jogador(id_jogador, transfermarkt_id=None, debug=False):
-    """Retorna o caminho da foto do jogador ou None
-    
-    Procura fotos com:
-    1. ID do banco de dados (ex: 123.jpg)
-    2. ID do Transfermarkt (ex: 68290.jpg)
-    
-    Funciona tanto se dashboard.py está em:
-    - scouting_scr/dashboard.py → fotos em scouting_scr/fotos/
-    - scouting_scr/app/dashboard.py → fotos em scouting_scr/fotos/
     """
+    Retorna a URL da foto do jogador do Transfermarkt
+    Fallback para foto local se Transfermarkt falhar
+    """
+    import streamlit as st
     from pathlib import Path
     import re
-
-    current_file = Path(__file__).resolve()
     
-    # Tentar múltiplos caminhos
-    possivel_fotos_dirs = [
-        current_file.parent / "fotos",  # Se dashboard está na raiz
-        current_file.parent.parent / "fotos",  # Se dashboard está em app/
-    ]
-    
-    # Encontrar a pasta fotos que existe
-    fotos_dir = None
-    for dir_path in possivel_fotos_dirs:
-        if dir_path.exists() and dir_path.is_dir():
-            fotos_dir = dir_path
-            break
-    
-    if fotos_dir is None:
-        if debug:
-            st.sidebar.error("❌ Pasta 'fotos' não encontrada!")
-            st.sidebar.write(f"📂 Arquivo atual: `{current_file}`")
-            st.sidebar.write("Caminhos tentados:")
-            for d in possivel_fotos_dirs:
-                st.sidebar.code(str(d))
-        return None
-    
-    if debug:
-        st.sidebar.write(f"🔍 **Debug - Foto do jogador ID: {id_jogador}**")
-        st.sidebar.write(f"📂 Dashboard: `{current_file}`")
-        st.sidebar.write(f"📁 Pasta fotos: `{fotos_dir}`")
-        st.sidebar.write(f"✅ Pasta existe: SIM")
-    
-    # Lista de IDs para tentar
-    ids_para_tentar = [id_jogador]
-    
-    # Adicionar Transfermarkt ID se fornecido
+    # 1️⃣ PRIORIDADE: Transfermarkt (online)
     if transfermarkt_id:
         tm_id = str(transfermarkt_id)
         match = re.search(r'\d+', tm_id)
+        
         if match:
-            ids_para_tentar.append(match.group(0))
-    
-    # Tentar encontrar foto com cada ID
-    for test_id in ids_para_tentar:
-        # Tentar .jpg
-        foto_path = fotos_dir / f"{test_id}.jpg"
-        
-        if debug:
-            st.sidebar.write(f"📸 Tentando: `{test_id}.jpg`")
-            st.sidebar.write(f"   Caminho: `{foto_path}`")
-            st.sidebar.write(f"   Existe: {'✅ SIM' if foto_path.exists() else '❌ NÃO'}")
-        
-        if foto_path.exists() and foto_path.is_file():
+            tm_id_num = match.group(0)
+            # URL das fotos do Transfermarkt (alta qualidade)
+            foto_url = f"https://img.a.transfermarkt.technology/portrait/big/{tm_id_num}.jpg"
+            
             if debug:
-                st.sidebar.success(f"✅ FOTO ENCONTRADA: {foto_path.name}")
-            return str(foto_path)
-        
-        # Tentar .png
-        foto_path_png = fotos_dir / f"{test_id}.png"
-        if foto_path_png.exists() and foto_path_png.is_file():
-            if debug:
-                st.sidebar.success(f"✅ FOTO ENCONTRADA: {foto_path_png.name}")
-            return str(foto_path_png)
+                st.sidebar.write(f"🌐 **Foto do Transfermarkt**")
+                st.sidebar.write(f"   ID TM: `{tm_id_num}`")
+                st.sidebar.write(f"   URL: `{foto_url}`")
+            
+            return foto_url
     
+    # 2️⃣ FALLBACK: Foto local (se existir)
+    current_file = Path(__file__).resolve()
+    possivel_fotos_dirs = [
+        current_file.parent / "fotos",
+        current_file.parent.parent / "fotos",
+    ]
+    
+    for fotos_dir in possivel_fotos_dirs:
+        if fotos_dir.exists() and fotos_dir.is_dir():
+            foto_path = fotos_dir / f"{id_jogador}.jpg"
+            
+            if foto_path.exists():
+                if debug:
+                    st.sidebar.write(f"📁 **Foto Local**")
+                    st.sidebar.write(f"   Caminho: `{foto_path}`")
+                
+                return str(foto_path)
+    
+    # 3️⃣ FALLBACK FINAL: Placeholder
     if debug:
-        # Listar fotos disponíveis
-        fotos = list(fotos_dir.glob("*.jpg")) + list(fotos_dir.glob("*.png"))
-        st.sidebar.write(f"📁 Total de fotos na pasta: {len(fotos)}")
-        if len(fotos) > 0:
-            st.sidebar.write("**Primeiras 10 fotos:**")
-            for f in fotos[:10]:
-                st.sidebar.code(f.name)
-        else:
-            st.sidebar.warning("⚠️ Pasta de fotos está vazia!")
+        st.sidebar.warning(f"⚠️ Nenhuma foto encontrada para ID {id_jogador}")
     
-    return None
+    # Placeholder SVG profissional
+    placeholder_url = "https://ui-avatars.com/api/?name=Jogador&size=150&background=1a1a1a&color=ffffff&bold=true"
+    return placeholder_url
 
 
 def get_perfil_url(id_jogador):
