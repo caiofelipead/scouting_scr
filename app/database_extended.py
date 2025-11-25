@@ -1,7 +1,6 @@
 """
 Extensão Database - Scout Pro
 Adiciona funcionalidades financeiras e sincronização segura
-IMPORTANTE: Mesclar este código no seu database.py existente
 """
 
 import psycopg2
@@ -93,6 +92,21 @@ class ScoutingDatabaseExtended:
                     adicionado_por INTEGER,
                     adicionado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(jogador_id)
+                )
+            """)
+            
+            # TABELA DE PROPOSTAS (NECESSÁRIA PARA estatisticas_financeiras)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS propostas (
+                    id SERIAL PRIMARY KEY,
+                    jogador_id INTEGER REFERENCES jogadores(id) ON DELETE CASCADE,
+                    clube_interessado VARCHAR(100),
+                    valor_proposta DECIMAL(12,2),
+                    moeda VARCHAR(10) DEFAULT 'BRL',
+                    status VARCHAR(20) CHECK (status IN ('Em análise', 'Aceita', 'Recusada')),
+                    data_proposta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    observacoes TEXT,
+                    responsavel INTEGER
                 )
             """)
             
@@ -400,7 +414,7 @@ def criar_backup_automatico(db_extended):
     backup_dir = f"backups/{timestamp}"
     os.makedirs(backup_dir, exist_ok=True)
     
-    tabelas = ['jogadores', 'avaliacoes', 'tags_jogadores', 'wishlist']
+    tabelas = ['jogadores', 'avaliacoes', 'tags_jogadores', 'wishlist', 'propostas']
     
     for tabela in tabelas:
         try:
