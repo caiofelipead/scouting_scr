@@ -14,21 +14,17 @@ from sqlalchemy.pool import NullPool
 import numpy as np
 import streamlit as st
 
-# Carregar variáveis de ambiente do .env
 load_dotenv()
 
 class ScoutingDatabase:
     def __init__(self):
         """Inicializa conexão com o banco de dados (SQLite ou PostgreSQL)"""
         
-        # Detectar ambiente: Railway usa DATABASE_URL
         self.database_url = os.getenv('DATABASE_URL')
         
         if self.database_url:
-            # PRODUÇÃO: PostgreSQL no Railway
             print("🔵 Conectando ao PostgreSQL (Railway)...")
             
-            # Fix para Railway: postgres:// → postgresql://
             if self.database_url.startswith("postgres://"):
                 self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
             
@@ -44,7 +40,6 @@ class ScoutingDatabase:
             self.db_type = 'postgresql'
             print("✅ Conectado ao PostgreSQL com sucesso!")
         else:
-            # DESENVOLVIMENTO: SQLite local
             print("🟢 Usando SQLite local...")
             self.engine = create_engine('sqlite:///scouting.db')
             self.db_type = 'sqlite'
@@ -85,7 +80,6 @@ class ScoutingDatabase:
     def criar_tabelas(self):
         """Cria todas as tabelas e views (v3.0) - Compatível com SQLite e PostgreSQL"""
         
-        # Definições de tipos para ID
         if self.db_type == 'postgresql':
             id_type = "SERIAL PRIMARY KEY"
             bool_true = "TRUE"
@@ -94,9 +88,7 @@ class ScoutingDatabase:
             bool_true = "1"
 
         
-        # --- 1. DEFINIÇÃO DAS TABELAS ---
         commands = [
-            # Jogadores
             f"""CREATE TABLE IF NOT EXISTS jogadores (
                 id_jogador {id_type},
                 nome VARCHAR(255) NOT NULL,
@@ -110,7 +102,6 @@ class ScoutingDatabase:
                 data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )""",
             
-            # Vínculos
             f"""CREATE TABLE IF NOT EXISTS vinculos_clubes (
                 id_vinculo {id_type},
                 id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
@@ -123,7 +114,6 @@ class ScoutingDatabase:
                 data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )""",
             
-            # Alertas
             f"""CREATE TABLE IF NOT EXISTS alertas (
                 id_alerta {id_type},
                 id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
@@ -134,7 +124,6 @@ class ScoutingDatabase:
                 ativo BOOLEAN DEFAULT {bool_true}
             )""",
             
-            # Avaliações
             f"""CREATE TABLE IF NOT EXISTS avaliacoes (
                 id_avaliacao {id_type},
                 id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
@@ -149,7 +138,6 @@ class ScoutingDatabase:
                 data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )""",
 
-            # Tags
             f"""CREATE TABLE IF NOT EXISTS tags (
                 id_tag {id_type},
                 nome VARCHAR(50) NOT NULL UNIQUE,
@@ -157,7 +145,6 @@ class ScoutingDatabase:
                 descricao TEXT
             )""",
 
-            # Relacionamento Jogador <-> Tags
             """CREATE TABLE IF NOT EXISTS jogador_tags (
                 id_jogador INTEGER,
                 id_tag INTEGER,
@@ -168,7 +155,6 @@ class ScoutingDatabase:
                 FOREIGN KEY (id_tag) REFERENCES tags(id_tag) ON DELETE CASCADE
             )""",
 
-            # Wishlist
             f"""CREATE TABLE IF NOT EXISTS wishlist (
                 id {id_type},
                 id_jogador INTEGER UNIQUE,
@@ -179,7 +165,6 @@ class ScoutingDatabase:
                 FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador) ON DELETE CASCADE
             )""",
 
-            # Notas Rápidas
             f"""CREATE TABLE IF NOT EXISTS notas_rapidas (
                 id_nota {id_type},
                 id_jogador INTEGER,
@@ -190,7 +175,6 @@ class ScoutingDatabase:
                 FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador) ON DELETE CASCADE
             )""",
 
-            # Buscas Salvas
             f"""CREATE TABLE IF NOT EXISTS buscas_salvas (
                 id_busca {id_type},
                 nome_busca VARCHAR(100) NOT NULL,
@@ -200,7 +184,6 @@ class ScoutingDatabase:
             )"""
         ]
 
-        # --- 2. DEFINIÇÃO DAS VIEWS ---
         view_benchmark = """
         CREATE VIEW IF NOT EXISTS vw_benchmark_posicoes AS
         SELECT 
@@ -217,17 +200,13 @@ class ScoutingDatabase:
         GROUP BY v.posicao
         """
         
-        # --- Lógica Diferenciada para Datas (SQLite vs Postgres) ---
         if self.db_type == 'postgresql':
-            # Sintaxe PostgreSQL
             condicao_data = "v.data_fim_contrato <= (CURRENT_DATE + INTERVAL '6 months')"
         else:
-            # Sintaxe SQLite
             condicao_data = "v.data_fim_contrato <= DATE('now', '+6 months')"
 
         view_alertas_inteligentes = f"""
         CREATE VIEW IF NOT EXISTS vw_alertas_inteligentes AS
-        -- 1. Alertas Manuais
         SELECT 
             a.id_jogador,
             j.nome,
@@ -243,7 +222,6 @@ class ScoutingDatabase:
         
         UNION ALL
         
-        -- 2. Alertas Automáticos (Contratos Vencendo)
         SELECT 
             j.id_jogador,
             j.nome,
@@ -257,14 +235,11 @@ class ScoutingDatabase:
         WHERE {condicao_data}
         """
 
-        # --- 3. EXECUÇÃO UNIFICADA ---
         try:
             with self.engine.connect() as conn:
-                # 1. Cria Tabelas
                 for sql in commands:
                     conn.execute(text(sql))
                 
-                # 2. Cria Views (Drops garantem atualização)
                 try:
                     conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes"))
                     conn.execute(text(view_benchmark))
@@ -553,7 +528,6 @@ class ScoutingDatabase:
         except:
             return False
 
-    # --- CAMADA DE COMPATIBILIDADE ---
     def get_estatisticas_gerais(self):
         return self.obter_estatisticas()
 
@@ -638,8 +612,6 @@ class ScoutingDatabase:
             print(f"❌ Erro na importação manual: {e}")
             return False
 
-    # --- FUNCIONALIDADES V3.0 (Tags, Wishlist, Notas, Benchmark) ---
-
     @st.cache_data(ttl=300, show_spinner=False)
     def get_all_tags(_self):
         """Busca todas as tags COM CACHE"""
@@ -680,7 +652,6 @@ class ScoutingDatabase:
                     'adicionado_por': adicionado_por
                 })
                 conn.commit()
-                # Limpar cache
                 st.cache_data.clear()
                 return True
         except Exception as e:
@@ -695,7 +666,6 @@ class ScoutingDatabase:
                 query = "DELETE FROM jogador_tags WHERE id_jogador = :id_jogador AND id_tag = :id_tag"
                 conn.execute(text(query), {'id_jogador': id_jogador, 'id_tag': id_tag})
                 conn.commit()
-                # Limpar cache
                 st.cache_data.clear()
                 return True
         except Exception as e:
@@ -751,7 +721,6 @@ class ScoutingDatabase:
                     'adicionado_por': adicionado_por
                 })
                 conn.commit()
-                # Limpar cache
                 st.cache_data.clear()
                 return True
         except Exception as e:
@@ -765,7 +734,6 @@ class ScoutingDatabase:
                 query = "DELETE FROM wishlist WHERE id_jogador = :id_jogador"
                 conn.execute(text(query), {'id_jogador': id_jogador})
                 conn.commit()
-                # Limpar cache
                 st.cache_data.clear()
                 return True
         except Exception as e:
@@ -1082,7 +1050,6 @@ class ScoutingDatabase:
             print(f"❌ Erro ao executar query: {e}")
             return []
 
-# Função auxiliar
 def get_database():
     return ScoutingDatabase()
 
@@ -1098,6 +1065,6 @@ if __name__ == "__main__":
         tags = db.get_all_tags()
         print(f"   ✅ Tags: {len(tags)} disponíveis")
     except:
-        print(f"   ⚠️  Tags: Tabela ainda não criada")
+        print(f"   ⚠️ Tags: Tabela ainda não criada")
     
     db.fechar_conexao()
