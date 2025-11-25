@@ -7,6 +7,7 @@ para gestão financeira e análises avançadas
 from database import ScoutingDatabase
 import pandas as pd
 from datetime import datetime
+from sqlalchemy import text
 
 
 class ScoutingDatabaseExtended(ScoutingDatabase):
@@ -18,6 +19,10 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
     def __init__(self):
         """Inicializa a classe extendida"""
         super().__init__()
+    
+    def get_connection(self):
+        """Retorna uma conexão do engine SQLAlchemy"""
+        return self.engine.connect()
     
     # ==================== ESTATÍSTICAS ====================
     
@@ -31,15 +36,15 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
         try:
             query = """
                 SELECT 
-                    COUNT(DISTINCT j.id) as total,
+                    COUNT(DISTINCT j.id_jogador) as total,
                     COUNT(DISTINCT CASE 
                         WHEN j.salario_mensal_min IS NOT NULL 
                         OR j.salario_mensal_max IS NOT NULL 
-                        THEN j.id 
+                        THEN j.id_jogador 
                     END) as com_info_financeira,
                     COUNT(DISTINCT CASE 
                         WHEN j.agente_nome IS NOT NULL 
-                        THEN j.id 
+                        THEN j.id_jogador 
                     END) as com_agente
                 FROM jogadores j
             """
@@ -48,9 +53,9 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
             
             if result and len(result) > 0:
                 return {
-                    'total': result[0]['total'] or 0,
-                    'com_info_financeira': result[0]['com_info_financeira'] or 0,
-                    'com_agente': result[0]['com_agente'] or 0
+                    'total': result[0].get('total', 0) or 0,
+                    'com_info_financeira': result[0].get('com_info_financeira', 0) or 0,
+                    'com_agente': result[0].get('com_agente', 0) or 0
                 }
             else:
                 return {
@@ -61,11 +66,22 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
                 
         except Exception as e:
             print(f"❌ Erro ao buscar estatísticas de jogadores: {e}")
-            return {
-                'total': 0,
-                'com_info_financeira': 0,
-                'com_agente': 0
-            }
+            # Fallback: contar apenas total de jogadores (colunas que existem)
+            try:
+                query_fallback = "SELECT COUNT(*) as total FROM jogadores"
+                result = self.execute_query(query_fallback)
+                total = result[0].get('total', 0) if result else 0
+                return {
+                    'total': total,
+                    'com_info_financeira': 0,
+                    'com_agente': 0
+                }
+            except:
+                return {
+                    'total': 0,
+                    'com_info_financeira': 0,
+                    'com_agente': 0
+                }
     
     def estatisticas_financeiras(self):
         """
@@ -78,7 +94,7 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
             query = """
                 SELECT 
                     COUNT(*) as total_propostas,
-                    COUNT(CASE WHEN status = 'Em Análise' THEN 1 END) as em_analise,
+                    COUNT(CASE WHEN status = 'Em análise' THEN 1 END) as em_analise,
                     COUNT(CASE WHEN status = 'Aprovada' THEN 1 END) as aprovadas,
                     COUNT(CASE WHEN status = 'Rejeitada' THEN 1 END) as rejeitadas
                 FROM propostas
@@ -88,10 +104,10 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
             
             if result and len(result) > 0:
                 return {
-                    'total_propostas': result[0]['total_propostas'] or 0,
-                    'em_analise': result[0]['em_analise'] or 0,
-                    'aprovadas': result[0]['aprovadas'] or 0,
-                    'rejeitadas': result[0]['rejeitadas'] or 0
+                    'total_propostas': result[0].get('total_propostas', 0) or 0,
+                    'em_analise': result[0].get('em_analise', 0) or 0,
+                    'aprovadas': result[0].get('aprovadas', 0) or 0,
+                    'rejeitadas': result[0].get('rejeitadas', 0) or 0
                 }
             else:
                 return {
@@ -103,7 +119,6 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
                 
         except Exception as e:
             print(f"⚠️ Aviso: Tabela 'propostas' não encontrada ou erro: {e}")
-            # Retornar zeros se a tabela propostas não existir
             return {
                 'total_propostas': 0,
                 'em_analise': 0,
@@ -126,15 +141,15 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
             DataFrame: Jogadores que atendem aos critérios
         """
         try:
-            # Query base
+            # Query base usando estrutura atual do banco
             query = """
                 SELECT 
-                    j.id,
+                    j.id_jogador,
                     j.nome,
-                    j.posicao,
-                    j.clube,
-                    j.liga,
-                    j.idade,
+                    v.posicao,
+                    v.clube,
+                    v.liga_clube as liga,
+                    j.idade_atual as idade,
                     j.salario_mensal_min,
                     j.salario_mensal_max,
                     j.moeda_salario,
@@ -144,39 +159,57 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
                     a.nota_potencial as potencial,
                     a.nota_tatico as tatico
                 FROM jogadores j
-                LEFT JOIN avaliacoes a ON j.id = a.id_jogador
+                LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                LEFT JOIN avaliacoes a ON j.id_jogador = a.id_jogador
                 WHERE 1=1
             """
             
-            params = []
+            params = {}
             
             # Filtro de moeda
             if moeda:
-                query += " AND (j.moeda_salario = %s OR j.moeda_salario IS NULL)"
-                params.append(moeda)
+                query += " AND (j.moeda_salario = :moeda OR j.moeda_salario IS NULL)"
+                params['moeda'] = moeda
             
             # Filtro de salário mínimo
             if salario_min is not None:
-                query += " AND j.salario_mensal_max >= %s"
-                params.append(salario_min)
+                query += " AND j.salario_mensal_max >= :salario_min"
+                params['salario_min'] = salario_min
             
             # Filtro de salário máximo
             if salario_max is not None:
-                query += " AND (j.salario_mensal_min <= %s OR j.salario_mensal_min IS NULL)"
-                params.append(salario_max)
+                query += " AND (j.salario_mensal_min <= :salario_max OR j.salario_mensal_min IS NULL)"
+                params['salario_max'] = salario_max
             
             query += " ORDER BY j.salario_mensal_max DESC NULLS LAST"
             
             # Executa query
-            conn = self.get_connection()
-            df = pd.read_sql(query, conn, params=params)
-            conn.close()
+            df = pd.read_sql(text(query), self.engine, params=params if params else None)
             
             return df
             
         except Exception as e:
             print(f"❌ Erro ao buscar por faixa salarial: {e}")
-            return pd.DataFrame()
+            # Fallback: retorna jogadores sem filtro financeiro
+            try:
+                query_fallback = """
+                    SELECT 
+                        j.id_jogador,
+                        j.nome,
+                        v.posicao,
+                        v.clube,
+                        v.liga_clube as liga,
+                        j.idade_atual as idade,
+                        a.nota_potencial as potencial,
+                        a.nota_tatico as tatico
+                    FROM jogadores j
+                    LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                    LEFT JOIN avaliacoes a ON j.id_jogador = a.id_jogador
+                    ORDER BY j.nome
+                """
+                return pd.read_sql(text(query_fallback), self.engine)
+            except:
+                return pd.DataFrame()
     
     # ==================== DADOS FINANCEIROS ====================
     
@@ -190,6 +223,7 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
         Returns:
             dict: Dados financeiros do jogador
         """
+        jogador_id = self._safe_int(jogador_id)
         try:
             query = """
                 SELECT 
@@ -206,14 +240,16 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
                     agente_email,
                     agente_comissao
                 FROM jogadores
-                WHERE id = %s
+                WHERE id_jogador = :jogador_id
             """
             
-            result = self.execute_query(query, (jogador_id,))
-            
-            if result and len(result) > 0:
-                return result[0]
-            else:
+            with self.engine.connect() as conn:
+                result = conn.execute(text(query), {'jogador_id': jogador_id})
+                row = result.fetchone()
+                
+                if row:
+                    columns = result.keys()
+                    return dict(zip(columns, row))
                 return None
                 
         except Exception as e:
@@ -232,42 +268,40 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
         Returns:
             bool: True se atualizado com sucesso
         """
+        jogador_id = self._safe_int(jogador_id)
         try:
             query = """
                 UPDATE jogadores
                 SET 
-                    salario_mensal_min = %s,
-                    salario_mensal_max = %s,
-                    moeda_salario = %s,
-                    bonificacoes = %s,
-                    custo_transferencia = %s,
-                    condicoes_negocio = %s,
-                    clausula_rescisoria = %s,
-                    percentual_direitos_economicos = %s,
-                    observacoes_financeiras = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = %s
+                    salario_mensal_min = :salario_min,
+                    salario_mensal_max = :salario_max,
+                    moeda_salario = :moeda,
+                    bonificacoes = :bonificacoes,
+                    custo_transferencia = :custo_transferencia,
+                    condicoes_negocio = :condicoes,
+                    clausula_rescisoria = :clausula,
+                    percentual_direitos_economicos = :percentual_direitos,
+                    observacoes_financeiras = :observacoes,
+                    data_atualizacao = CURRENT_TIMESTAMP
+                WHERE id_jogador = :jogador_id
             """
             
-            params = (
-                dados_financeiros.get('salario_min'),
-                dados_financeiros.get('salario_max'),
-                dados_financeiros.get('moeda'),
-                dados_financeiros.get('bonificacoes'),
-                dados_financeiros.get('custo_transferencia'),
-                dados_financeiros.get('condicoes'),
-                dados_financeiros.get('clausula'),
-                dados_financeiros.get('percentual_direitos', 100),
-                dados_financeiros.get('observacoes'),
-                jogador_id
-            )
+            params = {
+                'salario_min': dados_financeiros.get('salario_min'),
+                'salario_max': dados_financeiros.get('salario_max'),
+                'moeda': dados_financeiros.get('moeda'),
+                'bonificacoes': dados_financeiros.get('bonificacoes'),
+                'custo_transferencia': dados_financeiros.get('custo_transferencia'),
+                'condicoes': dados_financeiros.get('condicoes'),
+                'clausula': dados_financeiros.get('clausula'),
+                'percentual_direitos': dados_financeiros.get('percentual_direitos', 100),
+                'observacoes': dados_financeiros.get('observacoes'),
+                'jogador_id': jogador_id
+            }
             
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            cursor.execute(query, params)
-            conn.commit()
-            cursor.close()
-            conn.close()
+            with self.engine.connect() as conn:
+                conn.execute(text(query), params)
+                conn.commit()
             
             print(f"✅ Dados financeiros do jogador {jogador_id} atualizados com sucesso")
             return True
@@ -298,9 +332,7 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
                 ORDER BY qtd_jogadores DESC
             """
             
-            conn = self.get_connection()
-            df = pd.read_sql(query, conn)
-            conn.close()
+            df = pd.read_sql(text(query), self.engine)
             
             return df
             
@@ -321,25 +353,24 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
         try:
             query = """
                 SELECT 
-                    j.id,
+                    j.id_jogador,
                     j.nome,
-                    j.posicao,
-                    j.clube,
-                    j.liga,
-                    j.idade,
+                    v.posicao,
+                    v.clube,
+                    v.liga_clube as liga,
+                    j.idade_atual as idade,
                     j.salario_mensal_min,
                     j.salario_mensal_max,
                     j.agente_comissao,
                     a.nota_potencial
                 FROM jogadores j
-                LEFT JOIN avaliacoes a ON j.id = a.id_jogador
-                WHERE j.agente_nome = %s
+                LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                LEFT JOIN avaliacoes a ON j.id_jogador = a.id_jogador
+                WHERE j.agente_nome = :agente_nome
                 ORDER BY j.nome
             """
             
-            conn = self.get_connection()
-            df = pd.read_sql(query, conn, params=(agente_nome,))
-            conn.close()
+            df = pd.read_sql(text(query), self.engine, params={'agente_nome': agente_nome})
             
             return df
             
@@ -359,22 +390,21 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
         try:
             query = """
                 SELECT 
-                    posicao,
+                    v.posicao,
                     COUNT(*) as total_jogadores,
-                    AVG((salario_mensal_min + salario_mensal_max) / 2) as salario_medio,
-                    MIN(salario_mensal_min) as salario_minimo,
-                    MAX(salario_mensal_max) as salario_maximo,
-                    STDDEV((salario_mensal_min + salario_mensal_max) / 2) as desvio_padrao
-                FROM jogadores
-                WHERE salario_mensal_min IS NOT NULL 
-                    AND salario_mensal_max IS NOT NULL
-                GROUP BY posicao
+                    AVG((j.salario_mensal_min + j.salario_mensal_max) / 2) as salario_medio,
+                    MIN(j.salario_mensal_min) as salario_minimo,
+                    MAX(j.salario_mensal_max) as salario_maximo,
+                    STDDEV((j.salario_mensal_min + j.salario_mensal_max) / 2) as desvio_padrao
+                FROM jogadores j
+                JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                WHERE j.salario_mensal_min IS NOT NULL 
+                    AND j.salario_mensal_max IS NOT NULL
+                GROUP BY v.posicao
                 ORDER BY salario_medio DESC
             """
             
-            conn = self.get_connection()
-            df = pd.read_sql(query, conn)
-            conn.close()
+            df = pd.read_sql(text(query), self.engine)
             
             return df
             
@@ -396,28 +426,27 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
         try:
             query = """
                 SELECT 
-                    j.id,
+                    j.id_jogador,
                     j.nome,
-                    j.posicao,
-                    j.clube,
-                    j.idade,
+                    v.posicao,
+                    v.clube,
+                    j.idade_atual as idade,
                     j.salario_mensal_max,
                     j.moeda_salario,
                     a.nota_potencial,
-                    a.nota_final,
+                    (a.nota_tatico + a.nota_tecnico + a.nota_fisico + a.nota_mental) / 4 as nota_media,
                     ROUND((a.nota_potencial / NULLIF(j.salario_mensal_max, 0)) * 10000, 2) as indice_custo_beneficio
                 FROM jogadores j
-                INNER JOIN avaliacoes a ON j.id = a.id_jogador
-                WHERE a.nota_potencial >= %s
+                INNER JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                INNER JOIN avaliacoes a ON j.id_jogador = a.id_jogador
+                WHERE a.nota_potencial >= :limite_potencial
                     AND j.salario_mensal_max IS NOT NULL
                     AND j.salario_mensal_max > 0
                 ORDER BY indice_custo_beneficio DESC
                 LIMIT 20
             """
             
-            conn = self.get_connection()
-            df = pd.read_sql(query, conn, params=(limite_potencial,))
-            conn.close()
+            df = pd.read_sql(text(query), self.engine, params={'limite_potencial': limite_potencial})
             
             return df
             
@@ -425,9 +454,9 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
             print(f"❌ Erro ao buscar jogadores com alto custo-benefício: {e}")
             return pd.DataFrame()
     
-    # ==================== PROPOSTAS (FUTURO) ====================
+    # ==================== PROPOSTAS ====================
     
-    def criar_proposta(self, jogador_id, dados_proposta, usuario_id):
+    def criar_proposta(self, jogador_id, dados_proposta, usuario_id=1):
         """
         Cria uma nova proposta de contratação/transferência
         
@@ -439,47 +468,134 @@ class ScoutingDatabaseExtended(ScoutingDatabase):
         Returns:
             int: ID da proposta criada ou None
         """
+        jogador_id = self._safe_int(jogador_id)
         try:
+            # Primeiro garante que a tabela existe
+            self.criar_tabela_propostas()
+            
             query = """
                 INSERT INTO propostas (
                     id_jogador,
-                    tipo_proposta,
                     valor_proposta,
                     moeda,
-                    condicoes,
-                    prazo_resposta,
+                    tipo_transferencia,
+                    clube_interessado,
                     status,
-                    criado_por,
-                    created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                RETURNING id
+                    observacoes
+                ) VALUES (
+                    :id_jogador,
+                    :valor_proposta,
+                    :moeda,
+                    :tipo_transferencia,
+                    :clube_interessado,
+                    :status,
+                    :observacoes
+                )
             """
             
-            params = (
-                jogador_id,
-                dados_proposta.get('tipo', 'Contratação'),
-                dados_proposta.get('valor'),
-                dados_proposta.get('moeda', 'BRL'),
-                dados_proposta.get('condicoes'),
-                dados_proposta.get('prazo_resposta'),
-                'Em Análise',
-                usuario_id
-            )
+            if self.db_type == 'postgresql':
+                query += " RETURNING id_proposta"
             
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            cursor.execute(query, params)
-            proposta_id = cursor.fetchone()[0]
-            conn.commit()
-            cursor.close()
-            conn.close()
+            params = {
+                'id_jogador': jogador_id,
+                'valor_proposta': dados_proposta.get('valor'),
+                'moeda': dados_proposta.get('moeda', 'BRL'),
+                'tipo_transferencia': dados_proposta.get('tipo', 'Definitiva'),
+                'clube_interessado': dados_proposta.get('clube_interessado'),
+                'status': 'Em análise',
+                'observacoes': dados_proposta.get('observacoes')
+            }
+            
+            with self.engine.connect() as conn:
+                result = conn.execute(text(query), params)
+                
+                if self.db_type == 'postgresql':
+                    proposta_id = result.fetchone()[0]
+                else:
+                    conn.commit()
+                    result = conn.execute(text("SELECT last_insert_rowid()"))
+                    proposta_id = result.fetchone()[0]
+                
+                conn.commit()
             
             print(f"✅ Proposta {proposta_id} criada com sucesso")
             return proposta_id
             
         except Exception as e:
-            print(f"⚠️ Aviso: Não foi possível criar proposta (tabela pode não existir): {e}")
+            print(f"⚠️ Aviso: Não foi possível criar proposta: {e}")
             return None
+    
+    def listar_propostas(self, jogador_id=None, status=None):
+        """
+        Lista propostas com filtros opcionais
+        
+        Args:
+            jogador_id: Filtrar por jogador (opcional)
+            status: Filtrar por status (opcional)
+            
+        Returns:
+            DataFrame: Propostas encontradas
+        """
+        try:
+            query = """
+                SELECT 
+                    p.*,
+                    j.nome as jogador_nome,
+                    v.clube as clube_atual,
+                    v.posicao
+                FROM propostas p
+                JOIN jogadores j ON p.id_jogador = j.id_jogador
+                LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                WHERE 1=1
+            """
+            
+            params = {}
+            
+            if jogador_id:
+                query += " AND p.id_jogador = :jogador_id"
+                params['jogador_id'] = self._safe_int(jogador_id)
+            
+            if status:
+                query += " AND p.status = :status"
+                params['status'] = status
+            
+            query += " ORDER BY p.data_proposta DESC"
+            
+            df = pd.read_sql(text(query), self.engine, params=params if params else None)
+            return df
+            
+        except Exception as e:
+            print(f"❌ Erro ao listar propostas: {e}")
+            return pd.DataFrame()
+    
+    def atualizar_status_proposta(self, proposta_id, novo_status):
+        """
+        Atualiza o status de uma proposta
+        
+        Args:
+            proposta_id: ID da proposta
+            novo_status: Novo status ('Em análise', 'Aprovada', 'Rejeitada')
+            
+        Returns:
+            bool: True se atualizado com sucesso
+        """
+        proposta_id = self._safe_int(proposta_id)
+        try:
+            query = """
+                UPDATE propostas
+                SET status = :status
+                WHERE id_proposta = :proposta_id
+            """
+            
+            with self.engine.connect() as conn:
+                conn.execute(text(query), {'status': novo_status, 'proposta_id': proposta_id})
+                conn.commit()
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao atualizar proposta: {e}")
+            return False
 
 
 # ==================== FUNÇÕES AUXILIARES ====================
@@ -489,6 +605,26 @@ def formatar_moeda_br(valor):
     if valor is None or pd.isna(valor):
         return "N/A"
     return f"R$ {valor:,.2f}".replace(',', '_').replace('.', ',').replace('_', '.')
+
+
+def formatar_moeda(valor, moeda='BRL'):
+    """Formata valor com símbolo da moeda"""
+    if valor is None or pd.isna(valor):
+        return "N/A"
+    
+    simbolos = {
+        'BRL': 'R$',
+        'EUR': '€',
+        'USD': '$',
+        'GBP': '£'
+    }
+    
+    simbolo = simbolos.get(moeda, moeda)
+    
+    if moeda == 'BRL':
+        return f"{simbolo} {valor:,.2f}".replace(',', '_').replace('.', ',').replace('_', '.')
+    else:
+        return f"{simbolo} {valor:,.2f}"
 
 
 def calcular_custo_total_contratacao(salario_mensal, meses_contrato=12, comissao_agente=0, bonus=0):
@@ -504,6 +640,9 @@ def calcular_custo_total_contratacao(salario_mensal, meses_contrato=12, comissao
     Returns:
         float: Custo total estimado
     """
+    if salario_mensal is None:
+        return 0
+        
     custo_salarios = salario_mensal * meses_contrato
     custo_comissao = (custo_salarios * comissao_agente / 100) if comissao_agente > 0 else 0
     custo_total = custo_salarios + custo_comissao + bonus
