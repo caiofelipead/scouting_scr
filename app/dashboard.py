@@ -3416,63 +3416,77 @@ def main():
         "🔔 Alertas"
     ])
     
+    # ============== TAB 1: VISÃO GERAL ==============
     with tab1:
-        st.subheader(f"📋 Jogadores Encontrados: {len(df_filtrado)}")
+        st.subheader(f"📋 Visão Geral do Sistema")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total de Jogadores", len(df_filtrado))
+        with col2:
+            total_avaliacoes = db.execute_query("SELECT COUNT(*) as total FROM avaliacoes")[0]['total'] if len(db.execute_query("SELECT COUNT(*) as total FROM avaliacoes")) > 0 else 0
+            st.metric("Total de Avaliações", total_avaliacoes)
+        with col3:
+            wishlist_count = db.execute_query("SELECT COUNT(*) as total FROM wishlist")[0]['total'] if len(db.execute_query("SELECT COUNT(*) as total FROM wishlist")) > 0 else 0
+            st.metric("Jogadores na Wishlist", wishlist_count)
+        with col4:
+            tags_count = db.execute_query("SELECT COUNT(DISTINCT id_jogador) as total FROM jogador_tags")[0]['total'] if len(db.execute_query("SELECT COUNT(DISTINCT id_jogador) as total FROM jogador_tags")) > 0 else 0
+            st.metric("Jogadores com Tags", tags_count)
+        
+        st.markdown("---")
         
         if len(df_filtrado) > 0:
-            exibir_lista_com_fotos(df_filtrado.head(20), db, debug=debug_fotos)
+            st.markdown("#### 🎯 Primeiros Jogadores")
+            exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos)
             
-            if len(df_filtrado) > 20:
-                st.info(f"Mostrando os primeiros 20 de {len(df_filtrado)} jogadores. Use os filtros na sidebar para refinar a busca.")
+            if len(df_filtrado) > 10:
+                st.info(f"Mostrando os primeiros 10 de {len(df_filtrado)} jogadores. Use as outras tabs para explorar mais.")
         else:
             st.warning("Nenhum jogador encontrado com os filtros aplicados.")
     
+    # ============== TAB 2: LISTA DE JOGADORES ==============
     with tab2:
-        tab_ranking(db, df_filtrado)
-    
-    with tab3:
-        tab_comparador(db, df_filtrado)
-    
-    with tab4:
-        st.markdown("### 🗺️ Mapa de Elenco")
-        st.markdown("Visualização dos jogadores filtrados no campo")
+        st.subheader(f"📋 Lista Completa: {len(df_filtrado)} jogadores")
         
         if len(df_filtrado) > 0:
-            plotar_mapa_elenco(df_filtrado.head(50), mostrar_nomes=True)
+            # Opções de visualização
+            view_mode = st.radio("Modo de Visualização", ["Cards com Fotos", "Tabela Simples"], horizontal=True)
             
-            if len(df_filtrado) > 50:
-                st.info(f"Mostrando os primeiros 50 de {len(df_filtrado)} jogadores no mapa.")
+            if view_mode == "Cards com Fotos":
+                exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos)
+            else:
+                # Tabela simples
+                df_display = df_filtrado[['nome', 'posicao', 'clube', 'nacionalidade', 'idade_atual']].copy()
+                st.dataframe(df_display, use_container_width=True, hide_index=True)
         else:
-            st.warning("Nenhum jogador para exibir no mapa.")
+            st.warning("Nenhum jogador encontrado com os filtros aplicados.")
     
+    # ============== TAB 3: WISHLIST ==============
+    with tab3:
+        tab_wishlist(db)
+    
+    # ============== TAB 4: RANKING ==============
+    with tab4:
+        tab_ranking(db, df_filtrado)
+    
+    # ============== TAB 5: COMPARADOR ==============
     with tab5:
+        tab_comparador(db, df_filtrado)
+    
+    # ============== TAB 6: SHADOW TEAM ==============
+    with tab6:
         tab_shadow_team(db, df_jogadores)
-
-
-
-# ========================================
-# TAB 3: WISHLIST
-# ========================================
-with tab3:
-    tab_wishlist(db)
-
-# ========================================
-# TAB 7: BUSCA AVANÇADA
-# ========================================
-with tab7:
-    tab_busca_avancada(db, df_filtrado)
-
-# ========================================
-# TAB 8: ANÁLISE DE MERCADO
-# ========================================
-with tab8:
-    tab_analise_mercado(db, df_filtrado)
-
-# ========================================
-# TAB 9: ALERTAS INTELIGENTES
-# ========================================
-with tab9:
-    tab_alertas_inteligentes(db)
+    # ============== TAB 7: BUSCA AVANÇADA ==============
+    with tab7:
+        tab_busca_avancada(db, df_filtrado)
+    
+    # ============== TAB 8: ANÁLISE DE MERCADO ==============
+    with tab8:
+        tab_analise_mercado(db, df_filtrado)
+    
+    # ============== TAB 9: ALERTAS INTELIGENTES ==============
+    with tab9:
+        tab_alertas_inteligentes(db)
 
 
 if __name__ == "__main__":
