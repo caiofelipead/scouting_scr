@@ -3158,9 +3158,6 @@ def main():
     # Sidebar - Filtros normais
     st.sidebar.header("🔍 Filtros")
     
-    # DEBUG MODE
-    debug_fotos = st.sidebar.checkbox("🐛 Debug de Fotos", value=False, help="Ativa modo debug para verificar o caminho das fotos")
-
     # Carregar dados
     df_jogadores = db.get_jogadores_com_vinculos()
 
