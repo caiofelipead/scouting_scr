@@ -330,10 +330,12 @@ class ScoutingDatabaseExtended:
             conn.close()
     
     def estatisticas_financeiras(self):
-    """Retorna estatísticas gerais das propostas"""
-    try:
-        with self.engine.connect() as conn:
-            result = conn.execute(text("""
+        """Retorna estatísticas gerais das propostas"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
                 SELECT 
                     COUNT(*) as total_propostas,
                     COALESCE(SUM(CASE WHEN status = 'Aceita' THEN 1 ELSE 0 END), 0) as aceitas,
@@ -344,9 +346,9 @@ class ScoutingDatabaseExtended:
                     COALESCE(MAX(valor_proposta), 0) as maior_proposta,
                     COALESCE(MIN(valor_proposta), 0) as menor_proposta
                 FROM propostas
-            """))
+            """)
             
-            row = result.fetchone()
+            row = cursor.fetchone()
             
             if row:
                 return {
@@ -370,19 +372,21 @@ class ScoutingDatabaseExtended:
                     'maior_proposta': 0.0,
                     'menor_proposta': 0.0
                 }
-    except Exception as e:
-        print(f"Erro ao buscar estatísticas: {e}")
-        # Retorna valores zerados em caso de erro
-        return {
-            'total_propostas': 0,
-            'aceitas': 0,
-            'recusadas': 0,
-            'em_analise': 0,
-            'valor_total': 0.0,
-            'valor_medio': 0.0,
-            'maior_proposta': 0.0,
-            'menor_proposta': 0.0
-        }
+        except Exception as e:
+            print(f"Erro ao buscar estatísticas: {e}")
+            return {
+                'total_propostas': 0,
+                'aceitas': 0,
+                'recusadas': 0,
+                'em_analise': 0,
+                'valor_total': 0.0,
+                'valor_medio': 0.0,
+                'maior_proposta': 0.0,
+                'menor_proposta': 0.0
+            }
+        finally:
+            cursor.close()
+            conn.close()
 
 
 # FUNÇÕES AUXILIARES
