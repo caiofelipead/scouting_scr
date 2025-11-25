@@ -2639,7 +2639,7 @@ def tab_alertas_inteligentes(db):
     st.markdown("---")
 
    
-     if alertas.empty or 'tipo_alerta' not in alertas.columns:
+    if alertas.empty or 'tipo_alerta' not in alertas.columns:
         st.info("✅ Tudo tranquilo! Nenhum alerta ativo no momento.")
         return
     
