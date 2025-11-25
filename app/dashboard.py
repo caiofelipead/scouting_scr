@@ -2152,6 +2152,1094 @@ def preencher_automaticamente(posicoes, df_jogadores, db):
 
 
 
+
+# ========================================
+# COMPONENTES VISUAIS - NOVAS FUNCIONALIDADES
+# ========================================
+
+
+
+from datetime import datetime
+
+# ============================================
+# 1. WIDGET DE TAGS
+# ============================================
+
+def render_tags_widget(db, id_jogador):
+    """Renderiza widget de tags para um jogador"""
+    st.markdown("#### 🏷️ Tags")
+    
+    # Buscar tags do jogador
+    tags_jogador = db.get_jogador_tags(id_jogador)
+    
+    # Mostrar tags atuais
+    if len(tags_jogador) > 0:
+        cols = st.columns(len(tags_jogador))
+        for idx, (_, tag) in enumerate(tags_jogador.iterrows()):
+            with cols[idx]:
+                st.markdown(
+                    f'<span style="background-color: {tag["cor"]}; color: white; '
+                    f'padding: 5px 10px; border-radius: 15px; font-size: 0.9em; '
+                    f'display: inline-block; margin: 2px;">{tag["nome"]}</span>',
+                    unsafe_allow_html=True
+                )
+    else:
+        st.caption("Nenhuma tag adicionada")
+    
+    # Adicionar nova tag
+    with st.expander("➕ Adicionar/Remover Tags"):
+        todas_tags = db.get_all_tags()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**Adicionar Tag:**")
+            tags_disponiveis = todas_tags[~todas_tags['id_tag'].isin(tags_jogador['id_tag'])]
+            
+            if len(tags_disponiveis) > 0:
+                tag_selecionada = st.selectbox(
+                    "Selecione uma tag",
+                    options=tags_disponiveis['id_tag'].tolist(),
+                    format_func=lambda x: todas_tags[todas_tags['id_tag'] == x]['nome'].iloc[0],
+                    key=f"add_tag_{id_jogador}"
+                )
+                
+                if st.button("Adicionar", key=f"btn_add_tag_{id_jogador}"):
+                    if db.adicionar_tag_jogador(id_jogador, tag_selecionada):
+                        st.success("Tag adicionada!")
+                        st.rerun()
+            else:
+                st.info("Todas as tags já foram adicionadas")
+        
+        with col2:
+            st.markdown("**Remover Tag:**")
+            if len(tags_jogador) > 0:
+                tag_remover = st.selectbox(
+                    "Selecione uma tag para remover",
+                    options=tags_jogador['id_tag'].tolist(),
+                    format_func=lambda x: tags_jogador[tags_jogador['id_tag'] == x]['nome'].iloc[0],
+                    key=f"rem_tag_{id_jogador}"
+                )
+                
+                if st.button("Remover", key=f"btn_rem_tag_{id_jogador}", type="secondary"):
+                    if db.remover_tag_jogador(id_jogador, tag_remover):
+                        st.success("Tag removida!")
+                        st.rerun()
+            else:
+                st.info("Nenhuma tag para remover")
+
+
+# ============================================
+# 2. WIDGET DE WISHLIST
+# ============================================
+
+def render_wishlist_button(db, id_jogador):
+    """Renderiza botão de adicionar/remover da wishlist"""
+    esta_na_wishlist = db.esta_na_wishlist(id_jogador)
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        if esta_na_wishlist:
+            if st.button("⭐ Remover da Wishlist", key=f"wishlist_{id_jogador}", 
+                        use_container_width=True, type="secondary"):
+                if db.remover_wishlist(id_jogador):
+                    st.success("Removido da wishlist!")
+                    st.rerun()
+        else:
+            if st.button("⭐ Adicionar à Wishlist", key=f"wishlist_{id_jogador}", 
+                        use_container_width=True):
+                # Mostrar modal para escolher prioridade
+                st.session_state[f'show_wishlist_modal_{id_jogador}'] = True
+    
+    # Modal para configurar prioridade
+    if st.session_state.get(f'show_wishlist_modal_{id_jogador}', False):
+        with st.form(key=f"form_wishlist_{id_jogador}"):
+            st.markdown("### Adicionar à Wishlist")
+            prioridade = st.selectbox(
+                "Prioridade",
+                options=['alta', 'media', 'baixa'],
+                format_func=lambda x: {'alta': '🔴 Alta', 'media': '🟡 Média', 'baixa': '🟢 Baixa'}[x]
+            )
+            observacao = st.text_area("Observação (opcional)")
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if st.form_submit_button("Adicionar", use_container_width=True):
+                    if db.adicionar_wishlist(id_jogador, prioridade, observacao):
+                        st.success("Adicionado à wishlist!")
+                        st.session_state[f'show_wishlist_modal_{id_jogador}'] = False
+                        st.rerun()
+            with col_b:
+                if st.form_submit_button("Cancelar", use_container_width=True):
+                    st.session_state[f'show_wishlist_modal_{id_jogador}'] = False
+                    st.rerun()
+
+
+# ============================================
+# 3. GRÁFICO DE PIZZA (DISTRIBUIÇÃO DE NOTAS)
+# ============================================
+
+def criar_grafico_pizza_avaliacoes(notas_dict):
+    """Cria gráfico de pizza mostrando distribuição percentual das notas"""
+    categorias = list(notas_dict.keys())
+    valores = list(notas_dict.values())
+    
+    # Calcular porcentagens
+    total = sum(valores)
+    porcentagens = [v/total*100 for v in valores]
+    
+    cores = {
+        'Tático': '#3498db',
+        'Técnico': '#e74c3c',
+        'Físico': '#f39c12',
+        'Mental': '#9b59b6'
+    }
+    
+    colors_list = [cores.get(cat, '#95a5a6') for cat in categorias]
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=categorias,
+        values=valores,
+        hole=0.4,
+        marker=dict(colors=colors_list),
+        textinfo='label+percent',
+        textposition='inside',
+        textfont=dict(size=14, color='white'),
+        hovertemplate='<b>%{label}</b><br>Nota: %{value:.1f}<br>Percentual: %{percent}<extra></extra>'
+    )])
+    
+    fig.update_layout(
+        title=dict(
+            text="Distribuição das Notas",
+            x=0.5,
+            xanchor='center',
+            font=dict(size=18)
+        ),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.2,
+            xanchor="center",
+            x=0.5
+        ),
+        height=400,
+        margin=dict(l=20, r=20, t=60, b=60)
+    )
+    
+    return fig
+
+
+# ============================================
+# 4. COMPARAÇÃO COM BENCHMARK
+# ============================================
+
+def render_benchmark_comparison(db, id_jogador, posicao):
+    """Renderiza comparação do jogador com benchmark da posição"""
+    # Buscar benchmark
+    benchmark = db.get_benchmark_posicao(posicao)
+    
+    if benchmark.empty:
+        st.warning(f"Sem dados de benchmark para {posicao}")
+        return
+    
+    # Buscar avaliação do jogador
+    avaliacao = db.get_ultima_avaliacao(id_jogador)
+    
+    if avaliacao.empty:
+        st.info("Jogador sem avaliação para comparar")
+        return
+    
+    st.markdown("#### 📊 Comparação com Benchmark")
+    st.caption(f"Média de {int(benchmark['total_jogadores'].iloc[0])} {posicao}s avaliados")
+    
+    # Criar gráfico de barras comparativo
+    categorias = ['Potencial', 'Tático', 'Técnico', 'Físico', 'Mental', 'Geral']
+    
+    valores_jogador = [
+        avaliacao['nota_potencial'].iloc[0],
+        avaliacao['nota_tatico'].iloc[0],
+        avaliacao['nota_tecnico'].iloc[0],
+        avaliacao['nota_fisico'].iloc[0],
+        avaliacao['nota_mental'].iloc[0],
+        (avaliacao['nota_tatico'].iloc[0] + avaliacao['nota_tecnico'].iloc[0] + 
+         avaliacao['nota_fisico'].iloc[0] + avaliacao['nota_mental'].iloc[0]) / 4
+    ]
+    
+    valores_benchmark = [
+        float(benchmark['media_potencial'].iloc[0]),
+        float(benchmark['media_tatico'].iloc[0]),
+        float(benchmark['media_tecnico'].iloc[0]),
+        float(benchmark['media_fisico'].iloc[0]),
+        float(benchmark['media_mental'].iloc[0]),
+        float(benchmark['media_geral'].iloc[0])
+    ]
+    
+    # Calcular diferenças
+    diferencas = [j - b for j, b in zip(valores_jogador, valores_benchmark)]
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Bar(
+        name='Jogador',
+        x=categorias,
+        y=valores_jogador,
+        marker_color='#667eea',
+        text=[f'{v:.1f}' for v in valores_jogador],
+        textposition='outside'
+    ))
+    
+    fig.add_trace(go.Bar(
+        name=f'Média {posicao}',
+        x=categorias,
+        y=valores_benchmark,
+        marker_color='#95a5a6',
+        text=[f'{v:.1f}' for v in valores_benchmark],
+        textposition='outside'
+    ))
+    
+    fig.update_layout(
+        barmode='group',
+        height=400,
+        yaxis=dict(range=[0, 5.5], title='Nota'),
+        xaxis=dict(title=''),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Mostrar diferenças
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    cols = [col1, col2, col3, col4, col5, col6]
+    
+    for i, (cat, diff) in enumerate(zip(categorias, diferencas)):
+        with cols[i]:
+            delta_color = "normal" if diff >= 0 else "inverse"
+            st.metric(
+                cat,
+                f"{valores_jogador[i]:.1f}",
+                delta=f"{diff:+.1f}",
+                delta_color=delta_color
+            )
+
+
+# ============================================
+# 5. WIDGET DE NOTAS RÁPIDAS
+# ============================================
+
+def render_notas_rapidas(db, id_jogador):
+    """Renderiza seção de notas rápidas"""
+    st.markdown("#### 📝 Notas Rápidas")
+    
+    notas = db.get_notas_rapidas(id_jogador)
+    
+    # Formulário para adicionar nota
+    with st.expander("✍️ Adicionar Nota Rápida"):
+        with st.form(key=f"form_nota_{id_jogador}"):
+            texto = st.text_area(
+                "Observação",
+                placeholder="Ex: Visto ao vivo no jogo contra o Palmeiras - Boa atuação defensiva",
+                height=100
+            )
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                tipo = st.selectbox(
+                    "Tipo",
+                    options=['observacao', 'jogo_assistido', 'conversa', 'alerta'],
+                    format_func=lambda x: {
+                        'observacao': '👁️ Observação',
+                        'jogo_assistido': '⚽ Jogo Assistido',
+                        'conversa': '💬 Conversa/Contato',
+                        'alerta': '⚠️ Alerta'
+                    }[x]
+                )
+            
+            with col2:
+                autor = st.text_input("Seu nome", value="Scout")
+            
+            if st.form_submit_button("💾 Salvar Nota", use_container_width=True):
+                if texto.strip():
+                    if db.adicionar_nota_rapida(id_jogador, texto, autor, tipo):
+                        st.success("Nota adicionada!")
+                        st.rerun()
+                else:
+                    st.warning("Digite uma observação")
+    
+    # Mostrar notas existentes
+    if len(notas) > 0:
+        st.markdown(f"**{len(notas)} nota(s) registrada(s)**")
+        
+        for _, nota in notas.iterrows():
+            tipo_icon = {
+                'observacao': '👁️',
+                'jogo_assistido': '⚽',
+                'conversa': '💬',
+                'alerta': '⚠️'
+            }.get(nota['tipo'], '📝')
+            
+            data_fmt = pd.to_datetime(nota['data_nota']).strftime("%d/%m/%Y %H:%M")
+            
+            with st.container():
+                col1, col2 = st.columns([5, 1])
+                with col1:
+                    st.markdown(f"{tipo_icon} **{nota.get('autor', 'N/A')}** • {data_fmt}")
+                    st.markdown(f"_{nota['texto']}_")
+                with col2:
+                    if st.button("🗑️", key=f"del_nota_{nota['id_nota']}"):
+                        if db.deletar_nota_rapida(nota['id_nota']):
+                            st.rerun()
+                st.markdown("---")
+    else:
+        st.info("Nenhuma nota registrada ainda")
+
+
+# ============================================
+# 6. TAB DE WISHLIST
+# ============================================
+
+def tab_wishlist(db):
+    """Tab dedicada à Wishlist"""
+    st.markdown("### ⭐ Minha Wishlist")
+    st.markdown("Jogadores prioritários para monitoramento e contratação")
+    
+    # Filtro por prioridade
+    col1, col2, col3 = st.columns([2, 2, 1])
+    
+    with col1:
+        filtro_prioridade = st.multiselect(
+            "Filtrar por Prioridade",
+            options=['alta', 'media', 'baixa'],
+            default=['alta', 'media', 'baixa'],
+            format_func=lambda x: {'alta': '🔴 Alta', 'media': '🟡 Média', 'baixa': '🟢 Baixa'}[x]
+        )
+    
+    # Buscar wishlist
+    wishlist = db.get_wishlist()
+    
+    if len(wishlist) == 0:
+        st.info("📝 Sua wishlist está vazia. Adicione jogadores para monitorar!")
+        return
+    
+    # Filtrar
+    if filtro_prioridade:
+        wishlist = wishlist[wishlist['prioridade'].isin(filtro_prioridade)]
+    
+    with col2:
+        st.metric("Total na Wishlist", len(wishlist))
+    
+    with col3:
+        ordenar = st.selectbox(
+            "Ordenar por",
+            options=['prioridade', 'nome', 'data'],
+            format_func=lambda x: {'prioridade': 'Prioridade', 'nome': 'Nome', 'data': 'Data Adição'}[x]
+        )
+    
+    # Ordenar
+    if ordenar == 'prioridade':
+        wishlist['_sort'] = wishlist['prioridade'].map({'alta': 1, 'media': 2, 'baixa': 3})
+        wishlist = wishlist.sort_values('_sort')
+    elif ordenar == 'nome':
+        wishlist = wishlist.sort_values('nome')
+    else:
+        wishlist = wishlist.sort_values('wishlist_adicionado_em', ascending=False)
+    
+    st.markdown("---")
+    
+    # Mostrar jogadores
+    for _, jogador in wishlist.iterrows():
+        prioridade_color = {'alta': '#dc3545', 'media': '#ffc107', 'baixa': '#28a745'}[jogador['prioridade']]
+        prioridade_label = {'alta': '🔴 ALTA', 'media': '🟡 MÉDIA', 'baixa': '🟢 BAIXA'}[jogador['prioridade']]
+        
+        with st.container():
+            col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+            
+            with col1:
+                st.markdown(f"### {jogador['nome']}")
+                st.caption(f"{jogador.get('posicao', 'N/A')} • {jogador.get('clube', 'Livre')}")
+            
+            with col2:
+                st.markdown(f"**Prioridade:** <span style='color: {prioridade_color}; font-weight: bold;'>{prioridade_label}</span>", 
+                           unsafe_allow_html=True)
+                if pd.notna(jogador.get('observacao')):
+                    with st.expander("💬 Ver observação"):
+                        st.info(jogador['observacao'])
+            
+            with col3:
+                data_add = pd.to_datetime(jogador['wishlist_adicionado_em']).strftime("%d/%m/%Y")
+                st.metric("Adicionado em", data_add)
+            
+            with col4:
+                if st.button("Ver Perfil", key=f"wishlist_perfil_{jogador['id_jogador']}"):
+                    st.session_state.pagina = "perfil"
+                    st.session_state.jogador_selecionado = jogador['id_jogador']
+                    st.query_params["jogador"] = jogador['id_jogador']
+                    st.rerun()
+                
+                if st.button("Remover", key=f"wishlist_rem_{jogador['id_jogador']}", type="secondary"):
+                    if db.remover_wishlist(jogador['id_jogador']):
+                        st.success("Removido!")
+                        st.rerun()
+            
+            st.markdown("---")
+
+
+# ============================================
+# 7. TAB DE ALERTAS INTELIGENTES
+# ============================================
+
+def tab_alertas_inteligentes(db):
+    """Tab de alertas inteligentes melhorados"""
+    st.markdown("### 🔔 Alertas Inteligentes")
+    st.markdown("Sistema automático de monitoramento baseado em regras")
+    
+    # Filtros
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        filtro_tipo = st.multiselect(
+            "Tipo de Alerta",
+            options=['Contrato vencendo em breve', 'Sem avaliação recente', 
+                    'Desempenho em queda', 'Idade crítica + Contrato curto'],
+            default=['Contrato vencendo em breve', 'Desempenho em queda']
+        )
+    
+    with col2:
+        filtro_prioridade = st.multiselect(
+            "Prioridade",
+            options=['alta', 'media', 'baixa'],
+            default=['alta', 'media'],
+            format_func=lambda x: {'alta': '🔴 Alta', 'media': '🟡 Média', 'baixa': '🟢 Baixa'}[x]
+        )
+    
+    # Buscar alertas
+    alertas = db.get_alertas_inteligentes()
+    
+    # Filtrar
+    if filtro_tipo:
+        alertas = alertas[alertas['tipo_alerta'].isin(filtro_tipo)]
+    
+    if filtro_prioridade:
+        alertas = alertas[alertas['prioridade'].isin(filtro_prioridade)]
+    
+    st.metric("Total de Alertas", len(alertas))
+    
+    st.markdown("---")
+    
+    if len(alertas) == 0:
+        st.success("✅ Nenhum alerta no momento!")
+        return
+    
+    # Agrupar por tipo
+    for tipo in alertas['tipo_alerta'].unique():
+        alertas_tipo = alertas[alertas['tipo_alerta'] == tipo]
+        
+        with st.expander(f"⚠️ {tipo} ({len(alertas_tipo)})", expanded=True):
+            for _, alerta in alertas_tipo.iterrows():
+                prioridade_icon = {'alta': '🔴', 'media': '🟡', 'baixa': '🟢'}[alerta['prioridade']]
+                
+                col1, col2, col3 = st.columns([3, 2, 1])
+                
+                with col1:
+                    st.markdown(f"{prioridade_icon} **{alerta['nome']}**")
+                    st.caption(f"{alerta.get('posicao', 'N/A')} • {alerta.get('clube', 'N/A')}")
+                
+                with col2:
+                    st.info(alerta['descricao'])
+                
+                with col3:
+                    if st.button("Ver Perfil", key=f"alerta_{alerta['id_jogador']}_{tipo}"):
+                        st.session_state.pagina = "perfil"
+                        st.session_state.jogador_selecionado = alerta['id_jogador']
+                        st.query_params["jogador"] = alerta['id_jogador']
+                        st.rerun()
+                
+                st.markdown("---")
+
+
+# ========================================
+# TABS AVANÇADAS - BUSCA E ANÁLISE DE MERCADO
+# ========================================
+
+
+
+from datetime import datetime
+
+# ============================================
+# TAB DE BUSCA AVANÇADA
+# ============================================
+
+def tab_busca_avancada(db, df_jogadores):
+    """Tab de Busca Avançada com Múltiplos Filtros"""
+    st.markdown("### 🔍 Busca Avançada")
+    st.markdown("Encontre jogadores com critérios específicos e salve suas buscas")
+    
+    # Inicializar filtros
+    if 'filtros_busca' not in st.session_state:
+        st.session_state.filtros_busca = {}
+    
+    # === SEÇÃO DE BUSCAS SALVAS ===
+    with st.expander("💾 Minhas Buscas Salvas"):
+        buscas_salvas = db.get_buscas_salvas()
+        
+        if len(buscas_salvas) > 0:
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                busca_selecionada = st.selectbox(
+                    "Carregar Busca Salva",
+                    options=buscas_salvas['id_busca'].tolist(),
+                    format_func=lambda x: buscas_salvas[buscas_salvas['id_busca'] == x]['nome_busca'].iloc[0]
+                )
+            
+            with col2:
+                if st.button("Carregar", use_container_width=True):
+                    resultado = db.executar_busca_salva(busca_selecionada)
+                    st.session_state['resultado_busca'] = resultado
+                    st.success("Busca carregada!")
+        else:
+            st.info("Nenhuma busca salva ainda")
+    
+    st.markdown("---")
+    
+    # === FORMULÁRIO DE FILTROS ===
+    st.markdown("#### 🎯 Critérios de Busca")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Posição & Clube**")
+        
+        posicoes_disponiveis = sorted(df_jogadores['posicao'].dropna().unique().tolist())
+        posicoes_selecionadas = st.multiselect(
+            "Posições",
+            options=posicoes_disponiveis,
+            key="busca_posicoes"
+        )
+        
+        clubes_disponiveis = sorted(df_jogadores['clube'].dropna().unique().tolist())
+        clubes_selecionados = st.multiselect(
+            "Clubes",
+            options=clubes_disponiveis,
+            key="busca_clubes"
+        )
+        
+        nacionalidades_disponiveis = sorted(df_jogadores['nacionalidade'].dropna().unique().tolist())
+        nacionalidades_selecionadas = st.multiselect(
+            "Nacionalidades",
+            options=nacionalidades_disponiveis,
+            key="busca_nacs"
+        )
+    
+    with col2:
+        st.markdown("**Idade & Desempenho**")
+        
+        col_idade1, col_idade2 = st.columns(2)
+        with col_idade1:
+            idade_min = st.number_input("Idade Mínima", min_value=15, max_value=45, value=18)
+        with col_idade2:
+            idade_max = st.number_input("Idade Máxima", min_value=15, max_value=45, value=35)
+        
+        media_min = st.slider(
+            "Média Mínima (Avaliação)",
+            min_value=1.0,
+            max_value=5.0,
+            value=3.0,
+            step=0.5,
+            help="Apenas jogadores com média igual ou superior"
+        )
+        
+        contrato_vencendo = st.checkbox(
+            "🚨 Apenas contratos vencendo (próximos 12 meses)",
+            key="busca_contrato"
+        )
+    
+    # Tags
+    st.markdown("**Tags**")
+    todas_tags = db.get_all_tags()
+    tags_selecionadas = st.multiselect(
+        "Filtrar por Tags",
+        options=todas_tags['id_tag'].tolist(),
+        format_func=lambda x: todas_tags[todas_tags['id_tag'] == x]['nome'].iloc[0],
+        key="busca_tags"
+    )
+    
+    # === BOTÕES DE AÇÃO ===
+    col1, col2, col3 = st.columns([2, 2, 1])
+    
+    buscar_clicked = False
+    salvar_clicked = False
+    limpar_clicked = False
+    
+    with col1:
+        buscar_clicked = st.button("🔎 Buscar", use_container_width=True, type="primary")
+    
+    with col2:
+        salvar_clicked = st.button("💾 Salvar Busca", use_container_width=True)
+    
+    with col3:
+        limpar_clicked = st.button("🗑️ Limpar", use_container_width=True)
+    
+    # === EXECUTAR BUSCA ===
+    if buscar_clicked:
+        filtros = {
+            'posicoes': posicoes_selecionadas if posicoes_selecionadas else None,
+            'clubes': clubes_selecionados if clubes_selecionados else None,
+            'nacionalidades': nacionalidades_selecionadas if nacionalidades_selecionadas else None,
+            'idade_min': idade_min,
+            'idade_max': idade_max,
+            'media_min': media_min,
+            'contrato_vencendo': contrato_vencendo,
+            'tags': tags_selecionadas if tags_selecionadas else None
+        }
+        
+        with st.spinner("Buscando jogadores..."):
+            resultado = db.busca_avancada(filtros)
+            st.session_state['resultado_busca'] = resultado
+            st.session_state['filtros_busca'] = filtros
+    
+    # === SALVAR BUSCA ===
+    if salvar_clicked:
+        if st.session_state.get('filtros_busca'):
+            with st.form("form_salvar_busca"):
+                nome_busca = st.text_input("Nome da Busca", 
+                                           placeholder="Ex: Zagueiros brasileiros sub-25")
+                autor = st.text_input("Seu nome", value="Scout")
+                
+                if st.form_submit_button("Salvar"):
+                    if nome_busca:
+                        if db.salvar_busca(nome_busca, st.session_state['filtros_busca'], autor):
+                            st.success("Busca salva com sucesso!")
+                    else:
+                        st.warning("Digite um nome para a busca")
+        else:
+            st.warning("Execute uma busca primeiro")
+    
+    # === LIMPAR ===
+    if limpar_clicked:
+        st.session_state['resultado_busca'] = None
+        st.session_state['filtros_busca'] = {}
+        st.rerun()
+    
+    # === MOSTRAR RESULTADOS ===
+    if 'resultado_busca' in st.session_state and st.session_state['resultado_busca'] is not None:
+        resultado = st.session_state['resultado_busca']
+        
+        st.markdown("---")
+        st.markdown("### 📊 Resultados da Busca")
+        
+        if len(resultado) == 0:
+            st.warning("Nenhum jogador encontrado com os critérios especificados")
+            return
+        
+        st.success(f"✅ {len(resultado)} jogador(es) encontrado(s)")
+        
+        # Opções de visualização
+        view_mode = st.radio(
+            "Modo de Visualização",
+            options=['Cards', 'Tabela', 'Comparação'],
+            horizontal=True
+        )
+        
+        if view_mode == 'Cards':
+            # Mostrar em cards
+            for i in range(0, len(resultado), 3):
+                cols = st.columns(3)
+                for j, col in enumerate(cols):
+                    idx = i + j
+                    if idx < len(resultado):
+                        jogador = resultado.iloc[idx]
+                        with col:
+                            with st.container():
+                                st.markdown(f"### {jogador['nome']}")
+                                st.caption(f"{jogador.get('posicao', 'N/A')} • {jogador.get('clube', 'Livre')}")
+                                
+                                if 'media_geral' in jogador:
+                                    st.metric("Média", f"{jogador['media_geral']:.2f}")
+                                
+                                st.metric("Idade", f"{jogador.get('idade_atual', 'N/A')} anos")
+                                
+                                if st.button("Ver Perfil", key=f"busca_perfil_{jogador['id_jogador']}"):
+                                    st.session_state.pagina = "perfil"
+                                    st.session_state.jogador_selecionado = jogador['id_jogador']
+                                    st.query_params["jogador"] = jogador['id_jogador']
+                                    st.rerun()
+                                
+                                st.markdown("---")
+        
+        elif view_mode == 'Tabela':
+            # Mostrar em tabela
+            df_display = resultado[['nome', 'posicao', 'clube', 'nacionalidade', 'idade_atual']].copy()
+            
+            if 'media_geral' in resultado.columns:
+                df_display['media_geral'] = resultado['media_geral']
+            
+            st.dataframe(df_display, use_container_width=True, hide_index=True)
+            
+            # Botão de export
+            csv = resultado.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Exportar Resultados (CSV)",
+                data=csv,
+                file_name=f"busca_avancada_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
+        
+        else:  # Comparação
+            st.markdown("**Selecione até 5 jogadores para comparar:**")
+            
+            jogadores_comparar = st.multiselect(
+                "Jogadores",
+                options=resultado['id_jogador'].tolist(),
+                format_func=lambda x: resultado[resultado['id_jogador'] == x]['nome'].iloc[0],
+                max_selections=5
+            )
+            
+            if len(jogadores_comparar) >= 2:
+                comparar_jogadores_busca(db, jogadores_comparar, resultado)
+            else:
+                st.info("Selecione pelo menos 2 jogadores para comparar")
+
+
+# ============================================
+# TAB DE ANÁLISE DE MERCADO
+# ============================================
+
+def tab_analise_mercado(db, df_jogadores):
+    """Dashboard de Análise de Mercado"""
+    st.markdown("### 📊 Análise de Mercado")
+    st.markdown("Visão estratégica do mercado de jogadores")
+    
+    # === FILTROS RÁPIDOS ===
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        posicao_mercado = st.selectbox(
+            "Posição",
+            options=['Todas'] + sorted(df_jogadores['posicao'].dropna().unique().tolist())
+        )
+    
+    with col2:
+        liga_mercado = st.selectbox(
+            "Liga",
+            options=['Todas'] + sorted(df_jogadores['liga_clube'].dropna().unique().tolist())
+        )
+    
+    with col3:
+        idade_max_mercado = st.slider("Idade Máxima", 18, 40, 30)
+    
+    with col4:
+        mostrar_apenas_prioridade = st.checkbox("Apenas Prioridade Alta")
+    
+    # Filtrar dados
+    df_mercado = df_jogadores.copy()
+    
+    if posicao_mercado != 'Todas':
+        df_mercado = df_mercado[df_mercado['posicao'] == posicao_mercado]
+    
+    if liga_mercado != 'Todas':
+        df_mercado = df_mercado[df_mercado['liga_clube'] == liga_mercado]
+    
+    df_mercado = df_mercado[df_mercado['idade_atual'] <= idade_max_mercado]
+    
+    if mostrar_apenas_prioridade:
+        wishlist = db.get_wishlist(prioridade='alta')
+        df_mercado = df_mercado[df_mercado['id_jogador'].isin(wishlist['id_jogador'])]
+    
+    st.markdown("---")
+    
+    # === KPIS DO MERCADO ===
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total de Jogadores", len(df_mercado))
+    
+    with col2:
+        contratos_vencendo = df_mercado[
+            (pd.notna(df_mercado['data_fim_contrato'])) &
+            (pd.to_datetime(df_mercado['data_fim_contrato']) <= pd.Timestamp.now() + pd.DateOffset(months=12))
+        ]
+        st.metric("Contratos Vencendo", len(contratos_vencendo))
+    
+    with col3:
+        idade_media = df_mercado['idade_atual'].mean()
+        st.metric("Idade Média", f"{idade_media:.1f} anos")
+    
+    with col4:
+        jogadores_livres = df_mercado[df_mercado['status_contrato'] == 'livre']
+        st.metric("Jogadores Livres", len(jogadores_livres))
+    
+    # === VISUALIZAÇÕES ===
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 Distribuição", 
+        "⏰ Contratos", 
+        "💰 Oportunidades",
+        "🎯 Benchmark"
+    ])
+    
+    with tab1:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### Distribuição por Clube")
+            top_clubes = df_mercado['clube'].value_counts().head(15)
+            fig = px.bar(
+                x=top_clubes.values,
+                y=top_clubes.index,
+                orientation='h',
+                title=f"Top 15 Clubes ({posicao_mercado})"
+            )
+            fig.update_layout(xaxis_title="Quantidade", yaxis_title="")
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            st.markdown("#### Distribuição por Nacionalidade")
+            top_nacs = df_mercado['nacionalidade'].value_counts().head(10)
+            fig = px.pie(
+                values=top_nacs.values,
+                names=top_nacs.index,
+                title="Top 10 Nacionalidades",
+                hole=0.4
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Distribuição de Idade
+        st.markdown("#### Pirâmide Etária")
+        fig = px.histogram(
+            df_mercado[df_mercado['idade_atual'].notna()],
+            x='idade_atual',
+            nbins=25,
+            title=f"Distribuição de Idade - {posicao_mercado}"
+        )
+        fig.update_layout(xaxis_title="Idade", yaxis_title="Quantidade")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with tab2:
+        st.markdown("#### 📅 Análise de Contratos")
+        
+        # Timeline de vencimentos
+        df_contratos = df_mercado[pd.notna(df_mercado['data_fim_contrato'])].copy()
+        df_contratos['data_fim_contrato'] = pd.to_datetime(df_contratos['data_fim_contrato'])
+        df_contratos['ano_vencimento'] = df_contratos['data_fim_contrato'].dt.year
+        
+        contratos_por_ano = df_contratos['ano_vencimento'].value_counts().sort_index()
+        
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=contratos_por_ano.index,
+            y=contratos_por_ano.values,
+            marker_color='#667eea',
+            text=contratos_por_ano.values,
+            textposition='outside'
+        ))
+        fig.update_layout(
+            title="Vencimentos de Contratos por Ano",
+            xaxis_title="Ano",
+            yaxis_title="Quantidade de Jogadores",
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Lista de jogadores com contrato vencendo
+        st.markdown("#### ⚠️ Contratos Vencendo em 2025")
+        df_2025 = df_contratos[df_contratos['ano_vencimento'] == 2025].copy()
+        
+        if len(df_2025) > 0:
+            df_2025_display = df_2025[['nome', 'posicao', 'clube', 'idade_atual', 'data_fim_contrato']].copy()
+            df_2025_display['data_fim_contrato'] = df_2025_display['data_fim_contrato'].dt.strftime('%d/%m/%Y')
+            st.dataframe(df_2025_display, use_container_width=True, hide_index=True)
+        else:
+            st.info("Nenhum contrato vencendo em 2025")
+    
+    with tab3:
+        st.markdown("#### 💰 Oportunidades de Mercado")
+        st.caption("Jogadores em situações favoráveis para negociação")
+        
+        # Critérios de oportunidade
+        oportunidades = []
+        
+        # 1. Jovens promissores com avaliação alta
+        for _, jogador in df_mercado.iterrows():
+            if pd.notna(jogador.get('idade_atual')) and jogador['idade_atual'] < 23:
+                media = calcular_media_jogador(db, jogador['id_jogador'])
+                if media >= 4.0:
+                    oportunidades.append({
+                        'jogador': jogador['nome'],
+                        'tipo': '🌟 Jovem Promissor',
+                        'detalhes': f"{jogador['idade_atual']} anos, Média: {media:.1f}",
+                        'id_jogador': jogador['id_jogador']
+                    })
+        
+        # 2. Contratos vencendo em 6 meses
+        for _, jogador in df_mercado.iterrows():
+            if pd.notna(jogador.get('data_fim_contrato')):
+                dias_restantes = (pd.to_datetime(jogador['data_fim_contrato']) - pd.Timestamp.now()).days
+                if 0 < dias_restantes <= 180:
+                    oportunidades.append({
+                        'jogador': jogador['nome'],
+                        'tipo': '⏰ Contrato Curto',
+                        'detalhes': f"Vence em {dias_restantes} dias",
+                        'id_jogador': jogador['id_jogador']
+                    })
+        
+        # 3. Jogadores livres no mercado
+        for _, jogador in df_mercado.iterrows():
+            if jogador.get('status_contrato') == 'livre':
+                oportunidades.append({
+                    'jogador': jogador['nome'],
+                    'tipo': '🆓 Livre',
+                    'detalhes': f"{jogador.get('posicao', 'N/A')}, {jogador.get('idade_atual', 'N/A')} anos",
+                    'id_jogador': jogador['id_jogador']
+                })
+        
+        if len(oportunidades) > 0:
+            df_oport = pd.DataFrame(oportunidades)
+            
+            # Mostrar por tipo
+            for tipo in df_oport['tipo'].unique():
+                with st.expander(f"{tipo} ({len(df_oport[df_oport['tipo'] == tipo])})", expanded=True):
+                    df_tipo = df_oport[df_oport['tipo'] == tipo]
+                    
+                    for _, oport in df_tipo.iterrows():
+                        col1, col2, col3 = st.columns([3, 2, 1])
+                        
+                        with col1:
+                            st.markdown(f"**{oport['jogador']}**")
+                        
+                        with col2:
+                            st.caption(oport['detalhes'])
+                        
+                        with col3:
+                            if st.button("Ver", key=f"oport_{oport['id_jogador']}"):
+                                st.session_state.pagina = "perfil"
+                                st.session_state.jogador_selecionado = oport['id_jogador']
+                                st.query_params["jogador"] = oport['id_jogador']
+                                st.rerun()
+                        
+                        st.markdown("---")
+        else:
+            st.info("Nenhuma oportunidade identificada com os filtros atuais")
+    
+    with tab4:
+        st.markdown("#### 🎯 Benchmark por Posição")
+        
+        benchmarks = db.get_all_benchmarks()
+        
+        if len(benchmarks) > 0:
+            # Tabela de benchmarks
+            st.dataframe(benchmarks, use_container_width=True, hide_index=True)
+            
+            # Gráfico comparativo
+            fig = go.Figure()
+            
+            fig.add_trace(go.Scatter(
+                x=benchmarks['posicao'],
+                y=benchmarks['media_geral'],
+                mode='markers+lines',
+                name='Média Geral',
+                marker=dict(size=12, color='#667eea'),
+                line=dict(width=2)
+            ))
+            
+            fig.update_layout(
+                title="Média Geral por Posição",
+                xaxis_title="Posição",
+                yaxis_title="Média",
+                yaxis=dict(range=[0, 5]),
+                height=400
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Sem dados de benchmark. Adicione avaliações aos jogadores.")
+
+
+# ============================================
+# FUNÇÃO AUXILIAR DE COMPARAÇÃO
+# ============================================
+
+def comparar_jogadores_busca(db, ids_jogadores, df_jogadores):
+    """Compara múltiplos jogadores da busca"""
+    st.markdown("### ⚖️ Comparação de Jogadores")
+    
+    # Buscar dados dos jogadores
+    dados_comparacao = []
+    
+    for id_jog in ids_jogadores:
+        jogador = df_jogadores[df_jogadores['id_jogador'] == id_jog].iloc[0]
+        avaliacao = db.get_ultima_avaliacao(id_jog)
+        
+        if not avaliacao.empty:
+            dados_comparacao.append({
+                'Nome': jogador['nome'],
+                'Posição': jogador.get('posicao', 'N/A'),
+                'Clube': jogador.get('clube', 'Livre'),
+                'Idade': jogador.get('idade_atual', 'N/A'),
+                'Potencial': avaliacao['nota_potencial'].iloc[0],
+                'Tático': avaliacao['nota_tatico'].iloc[0],
+                'Técnico': avaliacao['nota_tecnico'].iloc[0],
+                'Físico': avaliacao['nota_fisico'].iloc[0],
+                'Mental': avaliacao['nota_mental'].iloc[0],
+                'Média': (avaliacao['nota_tatico'].iloc[0] + avaliacao['nota_tecnico'].iloc[0] +
+                         avaliacao['nota_fisico'].iloc[0] + avaliacao['nota_mental'].iloc[0]) / 4
+            })
+    
+    if len(dados_comparacao) > 0:
+        df_comp = pd.DataFrame(dados_comparacao)
+        
+        # Tabela
+        st.dataframe(df_comp, use_container_width=True, hide_index=True)
+        
+        # Gráfico de radar
+        categorias = ['Tático', 'Técnico', 'Físico', 'Mental']
+        
+        fig = go.Figure()
+        
+        cores = ['#667eea', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6']
+        
+        for i, row in df_comp.iterrows():
+            valores = [row['Tático'], row['Técnico'], row['Físico'], row['Mental']]
+            valores += [valores[0]]  # Fechar o polígono
+            
+            fig.add_trace(go.Scatterpolar(
+                r=valores,
+                theta=categorias + [categorias[0]],
+                fill='toself',
+                name=row['Nome'],
+                line=dict(color=cores[i % len(cores)])
+            ))
+        
+        fig.update_layout(
+            polar=dict(radialaxis=dict(visible=True, range=[0, 5])),
+            showlegend=True,
+            height=500
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Jogadores selecionados não possuem avaliações")
+
+
+def calcular_media_jogador(db, id_jogador):
+    """Calcula média de um jogador (helper)"""
+    avaliacao = db.get_ultima_avaliacao(id_jogador)
+    if not avaliacao.empty:
+        return (avaliacao['nota_tatico'].iloc[0] + avaliacao['nota_tecnico'].iloc[0] +
+                avaliacao['nota_fisico'].iloc[0] + avaliacao['nota_mental'].iloc[0]) / 4
+    return 0.0
+
+
+# ========================================
+# FUNÇÃO PRINCIPAL
+# ========================================
+
 def main():
     # Header Visual Profissional
     st.markdown(
@@ -2316,12 +3404,16 @@ def main():
     # ============== TABS PRINCIPAIS ==============
     st.markdown("---")
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📋 Lista de Jogadores",
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+        "📊 Visão Geral",
+        "👥 Lista de Jogadores",
+        "⭐ Wishlist",
         "🏆 Ranking",
         "⚖️ Comparador",
-        "🗺️ Mapa de Elenco",
-        "⚽ Shadow Team"
+        "⚽ Shadow Team",
+        "🔍 Busca Avançada",
+        "📈 Análise de Mercado",
+        "🔔 Alertas"
     ])
     
     with tab1:
@@ -2355,6 +3447,32 @@ def main():
     
     with tab5:
         tab_shadow_team(db, df_jogadores)
+
+
+
+# ========================================
+# TAB 3: WISHLIST
+# ========================================
+with tab3:
+    tab_wishlist(db)
+
+# ========================================
+# TAB 7: BUSCA AVANÇADA
+# ========================================
+with tab7:
+    tab_busca_avancada(db, df_filtrado)
+
+# ========================================
+# TAB 8: ANÁLISE DE MERCADO
+# ========================================
+with tab8:
+    tab_analise_mercado(db, df_filtrado)
+
+# ========================================
+# TAB 9: ALERTAS INTELIGENTES
+# ========================================
+with tab9:
+    tab_alertas_inteligentes(db)
 
 
 if __name__ == "__main__":
