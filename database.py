@@ -1,5 +1,5 @@
 """
-Sistema de Banco de Dados para Scout Pro v3.0
+Sistema de Banco de Dados para Scout Pro v3.0 - OTIMIZADO
 Suporta SQLite (desenvolvimento) e PostgreSQL (produção/Railway)
 """
 
@@ -12,6 +12,7 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
 import numpy as np
+import streamlit as st
 
 # Carregar variáveis de ambiente do .env
 load_dotenv()
@@ -614,10 +615,12 @@ class ScoutingDatabase:
 
     # --- FUNCIONALIDADES V3.0 (Tags, Wishlist, Notas, Benchmark) ---
 
-    def get_all_tags(self):
+    @st.cache_data(ttl=300, show_spinner=False)
+    def get_all_tags(_self):
+        """Busca todas as tags COM CACHE"""
         query = "SELECT * FROM tags ORDER BY nome"
         try:
-            return pd.read_sql(text(query), self.engine)
+            return pd.read_sql(text(query), _self.engine)
         except Exception as e:
             print(f"❌ Erro ao buscar tags: {e}")
             return pd.DataFrame()
@@ -652,6 +655,8 @@ class ScoutingDatabase:
                     'adicionado_por': adicionado_por
                 })
                 conn.commit()
+                # Limpar cache
+                st.cache_data.clear()
                 return True
         except Exception as e:
             print(f"❌ Erro ao adicionar tag: {e}")
@@ -665,6 +670,8 @@ class ScoutingDatabase:
                 query = "DELETE FROM jogador_tags WHERE id_jogador = :id_jogador AND id_tag = :id_tag"
                 conn.execute(text(query), {'id_jogador': id_jogador, 'id_tag': id_tag})
                 conn.commit()
+                # Limpar cache
+                st.cache_data.clear()
                 return True
         except Exception as e:
             print(f"❌ Erro ao remover tag: {e}")
@@ -719,6 +726,8 @@ class ScoutingDatabase:
                     'adicionado_por': adicionado_por
                 })
                 conn.commit()
+                # Limpar cache
+                st.cache_data.clear()
                 return True
         except Exception as e:
             print(f"❌ Erro ao adicionar à wishlist: {e}")
@@ -731,12 +740,16 @@ class ScoutingDatabase:
                 query = "DELETE FROM wishlist WHERE id_jogador = :id_jogador"
                 conn.execute(text(query), {'id_jogador': id_jogador})
                 conn.commit()
+                # Limpar cache
+                st.cache_data.clear()
                 return True
         except Exception as e:
             print(f"❌ Erro ao remover da wishlist: {e}")
             return False
 
-    def get_wishlist(self, prioridade=None):
+    @st.cache_data(ttl=300, show_spinner=False)
+    def get_wishlist(_self, prioridade=None):
+        """Busca wishlist COM CACHE"""
         if prioridade:
             query = """
             SELECT 
@@ -755,7 +768,7 @@ class ScoutingDatabase:
             ORDER BY w.adicionado_em DESC
             """
             try:
-                return pd.read_sql(text(query), self.engine, params={'prioridade': prioridade})
+                return pd.read_sql(text(query), _self.engine, params={'prioridade': prioridade})
             except Exception as e:
                 print(f"❌ Erro ao buscar wishlist: {e}")
                 return pd.DataFrame()
@@ -782,10 +795,22 @@ class ScoutingDatabase:
                 w.adicionado_em DESC
             """
             try:
-                return pd.read_sql(text(query), self.engine)
+                return pd.read_sql(text(query), _self.engine)
             except Exception as e:
                 print(f"❌ Erro ao buscar wishlist: {e}")
                 return pd.DataFrame()
+
+    def get_ids_wishlist(self):
+        """Retorna SET com todos os IDs da wishlist (para lookup rápido)"""
+        try:
+            with self.engine.connect() as conn:
+                query = "SELECT id_jogador FROM wishlist"
+                result = conn.execute(text(query))
+                ids = {row[0] for row in result.fetchall()}
+                return ids
+        except Exception as e:
+            print(f"❌ Erro ao buscar IDs wishlist: {e}")
+            return set()
 
     def esta_na_wishlist(self, id_jogador):
         id_jogador = self._safe_int(id_jogador)
@@ -856,15 +881,19 @@ class ScoutingDatabase:
             print(f"❌ Erro ao buscar benchmark: {e}")
             return pd.DataFrame()
 
-    def get_all_benchmarks(self):
+    @st.cache_data(ttl=300, show_spinner=False)
+    def get_all_benchmarks(_self):
+        """Busca benchmarks COM CACHE"""
         query = "SELECT * FROM vw_benchmark_posicoes ORDER BY posicao"
         try:
-            return pd.read_sql(text(query), self.engine)
+            return pd.read_sql(text(query), _self.engine)
         except Exception as e:
             print(f"❌ Erro ao buscar benchmarks: {e}")
             return pd.DataFrame()
 
-    def get_alertas_inteligentes(self, tipo_alerta=None, prioridade=None):
+    @st.cache_data(ttl=300, show_spinner=False)
+    def get_alertas_inteligentes(_self, tipo_alerta=None, prioridade=None):
+        """Busca alertas inteligentes COM CACHE"""
         query = "SELECT * FROM vw_alertas_inteligentes WHERE 1=1"
         params = {}
         
@@ -880,9 +909,9 @@ class ScoutingDatabase:
         
         try:
             if params:
-                return pd.read_sql(text(query), self.engine, params=params)
+                return pd.read_sql(text(query), _self.engine, params=params)
             else:
-                return pd.read_sql(text(query), self.engine)
+                return pd.read_sql(text(query), _self.engine)
         except Exception as e:
             print(f"❌ Erro ao buscar alertas inteligentes: {e}")
             return pd.DataFrame()
