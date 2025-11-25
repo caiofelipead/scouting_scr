@@ -343,6 +343,65 @@ class ScoutingDatabaseExtended:
         finally:
             conn.close()
     
+    def estatisticas_jogadores(self):
+        """Retorna estatísticas gerais dos jogadores"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    COUNT(CASE WHEN salario_mensal_min IS NOT NULL THEN 1 END) as com_info_financeira,
+                    COUNT(CASE WHEN agente_nome IS NOT NULL THEN 1 END) as com_agente,
+                    COUNT(DISTINCT liga) as ligas_diferentes,
+                    COUNT(DISTINCT clube) as clubes_diferentes,
+                    COUNT(DISTINCT posicao) as posicoes_diferentes,
+                    ROUND(AVG(CASE WHEN idade IS NOT NULL THEN idade END), 1) as idade_media,
+                    COUNT(CASE WHEN contrato_ate < CURRENT_DATE THEN 1 END) as contratos_vencidos
+                FROM jogadores
+            """)
+            
+            row = cursor.fetchone()
+            
+            if row:
+                return {
+                    'total': int(row[0]),
+                    'com_info_financeira': int(row[1]),
+                    'com_agente': int(row[2]),
+                    'ligas_diferentes': int(row[3]),
+                    'clubes_diferentes': int(row[4]),
+                    'posicoes_diferentes': int(row[5]),
+                    'idade_media': float(row[6]) if row[6] else 0.0,
+                    'contratos_vencidos': int(row[7])
+                }
+            else:
+                return {
+                    'total': 0,
+                    'com_info_financeira': 0,
+                    'com_agente': 0,
+                    'ligas_diferentes': 0,
+                    'clubes_diferentes': 0,
+                    'posicoes_diferentes': 0,
+                    'idade_media': 0.0,
+                    'contratos_vencidos': 0
+                }
+        except Exception as e:
+            print(f"Erro ao buscar estatísticas de jogadores: {e}")
+            return {
+                'total': 0,
+                'com_info_financeira': 0,
+                'com_agente': 0,
+                'ligas_diferentes': 0,
+                'clubes_diferentes': 0,
+                'posicoes_diferentes': 0,
+                'idade_media': 0.0,
+                'contratos_vencidos': 0
+            }
+        finally:
+            cursor.close()
+            conn.close()
+    
     def estatisticas_financeiras(self):
         """Retorna estatísticas gerais das propostas"""
         conn = self.get_connection()
