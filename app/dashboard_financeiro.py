@@ -6,10 +6,7 @@ Gestão de informações financeiras e agentes dos jogadores
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from database_extended import ScoutingDatabaseExtended
-from datetime import datetime
-
 
 def formatar_moeda(valor, moeda='BRL'):
     """Formata valor como moeda"""
@@ -25,7 +22,6 @@ def formatar_moeda(valor, moeda='BRL'):
     
     simbolo = simbolos.get(moeda, moeda)
     return f"{simbolo} {valor:,.2f}".replace(',', '_').replace('.', ',').replace('_', '.')
-
 
 def aba_financeira():
     """
@@ -265,8 +261,8 @@ def aba_financeira():
     with tab3:
         st.subheader("✏️ Editar Informações Financeiras")
         
-        # Seletor de jogador
-        conn = db.conn
+        # CORREÇÃO AQUI: Usar get_connection() em vez de .conn
+        conn = db.get_connection() 
         df_jogadores = pd.read_sql("SELECT id, nome, posicao, clube FROM jogadores ORDER BY nome", conn)
         conn.close()
         
