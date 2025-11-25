@@ -936,7 +936,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
                 )
 
                 submitted = st.form_submit_button(
-                    "💾 Salvar Avaliação", use_container_width=True, type="primary"
+                    "💾 Salvar Avaliação", width='stretch', type="primary"
                 )
 
                 if submitted:
@@ -968,7 +968,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
                 "Mental": 3.0,
             }
             fig_preview = criar_radar_avaliacao(notas_preview, "Preview")
-            st.plotly_chart(fig_preview, use_container_width=True)
+            st.plotly_chart(fig_preview, width='stretch')
 
             # Mostrar potencial em destaque
             st.markdown("---")
@@ -1035,7 +1035,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
                 if notas_dict:
                     fig_radar = criar_radar_avaliacao(notas_dict, "Perfil Atual")
-                    st.plotly_chart(fig_radar, use_container_width=True)
+                    st.plotly_chart(fig_radar, width='stretch')
 
             # Histórico completo
             st.markdown("---")
@@ -1063,7 +1063,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             if colunas_display:
                 df_display = df_display[colunas_display]
                 df_display = df_display.rename(columns=colunas_desejadas)
-                st.dataframe(df_display, use_container_width=True, hide_index=True)
+                st.dataframe(df_display, width='stretch', hide_index=True)
         else:
             st.info("📝 Nenhuma avaliação registrada para este jogador ainda.")
             st.markdown(
@@ -1079,7 +1079,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             # Gráfico de evolução
             fig_evolucao = criar_grafico_evolucao(avaliacoes)
             if fig_evolucao:
-                st.plotly_chart(fig_evolucao, use_container_width=True)
+                st.plotly_chart(fig_evolucao, width='stretch')
 
             # Estatísticas de evolução
             st.markdown("---")
@@ -1144,7 +1144,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         st.link_button(
             "📊 Ver no Transfermarkt",
             f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}",
-            use_container_width=True,
+            width='stretch',
         )
 
 
@@ -1179,7 +1179,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                     )
                     
                     if foto_path:
-                        st.image(foto_path, use_container_width=True)
+                        st.image(foto_path, width='stretch')
                     else:
                         # Placeholder com gradiente
                         st.markdown(
@@ -1204,7 +1204,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                         if st.button(
                             "Ver Perfil",
                             key=f"perfil_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
-                            use_container_width=True,
+                            width='stretch',
                         ):
                             st.session_state.pagina = "perfil"
                             st.session_state.jogador_selecionado = jogador['id_jogador']
@@ -1220,7 +1220,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                             if st.button(
                                 "❌",
                                 key=f"remwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
-                                use_container_width=True,
+                                width='stretch',
                                 help="Remover da Wishlist"
                             ):
                                 if db.remover_wishlist(jogador['id_jogador']):
@@ -1231,7 +1231,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                             if st.button(
                                 "⭐️",
                                 key=f"addwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
-                                use_container_width=True,
+                                width='stretch',
                                 help="Adicionar à Wishlist"
                             ):
                                 if db.adicionar_wishlist(jogador['id_jogador'], prioridade='media'):
@@ -1596,7 +1596,7 @@ def tab_ranking(db, df_jogadores):
             data=csv,
             file_name=f'ranking_jogadores_{datetime.now().strftime("%Y%m%d")}.csv',
             mime="text/csv",
-            use_container_width=True,
+            width='stretch',
         )
     
     # --- ESTATÍSTICAS DO RANKING ---
@@ -1727,7 +1727,7 @@ def tab_comparador(db, df_jogadores):
         # Gráfico de radar comparativo
         if len(jogadores_notas) > 0:
             fig_comparacao = criar_radar_comparacao(jogadores_notas, jogadores_nomes)
-            st.plotly_chart(fig_comparacao, use_container_width=True)
+            st.plotly_chart(fig_comparacao, width='stretch')
         
         # Tabela comparativa
         st.markdown("---")
@@ -1827,12 +1827,12 @@ def tab_shadow_team(db, df_jogadores):
         
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
-            if st.button("🗑️ Limpar Time", use_container_width=True):
+            if st.button("🗑️ Limpar Time", width='stretch'):
                 st.session_state.shadow_team = {}
                 st.rerun()
         
         with col_btn2:
-            if st.button("🔄 Preencher Auto", use_container_width=True, 
+            if st.button("🔄 Preencher Auto", width='stretch', 
                         help="Preenche automaticamente com os melhores jogadores"):
                 preencher_automaticamente(posicoes, df_jogadores, db)
                 st.rerun()
@@ -2114,13 +2114,13 @@ def render_wishlist_button(db, id_jogador):
     with col1:
         if esta_na_wishlist:
             if st.button("⭐ Remover da Wishlist", key=f"wishlist_{id_jogador}", 
-                        use_container_width=True, type="secondary"):
+                        width='stretch', type="secondary"):
                 if db.remover_wishlist(id_jogador):
                     st.success("Removido da wishlist!")
                     st.rerun()
         else:
             if st.button("⭐ Adicionar à Wishlist", key=f"wishlist_{id_jogador}", 
-                        use_container_width=True):
+                        width='stretch'):
                 # Mostrar modal para escolher prioridade
                 st.session_state[f'show_wishlist_modal_{id_jogador}'] = True
     
@@ -2137,13 +2137,13 @@ def render_wishlist_button(db, id_jogador):
             
             col_a, col_b = st.columns(2)
             with col_a:
-                if st.form_submit_button("Adicionar", use_container_width=True):
+                if st.form_submit_button("Adicionar", width='stretch'):
                     if db.adicionar_wishlist(id_jogador, prioridade, observacao):
                         st.success("Adicionado à wishlist!")
                         st.session_state[f'show_wishlist_modal_{id_jogador}'] = False
                         st.rerun()
             with col_b:
-                if st.form_submit_button("Cancelar", use_container_width=True):
+                if st.form_submit_button("Cancelar", width='stretch'):
                     st.session_state[f'show_wishlist_modal_{id_jogador}'] = False
                     st.rerun()
 
@@ -2285,7 +2285,7 @@ def render_benchmark_comparison(db, id_jogador, posicao):
         )
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
     
     # Mostrar diferenças
     col1, col2, col3, col4, col5, col6 = st.columns(6)
@@ -2337,7 +2337,7 @@ def render_notas_rapidas(db, id_jogador):
             with col2:
                 autor = st.text_input("Seu nome", value="Scout")
             
-            if st.form_submit_button("💾 Salvar Nota", use_container_width=True):
+            if st.form_submit_button("💾 Salvar Nota", width='stretch'):
                 if texto.strip():
                     if db.adicionar_nota_rapida(id_jogador, texto, autor, tipo):
                         st.success("Nota adicionada!")
@@ -2579,7 +2579,7 @@ def tab_busca_avancada(db, df_jogadores):
                 )
             
             with col2:
-                if st.button("Carregar", use_container_width=True):
+                if st.button("Carregar", width='stretch'):
                     resultado = db.executar_busca_salva(busca_selecionada)
                     st.session_state['resultado_busca'] = resultado
                     st.success("Busca carregada!")
@@ -2658,13 +2658,13 @@ def tab_busca_avancada(db, df_jogadores):
     limpar_clicked = False
     
     with col1:
-        buscar_clicked = st.button("🔎 Buscar", use_container_width=True, type="primary")
+        buscar_clicked = st.button("🔎 Buscar", width='stretch', type="primary")
     
     with col2:
-        salvar_clicked = st.button("💾 Salvar Busca", use_container_width=True)
+        salvar_clicked = st.button("💾 Salvar Busca", width='stretch')
     
     with col3:
-        limpar_clicked = st.button("🗑️ Limpar", use_container_width=True)
+        limpar_clicked = st.button("🗑️ Limpar", width='stretch')
     
     # === EXECUTAR BUSCA ===
     if buscar_clicked:
@@ -2760,7 +2760,7 @@ def tab_busca_avancada(db, df_jogadores):
             if 'media_geral' in resultado.columns:
                 df_display['media_geral'] = resultado['media_geral']
             
-            st.dataframe(df_display, use_container_width=True, hide_index=True)
+            st.dataframe(df_display, width='stretch', hide_index=True)
             
             # Botão de export
             csv = resultado.to_csv(index=False).encode('utf-8')
@@ -2876,7 +2876,7 @@ def tab_analise_mercado(db, df_jogadores):
                 title=f"Top 15 Clubes ({posicao_mercado})"
             )
             fig.update_layout(xaxis_title="Quantidade", yaxis_title="")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         with col2:
             st.markdown("#### Distribuição por Nacionalidade")
@@ -2887,7 +2887,7 @@ def tab_analise_mercado(db, df_jogadores):
                 title="Top 10 Nacionalidades",
                 hole=0.4
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         # Distribuição de Idade
         st.markdown("#### Pirâmide Etária")
@@ -2898,7 +2898,7 @@ def tab_analise_mercado(db, df_jogadores):
             title=f"Distribuição de Idade - {posicao_mercado}"
         )
         fig.update_layout(xaxis_title="Idade", yaxis_title="Quantidade")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     
     with tab2:
         st.markdown("#### 📅 Análise de Contratos")
@@ -2924,7 +2924,7 @@ def tab_analise_mercado(db, df_jogadores):
             yaxis_title="Quantidade de Jogadores",
             height=400
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
         
         # Lista de jogadores com contrato vencendo
         st.markdown("#### ⚠️ Contratos Vencendo em 2025")
@@ -2933,7 +2933,7 @@ def tab_analise_mercado(db, df_jogadores):
         if len(df_2025) > 0:
             df_2025_display = df_2025[['nome', 'posicao', 'clube', 'idade_atual', 'data_fim_contrato']].copy()
             df_2025_display['data_fim_contrato'] = df_2025_display['data_fim_contrato'].dt.strftime('%d/%m/%Y')
-            st.dataframe(df_2025_display, use_container_width=True, hide_index=True)
+            st.dataframe(df_2025_display, width='stretch', hide_index=True)
         else:
             st.info("Nenhum contrato vencendo em 2025")
     
@@ -3013,7 +3013,7 @@ def tab_analise_mercado(db, df_jogadores):
         
         if len(benchmarks) > 0:
             # Tabela de benchmarks
-            st.dataframe(benchmarks, use_container_width=True, hide_index=True)
+            st.dataframe(benchmarks, width='stretch', hide_index=True)
             
             # Gráfico comparativo
             fig = go.Figure()
@@ -3035,7 +3035,7 @@ def tab_analise_mercado(db, df_jogadores):
                 height=400
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         else:
             st.warning("Sem dados de benchmark. Adicione avaliações aos jogadores.")
 
@@ -3070,7 +3070,7 @@ def comparar_jogadores_busca(db, ids_jogadores, df_jogadores):
         df_comp = pd.DataFrame(dados_comparacao)
         
         # Tabela
-        st.dataframe(df_comp, use_container_width=True, hide_index=True)
+        st.dataframe(df_comp, width='stretch', hide_index=True)
         
         # Gráfico de radar
         categorias = ['Tático', 'Técnico', 'Físico', 'Mental']
@@ -3097,7 +3097,7 @@ def comparar_jogadores_busca(db, ids_jogadores, df_jogadores):
             height=500
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     else:
         st.warning("Jogadores selecionados não possuem avaliações")
 
