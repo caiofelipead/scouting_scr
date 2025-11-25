@@ -6,7 +6,9 @@ Gestão de informações financeiras e agentes dos jogadores
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from database_extended import ScoutingDatabaseExtended
+from datetime import datetime
 
 def formatar_moeda(valor, moeda='BRL'):
     """Formata valor como moeda"""
@@ -261,19 +263,29 @@ def aba_financeira():
     with tab3:
         st.subheader("✏️ Editar Informações Financeiras")
         
-        # CORREÇÃO AQUI: Usar get_connection() em vez de .conn
+        # CORREÇÃO: Usar get_connection()
         conn = db.get_connection() 
-        df_jogadores = pd.read_sql("SELECT id, nome, posicao, clube FROM jogadores ORDER BY nome", conn)
-        conn.close()
+        
+        # CORREÇÃO: Usar id_jogador ao invés de id
+        query = "SELECT id_jogador, nome, posicao, clube FROM jogadores ORDER BY nome"
+        
+        try:
+            df_jogadores = pd.read_sql(query, conn)
+        except Exception as e:
+            st.error(f"Erro ao buscar jogadores: {e}")
+            df_jogadores = pd.DataFrame()
+        finally:
+            conn.close()
         
         if df_jogadores.empty:
             st.warning("⚠️ Nenhum jogador cadastrado")
             return
         
+        # CORREÇÃO: Usar id_jogador nas referências
         jogador_selecionado = st.selectbox(
             "Selecione o Jogador",
-            options=df_jogadores['id'].tolist(),
-            format_func=lambda x: f"{df_jogadores[df_jogadores['id']==x]['nome'].values[0]} - {df_jogadores[df_jogadores['id']==x]['clube'].values[0]}"
+            options=df_jogadores['id_jogador'].tolist(),
+            format_func=lambda x: f"{df_jogadores[df_jogadores['id_jogador']==x]['nome'].values[0]} - {df_jogadores[df_jogadores['id_jogador']==x]['clube'].values[0]}"
         )
         
         if jogador_selecionado:
@@ -304,27 +316,30 @@ def aba_financeira():
                 with col1:
                     salario_min = st.number_input(
                         "Salário Mínimo",
-                        value=float(dados_atuais['salario_min'] or 0),
+                        value=float(dados_atuais.get('salario_min') or 0),
                         step=1000.0
                     )
                 
                 with col2:
                     salario_max = st.number_input(
                         "Salário Máximo",
-                        value=float(dados_atuais['salario_max'] or 0),
+                        value=float(dados_atuais.get('salario_max') or 0),
                         step=1000.0
                     )
                 
                 with col3:
+                    moeda_atual = dados_atuais.get('moeda') or 'BRL'
+                    idx_moeda = ["BRL", "EUR", "USD", "GBP"].index(moeda_atual) if moeda_atual in ["BRL", "EUR", "USD", "GBP"] else 0
+                    
                     moeda_edit = st.selectbox(
                         "Moeda",
                         ["BRL", "EUR", "USD", "GBP"],
-                        index=["BRL", "EUR", "USD", "GBP"].index(dados_atuais['moeda'] or 'BRL')
+                        index=idx_moeda
                     )
                 
                 bonificacoes = st.text_area(
                     "Bonificações e Bônus",
-                    value=dados_atuais['bonificacoes'] or '',
+                    value=dados_atuais.get('bonificacoes') or '',
                     help="Ex: Bônus por gol, assistência, títulos, etc."
                 )
                 
@@ -335,14 +350,14 @@ def aba_financeira():
                 with col1:
                     custo_transferencia = st.number_input(
                         "Custo de Transferência",
-                        value=float(dados_atuais['custo_transferencia'] or 0),
+                        value=float(dados_atuais.get('custo_transferencia') or 0),
                         step=10000.0
                     )
                 
                 with col2:
                     clausula = st.number_input(
                         "Cláusula de Recisão",
-                        value=float(dados_atuais['clausula'] or 0),
+                        value=float(dados_atuais.get('clausula') or 0),
                         step=10000.0
                     )
                 
@@ -351,19 +366,19 @@ def aba_financeira():
                         "% Direitos Econômicos",
                         min_value=0,
                         max_value=100,
-                        value=int(dados_atuais['percentual_direitos'] or 100),
+                        value=int(dados_atuais.get('percentual_direitos') or 100),
                         step=5
                     )
                 
                 condicoes = st.text_area(
                     "Condições de Negócio",
-                    value=dados_atuais['condicoes'] or '',
+                    value=dados_atuais.get('condicoes') or '',
                     help="Detalhes sobre formas de pagamento, parcelamento, etc."
                 )
                 
                 observacoes = st.text_area(
                     "Observações Gerais",
-                    value=dados_atuais['observacoes'] or ''
+                    value=dados_atuais.get('observacoes') or ''
                 )
                 
                 st.markdown("#### 👔 Informações do Agente")
@@ -373,20 +388,20 @@ def aba_financeira():
                 with col1:
                     agente_telefone = st.text_input(
                         "Telefone do Agente",
-                        value=dados_atuais['agente_telefone'] or ''
+                        value=dados_atuais.get('agente_telefone') or ''
                     )
                 
                 with col2:
                     agente_email = st.text_input(
                         "Email do Agente",
-                        value=dados_atuais['agente_email'] or ''
+                        value=dados_atuais.get('agente_email') or ''
                     )
                 
                 agente_comissao = st.number_input(
                     "Comissão do Agente (%)",
                     min_value=0.0,
                     max_value=100.0,
-                    value=float(dados_atuais['agente_comissao'] or 0),
+                    value=float(dados_atuais.get('agente_comissao') or 0),
                     step=0.5
                 )
                 
@@ -402,7 +417,10 @@ def aba_financeira():
                         'condicoes': condicoes if condicoes else None,
                         'clausula': clausula if clausula > 0 else None,
                         'percentual_direitos': percentual_direitos,
-                        'observacoes': observacoes if observacoes else None
+                        'observacoes': observacoes if observacoes else None,
+                        'agente_telefone': agente_telefone if agente_telefone else None,
+                        'agente_email': agente_email if agente_email else None,
+                        'agente_comissao': agente_comissao if agente_comissao > 0 else None
                     }
                     
                     # Usuario padrão (pode ser ajustado se tiver sistema de login)
@@ -420,14 +438,19 @@ def aba_financeira():
         
         # Lista de agentes
         conn = db.get_connection()
-        df_agentes = pd.read_sql("""
-            SELECT agente_nome, agente_empresa, COUNT(*) as qtd_jogadores
-            FROM jogadores
-            WHERE agente_nome IS NOT NULL
-            GROUP BY agente_nome, agente_empresa
-            ORDER BY qtd_jogadores DESC
-        """, conn)
-        conn.close()
+        try:
+            df_agentes = pd.read_sql("""
+                SELECT agente_nome, agente_empresa, COUNT(*) as qtd_jogadores
+                FROM jogadores
+                WHERE agente_nome IS NOT NULL
+                GROUP BY agente_nome, agente_empresa
+                ORDER BY qtd_jogadores DESC
+            """, conn)
+        except Exception as e:
+            st.error(f"Erro ao buscar agentes: {e}")
+            df_agentes = pd.DataFrame()
+        finally:
+            conn.close()
         
         if not df_agentes.empty:
             col1, col2 = st.columns([2, 1])
