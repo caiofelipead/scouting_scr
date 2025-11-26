@@ -1520,7 +1520,7 @@ def tab_ranking(db, df_jogadores):
                 </table>
                 """
                 
-                st.markdown(table_html, unsafe_allow_html=True)
+                st.html(table_html)
     
     # ========== TABELA COMPLETA ==========
     else:  # Tabela Completa
@@ -1593,7 +1593,7 @@ def tab_ranking(db, df_jogadores):
         st.markdown(
             "💡 **Dica:** Clique no nome do jogador para abrir o perfil em nova aba"
         )
-        st.markdown(table_html, unsafe_allow_html=True)
+        st.html(table_html)
         
         # Botão de export
         st.markdown("---")
