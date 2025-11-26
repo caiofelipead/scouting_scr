@@ -39,7 +39,7 @@ class TransfermarktScraper:
         """
         try:
             # URL do perfil do jogador
-            url = f"{self.base_url}/profil/spieler/{transfermarkt_id}"
+            url = f"{self.base_url}/_/profil/spieler/{transfermarkt_id}"
             
             # Faz a requisição
             response = requests.get(url, headers=self.headers, timeout=10)
@@ -121,7 +121,7 @@ class TransfermarktScraper:
                     agente_empresa = %s,
                     url_agente = %s,
                     agente_atualizado_em = CURRENT_TIMESTAMP
-                WHERE id = %s
+                WHERE id_jogador = %s
             """, (
                 agente_info['agente_nome'],
                 agente_info['agente_empresa'],
@@ -153,11 +153,11 @@ class TransfermarktScraper:
         try:
             # Busca jogadores que têm Transfermarkt ID mas não têm agente
             query = """
-                SELECT id, nome, transfermarkt_id 
+                SELECT id_jogador, nome, transfermarkt_id 
                 FROM jogadores 
                 WHERE transfermarkt_id IS NOT NULL 
                 AND (agente_nome IS NULL OR agente_nome = '')
-                ORDER BY id
+                ORDER BY id_jogador
             """
             
             if limite:
@@ -221,7 +221,7 @@ class TransfermarktScraper:
         
         try:
             cursor.execute("""
-                SELECT id, nome, transfermarkt_id, agente_nome
+                SELECT id_jogador, nome, transfermarkt_id, agente_nome
                 FROM jogadores 
                 WHERE LOWER(nome) LIKE LOWER(%s)
                 LIMIT 1

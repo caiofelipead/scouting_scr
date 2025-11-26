@@ -443,48 +443,133 @@ def aba_financeira():
     
     # TAB 4: Gestão de Agentes
     with tab4:
-        st.subheader("👔 Agentes dos Jogadores")
-        
-        # Lista de agentes
-        conn = db.get_connection()
-        try:
-            df_agentes = pd.read_sql("""
-                SELECT agente_nome, agente_empresa, COUNT(*) as qtd_jogadores
-                FROM jogadores
-                WHERE agente_nome IS NOT NULL
-                GROUP BY agente_nome, agente_empresa
-                ORDER BY qtd_jogadores DESC
-            """, conn)
-        except Exception as e:
-            st.error(f"Erro ao buscar agentes: {e}")
-            df_agentes = pd.DataFrame()
-        finally:
-            conn.close()
-        
-        if not df_agentes.empty:
-            col1, col2 = st.columns([2, 1])
+            st.subheader("👔 Agentes dos Jogadores")
             
-            with col1:
-                st.markdown("### 📋 Lista de Agentes")
+            conn = db.get_connection()
+            
+            # Buscar agentes com contagem
+            try:
+                df_agentes = pd.read_sql("""
+                    SELECT 
+                        agente_nome, 
+                        agente_empresa, 
+                        COUNT(*) as qtd_jogadores
+                    FROM jogadores
+                    WHERE agente_nome IS NOT NULL AND agente_nome != ''
+                    GROUP BY agente_nome, agente_empresa
+                    ORDER BY qtd_jogadores DESC
+                """, conn)
+            except Exception as e:
+                st.error(f"Erro ao buscar agentes: {e}")
+                df_agentes = pd.DataFrame()
+            
+            if not df_agentes.empty:
+                # Estatísticas no topo
+                col1, col2, col3 = st.columns(3)
                 
-                for _, agente in df_agentes.iterrows():
-                    with st.container():
-                        col_a, col_b = st.columns([3, 1])
+                with col1:
+                    st.metric("Total de Agentes", len(df_agentes))
+                
+                with col2:
+                    st.metric("Jogadores Representados", df_agentes['qtd_jogadores'].sum())
+                
+                with col3:
+                    top_agente = df_agentes.iloc[0]['agente_nome']
+                    top_display = top_agente[:25] + "..." if len(top_agente) > 25 else top_agente
+                    st.metric("Maior Carteira", top_display)
+                
+                st.markdown("---")
+                st.markdown("### 📋 Lista de Agentes")
+                st.caption("👆 Clique para expandir e ver os jogadores representados")
+                
+                # Lista de agentes com expander
+                for idx, agente in df_agentes.iterrows():
+                    agente_nome = agente['agente_nome']
+                    total = agente['qtd_jogadores']
+                    empresa = agente.get('agente_empresa', '')
+                    
+                    # Título do expander
+                    titulo = f"👔 {agente_nome}"
+                    if pd.notna(empresa) and empresa and empresa != agente_nome:
+                        titulo += f" ({empresa})"
+                    titulo += f" — {total} jogador(es)"
+                    
+                    with st.expander(titulo):
+                        # Buscar jogadores desse agente
+                        try:
+                            query_jogadores = """
+                            SELECT 
+                                j.id_jogador,
+                                j.nome,
+                                j.idade_atual,
+                                j.nacionalidade,
+                                j.agente_email,
+                                j.agente_telefone,
+                                v.posicao,
+                                v.clube,
+                                v.liga_clube,
+                                v.data_fim_contrato
+                            FROM jogadores j
+                            LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                            WHERE j.agente_nome = %s
+                            ORDER BY j.nome
+                            """
+                            df_jogadores_agente = pd.read_sql(query_jogadores, conn, params=(agente_nome,))
+                        except Exception as e:
+                            st.error(f"Erro: {e}")
+                            df_jogadores_agente = pd.DataFrame()
                         
-                        with col_a:
-                            st.markdown(f"**{agente['agente_nome']}**")
-                            if pd.notna(agente['agente_empresa']):
-                                st.caption(f"🏢 {agente['agente_empresa']}")
-                        
-                        with col_b:
-                            st.metric("Jogadores", agente['qtd_jogadores'])
-                        
-                        st.markdown("---")
+                        if not df_jogadores_agente.empty:
+                            # Info de contato do agente (se disponível)
+                            primeiro = df_jogadores_agente.iloc[0]
+                            if pd.notna(primeiro.get('agente_email')) or pd.notna(primeiro.get('agente_telefone')):
+                                st.markdown("**📞 Contato:**")
+                                col_contato1, col_contato2 = st.columns(2)
+                                with col_contato1:
+                                    if pd.notna(primeiro.get('agente_telefone')):
+                                        st.write(f"📱 {primeiro['agente_telefone']}")
+                                with col_contato2:
+                                    if pd.notna(primeiro.get('agente_email')):
+                                        st.write(f"✉️ {primeiro['agente_email']}")
+                                st.markdown("---")
+                            
+                            # Grid de jogadores
+                            for i in range(0, len(df_jogadores_agente), 3):
+                                cols = st.columns(3)
+                                
+                                for j, col in enumerate(cols):
+                                    idx_jog = i + j
+                                    if idx_jog < len(df_jogadores_agente):
+                                        jog = df_jogadores_agente.iloc[idx_jog]
+                                        
+                                        with col:
+                                            st.markdown(f"**{jog['nome']}**")
+                                            st.caption(f"⚽ {jog.get('posicao', 'N/A')} • 🏟️ {jog.get('clube', 'Livre')}")
+                                            st.caption(f"🎂 {jog.get('idade_atual', 'N/A')} anos • 🏁 {jog.get('nacionalidade', 'N/A')}")
+                                            
+                                            if pd.notna(jog.get('data_fim_contrato')):
+                                                st.caption(f"📅 Contrato: {jog['data_fim_contrato']}")
+                                            
+                                            if st.button(
+                                                "Ver Perfil", 
+                                                key=f"agente_{agente_nome}_{jog['id_jogador']}_{idx}",
+                                                use_container_width=True
+                                            ):
+                                                st.session_state.pagina = "perfil"
+                                                st.session_state.jogador_selecionado = jog['id_jogador']
+                                                st.query_params["jogador"] = jog['id_jogador']
+                                                st.rerun()
+                                            
+                                            st.markdown("---")
+                        else:
+                            st.info("Nenhum jogador encontrado")
             
-            with col2:
-                st.markdown("### 📊 Estatísticas")
-                st.metric("Total de Agentes", len(df_agentes))
-                st.metric("Jogadores Representados", df_agentes['qtd_jogadores'].sum())
-        else:
-            st.info("👔 Nenhum agente cadastrado ainda")
-            st.markdown("Use o script de scraping para buscar agentes do Transfermarkt")
+            else:
+                st.info("👔 Nenhum agente cadastrado ainda")
+                st.markdown("""
+                **Para adicionar agentes:**
+                1. Use o script `scraping_transfermarkt.py` para buscar automaticamente
+                2. Ou edite manualmente na aba "Editar Informações"
+                """)
+            
+            conn.close()
