@@ -1,15 +1,128 @@
 """
 Sistema de Autenticação - Scout Pro
 Gerenciamento de usuários e controle de acesso
+COM PERSISTÊNCIA DE LOGIN VIA COOKIES
 """
 
 import os
 import psycopg2
-import bcrypt
-import hashlib  # ← ADICIONE ESTA LINHA
+import hashlib
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta
 
+# Importar gerenciador de cookies
+try:
+    import extra_streamlit_components as stx
+    COOKIES_ENABLED = True
+except ImportError:
+    COOKIES_ENABLED = False
+    print("⚠️ extra-streamlit-components não instalado. Login não persistirá entre abas.")
+
+
+# ============================================
+# GERENCIADOR DE COOKIES
+# ============================================
+
+@st.cache_resource
+def get_cookie_manager():
+    """Retorna instância única do gerenciador de cookies"""
+    if COOKIES_ENABLED:
+        return stx.CookieManager()
+    return None
+
+
+def gerar_token_sessao(username, user_id):
+    """Gera token seguro para a sessão"""
+    # Token baseado em username + id + data + secret
+    secret = "scout_pro_2024_secret_key"
+    data = f"{username}_{user_id}_{datetime.now().strftime('%Y%m%d')}_{secret}"
+    return hashlib.sha256(data.encode()).hexdigest()[:32]
+
+
+def verificar_token_sessao(username, user_id, token):
+    """Verifica se o token da sessão é válido"""
+    token_esperado = gerar_token_sessao(username, user_id)
+    return token == token_esperado
+
+
+def salvar_sessao_cookie(usuario):
+    """Salva sessão do usuário em cookies"""
+    if not COOKIES_ENABLED:
+        return
+    
+    cookie_manager = get_cookie_manager()
+    if cookie_manager is None:
+        return
+    
+    try:
+        token = gerar_token_sessao(usuario['username'], usuario['id'])
+        
+        # Cookies expiram em 7 dias
+        expira_em = datetime.now() + timedelta(days=7)
+        
+        cookie_manager.set("scout_user", usuario['username'], expires_at=expira_em)
+        cookie_manager.set("scout_user_id", str(usuario['id']), expires_at=expira_em)
+        cookie_manager.set("scout_token", token, expires_at=expira_em)
+        cookie_manager.set("scout_nome", usuario['nome'], expires_at=expira_em)
+        cookie_manager.set("scout_nivel", usuario['nivel'], expires_at=expira_em)
+    except Exception as e:
+        print(f"Erro ao salvar cookie: {e}")
+
+
+def recuperar_sessao_cookie():
+    """Tenta recuperar sessão do usuário dos cookies"""
+    if not COOKIES_ENABLED:
+        return None
+    
+    cookie_manager = get_cookie_manager()
+    if cookie_manager is None:
+        return None
+    
+    try:
+        username = cookie_manager.get("scout_user")
+        user_id = cookie_manager.get("scout_user_id")
+        token = cookie_manager.get("scout_token")
+        nome = cookie_manager.get("scout_nome")
+        nivel = cookie_manager.get("scout_nivel")
+        
+        if username and user_id and token:
+            # Verificar se o token é válido
+            if verificar_token_sessao(username, int(user_id), token):
+                return {
+                    'id': int(user_id),
+                    'username': username,
+                    'nome': nome or username,
+                    'nivel': nivel or 'scout',
+                    'email': None
+                }
+    except Exception as e:
+        print(f"Erro ao recuperar cookie: {e}")
+    
+    return None
+
+
+def limpar_sessao_cookie():
+    """Remove cookies de sessão"""
+    if not COOKIES_ENABLED:
+        return
+    
+    cookie_manager = get_cookie_manager()
+    if cookie_manager is None:
+        return
+    
+    try:
+        cookie_manager.delete("scout_user")
+        cookie_manager.delete("scout_user_id")
+        cookie_manager.delete("scout_token")
+        cookie_manager.delete("scout_nome")
+        cookie_manager.delete("scout_nivel")
+    except Exception as e:
+        print(f"Erro ao limpar cookies: {e}")
+
+
+# ============================================
+# CLASSE DE AUTENTICAÇÃO (ORIGINAL)
+# ============================================
 
 class AuthManager:
     def __init__(self):
@@ -174,16 +287,30 @@ class AuthManager:
             conn.close()
 
 
+# ============================================
+# FUNÇÃO PRINCIPAL DE LOGIN (COM COOKIES)
+# ============================================
+
 def check_password():
-    """Função para proteger o dashboard com login"""
+    """Função para proteger o dashboard com login - COM PERSISTÊNCIA VIA COOKIES"""
     
+    # Inicializar session_state
     if 'authenticated' not in st.session_state:
         st.session_state.authenticated = False
         st.session_state.usuario = None
     
+    # Se já autenticado na sessão atual, retorna True
     if st.session_state.authenticated:
         return True
     
+    # NOVO: Tentar recuperar sessão dos cookies (para novas abas)
+    usuario_cookie = recuperar_sessao_cookie()
+    if usuario_cookie:
+        st.session_state.authenticated = True
+        st.session_state.usuario = usuario_cookie
+        return True
+    
+    # Mostrar formulário de login
     st.markdown("<br><br>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -196,6 +323,7 @@ def check_password():
         with st.form("login_form"):
             username = st.text_input("👤 Usuário", placeholder="Digite seu usuário")
             senha = st.text_input("🔒 Senha", type="password", placeholder="Digite sua senha")
+            lembrar = st.checkbox("🔄 Manter conectado", value=True)
             submit = st.form_submit_button("🚀 Entrar", use_container_width=True)
             
             if submit:
@@ -208,6 +336,11 @@ def check_password():
                     if usuario:
                         st.session_state.authenticated = True
                         st.session_state.usuario = usuario
+                        
+                        # NOVO: Salvar sessão em cookie se "manter conectado"
+                        if lembrar:
+                            salvar_sessao_cookie(usuario)
+                        
                         st.success(f"✅ Bem-vindo, {usuario['nome']}!")
                         st.rerun()
                     else:
@@ -226,16 +359,19 @@ def mostrar_info_usuario():
         usuario = st.session_state.usuario
         
         with st.sidebar:
-            st.markdown("---")
             st.markdown("### 👤 Usuário")
             st.write(f"**{usuario['nome']}**")
             st.caption(f"@{usuario['username']}")
             st.caption(f"🎫 {usuario['nivel'].upper()}")
             
             if st.button("🚪 Sair", use_container_width=True):
+                # NOVO: Limpar cookies ao fazer logout
+                limpar_sessao_cookie()
                 st.session_state.authenticated = False
                 st.session_state.usuario = None
                 st.rerun()
+            
+            st.markdown("---")
 
 
 def pagina_gerenciar_usuarios():
