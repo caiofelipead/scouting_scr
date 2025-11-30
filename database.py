@@ -1,7 +1,5 @@
-"""
-Sistema de Banco de Dados para Scout Pro v3.0 - OTIMIZADO
-Suporta SQLite (desenvolvimento) e PostgreSQL (produção/Railway)
-"""
+"""Sistema de Banco de Dados para Scout Pro v3.0 - OTIMIZADO
+Suporta SQLite (desenvolvimento) e PostgreSQL (produção/Railway)"""
 
 import os
 import json
@@ -22,6 +20,7 @@ load_dotenv()
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def _cached_buscar_todos_jogadores(_engine):
+    """Cache de 1 hora para todos os jogadores"""
     query = """
     SELECT 
         j.id_jogador, j.nome, j.nacionalidade, j.ano_nascimento, j.idade_atual, 
@@ -39,6 +38,7 @@ def _cached_buscar_todos_jogadores(_engine):
 
 @st.cache_data(ttl=600, show_spinner=False)
 def _cached_buscar_avaliacoes(_engine, id_jogador: int):
+    """Cache de 10 minutos para avaliações"""
     query = """
     SELECT 
         id_avaliacao, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico,
@@ -52,6 +52,17 @@ def _cached_buscar_avaliacoes(_engine, id_jogador: int):
     except Exception as e:
         print(f"❌ Erro ao buscar avaliações: {e}")
         return pd.DataFrame()
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_get_ids_wishlist(_engine):
+    """Cache de 5 minutos - retorna SET com IDs da wishlist para lookup rápido"""
+    try:
+        with _engine.connect() as conn:
+            result = conn.execute(text("SELECT id_jogador FROM wishlist"))
+            return {row[0] for row in result.fetchall()}
+    except Exception as e:
+        print(f"❌ Erro ao buscar IDs wishlist: {e}")
+        return set()
 
 @st.cache_data(ttl=600, show_spinner=False)
 def _cached_buscar_alertas(_engine):
@@ -67,17 +78,14 @@ def _cached_buscar_alertas(_engine):
     """
     try:
         return pd.read_sql(text(query), _engine)
-    except Exception as e:
-        print(f"❌ Erro ao buscar alertas: {e}")
+    except Exception:
         return pd.DataFrame()
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _cached_get_all_tags(_engine):
-    query = "SELECT * FROM tags ORDER BY nome"
     try:
-        return pd.read_sql(text(query), _engine)
-    except Exception as e:
-        print(f"❌ Erro ao buscar tags: {e}")
+        return pd.read_sql(text("SELECT * FROM tags ORDER BY nome"), _engine)
+    except Exception:
         return pd.DataFrame()
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -112,8 +120,7 @@ def _cached_get_wishlist(_engine, prioridade=None):
     
     try:
         return pd.read_sql(text(query), _engine, params=params)
-    except Exception as e:
-        print(f"❌ Erro ao buscar wishlist: {e}")
+    except Exception:
         return pd.DataFrame()
 
 # --- CLASSE PRINCIPAL ---
@@ -128,6 +135,7 @@ class ScoutingDatabase:
             if self.database_url.startswith("postgres://"):
                 self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
             
+            # ✅ OTIMIZAÇÃO: echo=False desabilita logs SQL
             self.engine = create_engine(
                 self.database_url,
                 poolclass=NullPool,
@@ -136,12 +144,12 @@ class ScoutingDatabase:
                     "options": "-c timezone=utc"
                 },
                 pool_pre_ping=True,
-                echo=False
+                echo=False  # ← Mais rápido sem logs
             )
             self.db_type = 'postgresql'
         else:
             print("🟢 Usando SQLite local...")
-            self.engine = create_engine('sqlite:///scouting.db')
+            self.engine = create_engine('sqlite:///scouting.db', echo=False)
             self.db_type = 'sqlite'
         
         self.criar_tabelas()
@@ -246,7 +254,6 @@ class ScoutingDatabase:
                 criado_por VARCHAR(100),
                 criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )""",
-            # Nova Tabela Propostas
             f"""CREATE TABLE IF NOT EXISTS propostas (
                 id_proposta {id_type},
                 id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
@@ -261,7 +268,6 @@ class ScoutingDatabase:
             )"""
         ]
 
-        # Views
         view_benchmark = """
         CREATE VIEW IF NOT EXISTS vw_benchmark_posicoes AS
         SELECT 
@@ -307,141 +313,24 @@ class ScoutingDatabase:
                 for sql in commands:
                     conn.execute(text(sql))
                 
-                # Dropar e recriar views para garantir atualização
                 conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes"))
                 conn.execute(text(view_benchmark))
                 conn.execute(text("DROP VIEW IF EXISTS vw_alertas_inteligentes"))
                 conn.execute(text(view_alertas_inteligentes))
                 
                 conn.commit()
-                print(f"✅ Estrutura do banco de dados ({self.db_type}) atualizada com sucesso!")
+                print(f"✅ Estrutura do banco ({self.db_type}) atualizada!")
         except Exception as e:
-            print(f"❌ Erro crítico ao criar tabelas: {e}")
+            print(f"❌ Erro ao criar tabelas: {e}")
 
-    # --- INSERÇÕES E UPDATES ---
-
-    def inserir_vinculo(self, id_jogador: int, dados_vinculo: dict) -> bool:
-        id_jogador = self._safe_int(id_jogador)
-        try:
-            query_check = "SELECT id_vinculo FROM vinculos_clubes WHERE id_jogador = :id_jogador"
-            with self.engine.connect() as conn:
-                result = conn.execute(text(query_check), {"id_jogador": id_jogador})
-                vinculo_existente = result.fetchone()
-                
-                if vinculo_existente:
-                    query_update = """
-                    UPDATE vinculos_clubes SET
-                        clube = :clube, liga_clube = :liga_clube, posicao = :posicao,
-                        data_fim_contrato = :data_fim_contrato, status_contrato = :status_contrato,
-                        data_atualizacao = CURRENT_TIMESTAMP
-                    WHERE id_jogador = :id_jogador
-                    """
-                    dados_vinculo['id_jogador'] = id_jogador
-                    conn.execute(text(query_update), dados_vinculo)
-                else:
-                    query_insert = """
-                    INSERT INTO vinculos_clubes 
-                    (id_jogador, clube, liga_clube, posicao, data_fim_contrato, status_contrato)
-                    VALUES 
-                    (:id_jogador, :clube, :liga_clube, :posicao, :data_fim_contrato, :status_contrato)
-                    """
-                    dados_vinculo['id_jogador'] = id_jogador
-                    conn.execute(text(query_insert), dados_vinculo)
-                conn.commit()
-                return True
-        except Exception as e:
-            print(f"❌ Erro ao inserir vínculo: {e}")
-            return False
-
-    def inserir_jogador(self, dados_jogador: dict) -> Optional[int]:
-        try:
-            id_jogador = None
-            tm_id = dados_jogador.get('transfermarkt_id')
-            nome = dados_jogador.get('nome')
-            
-            if tm_id:
-                id_jogador = self.buscar_jogador_por_tm_id(tm_id)
-            
-            if not id_jogador and nome:
-                with self.engine.connect() as conn:
-                    result = conn.execute(text("SELECT id_jogador FROM jogadores WHERE nome = :nome"), {"nome": nome})
-                    row = result.fetchone()
-                    if row: id_jogador = row[0]
-            
-            with self.engine.connect() as conn:
-                if id_jogador:
-                    query_update = """
-                    UPDATE jogadores SET
-                        nome = :nome, nacionalidade = :nacionalidade, ano_nascimento = :ano_nascimento,
-                        idade_atual = :idade_atual, altura = :altura, pe_dominante = :pe_dominante,
-                        transfermarkt_id = :transfermarkt_id, data_atualizacao = CURRENT_TIMESTAMP
-                    WHERE id_jogador = :id_jogador
-                    """
-                    dados_jogador['id_jogador'] = id_jogador
-                    conn.execute(text(query_update), dados_jogador)
-                    conn.commit()
-                else:
-                    query_insert = """
-                    INSERT INTO jogadores 
-                    (nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id)
-                    VALUES 
-                    (:nome, :nacionalidade, :ano_nascimento, :idade_atual, :altura, :pe_dominante, :transfermarkt_id)
-                    """
-                    if self.db_type == 'postgresql':
-                        query_insert += " RETURNING id_jogador"
-                        result = conn.execute(text(query_insert), dados_jogador)
-                        id_jogador = result.fetchone()[0]
-                    else:
-                        conn.execute(text(query_insert), dados_jogador)
-                        result = conn.execute(text("SELECT last_insert_rowid()"))
-                        id_jogador = result.fetchone()[0]
-                    conn.commit()
-                return id_jogador
-        except Exception as e:
-            print(f"❌ Erro ao inserir jogador: {e}")
-            return None
-
-    def inserir_avaliacao(self, id_jogador: int, dados_avaliacao: dict) -> bool:
-        id_jogador = self._safe_int(id_jogador)
-        try:
-            query = """
-            INSERT INTO avaliacoes (
-                id_jogador, data_avaliacao, nota_potencial, nota_tatico,
-                nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador
-            ) VALUES (
-                :id_jogador, :data_avaliacao, :nota_potencial, :nota_tatico,
-                :nota_tecnico, :nota_fisico, :nota_mental, :observacoes, :avaliador
-            )
-            """
-            with self.engine.connect() as conn:
-                conn.execute(text(query), {**dados_avaliacao, 'id_jogador': id_jogador})
-                conn.commit()
-                # Limpa cache de avaliações
-                st.cache_data.clear()
-                return True
-        except Exception as e:
-            print(f"❌ Erro ao inserir avaliação: {e}")
-            return False
-
-    def inserir_alerta(self, id_jogador: int, tipo_alerta: str, descricao: str, prioridade: str = 'média') -> bool:
-        id_jogador = self._safe_int(id_jogador)
-        try:
-            with self.engine.connect() as conn:
-                conn.execute(text("INSERT INTO alertas (id_jogador, tipo_alerta, descricao, prioridade) VALUES (:id_jogador, :tipo_alerta, :descricao, :prioridade)"),
-                             {'id_jogador': id_jogador, 'tipo_alerta': tipo_alerta, 'descricao': descricao, 'prioridade': prioridade})
-                conn.commit()
-            st.cache_data.clear()
-            return True
-        except Exception as e:
-            print(f"❌ Erro alerta: {e}")
-            return False
-
-    # --- GETTERS (USANDO O CACHE EXTERNO) ---
+    # --- MÉTODOS QUE USAM CACHE ---
 
     def buscar_todos_jogadores(self):
+        """Interface pública - usa cache externo"""
         return _cached_buscar_todos_jogadores(self.engine)
 
     def buscar_avaliacoes_jogador(self, id_jogador):
+        """Interface pública - usa cache externo"""
         return _cached_buscar_avaliacoes(self.engine, self._safe_int(id_jogador))
 
     def buscar_alertas_ativos(self):
@@ -453,117 +342,93 @@ class ScoutingDatabase:
     def get_wishlist(self, prioridade=None):
         return _cached_get_wishlist(self.engine, prioridade)
 
-    # --- UTILITÁRIOS E BUSCAS ESPECÍFICAS ---
+    def get_ids_wishlist(self):
+        """✅ NOVO: Retorna SET com IDs da wishlist para lookup rápido"""
+        return _cached_get_ids_wishlist(self.engine)
 
-    def buscar_jogador_por_tm_id(self, tm_id: str) -> Optional[int]:
-        if not tm_id: return None
+    # --- MÉTODOS DE ESCRITA (sem cache) ---
+
+    def inserir_vinculo(self, id_jogador: int, dados_vinculo: dict) -> bool:
+        id_jogador = self._safe_int(id_jogador)
         try:
             with self.engine.connect() as conn:
-                result = conn.execute(text("SELECT id_jogador FROM jogadores WHERE transfermarkt_id = :tm_id"), {"tm_id": tm_id})
-                row = result.fetchone()
-                return row[0] if row else None
-        except Exception: return None
-
-    def obter_estatisticas(self) -> dict:
-        try:
-            with self.engine.connect() as conn:
-                total = conn.execute(text("SELECT COUNT(*) FROM jogadores")).fetchone()[0]
-                alertas_q = "SELECT COUNT(*) FROM alertas WHERE ativo = TRUE" if self.db_type == 'postgresql' else "SELECT COUNT(*) FROM alertas WHERE ativo = 1"
-                alertas = conn.execute(text(alertas_q)).fetchone()[0]
+                check = conn.execute(text("SELECT id_vinculo FROM vinculos_clubes WHERE id_jogador = :id"), {"id": id_jogador}).fetchone()
                 
-                date_q = "CURRENT_DATE + INTERVAL '6 months'" if self.db_type == 'postgresql' else "DATE('now', '+6 months')"
-                now_q = "CURRENT_DATE" if self.db_type == 'postgresql' else "DATE('now')"
-                
-                contratos = conn.execute(text(f"SELECT COUNT(*) FROM vinculos_clubes WHERE data_fim_contrato <= {date_q} AND data_fim_contrato >= {now_q}")).fetchone()[0]
-                vinculos = conn.execute(text("SELECT COUNT(*) FROM vinculos_clubes")).fetchone()[0]
-                
-                return {
-                    'total_jogadores': total, 'alertas_ativos': alertas,
-                    'contratos_vencendo': contratos, 'total_vinculos_ativos': vinculos
-                }
+                if check:
+                    conn.execute(text("""
+                        UPDATE vinculos_clubes SET clube=:c, liga_clube=:l, posicao=:p,
+                        data_fim_contrato=:d, status_contrato=:s, data_atualizacao=CURRENT_TIMESTAMP
+                        WHERE id_jogador=:id
+                    """), {**dados_vinculo, 'id': id_jogador})
+                else:
+                    conn.execute(text("""
+                        INSERT INTO vinculos_clubes (id_jogador, clube, liga_clube, posicao, data_fim_contrato, status_contrato)
+                        VALUES (:id, :c, :l, :p, :d, :s)
+                    """), {**dados_vinculo, 'id': id_jogador})
+                conn.commit()
+            return True
         except Exception:
-            return {'total_jogadores': 0, 'alertas_ativos': 0, 'contratos_vencendo': 0, 'total_vinculos_ativos': 0}
+            return False
 
-    def busca_avancada(self, filtros):
-        query = """
-        SELECT DISTINCT j.*, v.clube, v.posicao, v.liga_clube, v.data_fim_contrato, v.status_contrato
-        FROM jogadores j
-        LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
-        LEFT JOIN jogador_tags jt ON j.id_jogador = jt.id_jogador
-        WHERE 1=1
-        """
-        params = {}
-        
-        # Filtros Dinâmicos
-        if filtros.get('posicoes'):
-            placeholders = ', '.join([f':pos{i}' for i in range(len(filtros['posicoes']))])
-            query += f" AND v.posicao IN ({placeholders})"
-            for i, val in enumerate(filtros['posicoes']): params[f'pos{i}'] = val
-            
-        if filtros.get('nacionalidades'):
-            placeholders = ', '.join([f':nac{i}' for i in range(len(filtros['nacionalidades']))])
-            query += f" AND j.nacionalidade IN ({placeholders})"
-            for i, val in enumerate(filtros['nacionalidades']): params[f'nac{i}'] = val
-
-        if filtros.get('idade_min'):
-            query += " AND j.idade_atual >= :idade_min"
-            params['idade_min'] = filtros['idade_min']
-
-        if filtros.get('idade_max'):
-            query += " AND j.idade_atual <= :idade_max"
-            params['idade_max'] = filtros['idade_max']
-            
-        if filtros.get('tags'):
-            placeholders = ', '.join([f':tag{i}' for i in range(len(filtros['tags']))])
-            query += f" AND jt.id_tag IN ({placeholders})"
-            for i, val in enumerate(filtros['tags']): params[f'tag{i}'] = val
-
-        query += " ORDER BY j.nome"
-        
+    def inserir_jogador(self, dados_jogador: dict) -> Optional[int]:
         try:
-            df = pd.read_sql(text(query), self.engine, params=params)
-            return df
-        except Exception as e:
-            print(f"❌ Erro na busca avançada: {e}")
-            return pd.DataFrame()
+            tm_id = dados_jogador.get('transfermarkt_id')
+            nome = dados_jogador.get('nome')
+            id_jogador = None
+            
+            if tm_id:
+                id_jogador = self.buscar_jogador_por_tm_id(tm_id)
+            
+            if not id_jogador and nome:
+                with self.engine.connect() as conn:
+                    row = conn.execute(text("SELECT id_jogador FROM jogadores WHERE nome = :n"), {"n": nome}).fetchone()
+                    if row: id_jogador = row[0]
+            
+            with self.engine.connect() as conn:
+                if id_jogador:
+                    conn.execute(text("""
+                        UPDATE jogadores SET nome=:n, nacionalidade=:nat, ano_nascimento=:ano,
+                        idade_atual=:idade, altura=:alt, pe_dominante=:pe,
+                        transfermarkt_id=:tm, data_atualizacao=CURRENT_TIMESTAMP
+                        WHERE id_jogador=:id
+                    """), {**dados_jogador, 'id': id_jogador})
+                    conn.commit()
+                else:
+                    if self.db_type == 'postgresql':
+                        result = conn.execute(text("""
+                            INSERT INTO jogadores (nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id)
+                            VALUES (:n, :nat, :ano, :idade, :alt, :pe, :tm) RETURNING id_jogador
+                        """), dados_jogador)
+                        id_jogador = result.fetchone()[0]
+                    else:
+                        conn.execute(text("""
+                            INSERT INTO jogadores (nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id)
+                            VALUES (:n, :nat, :ano, :idade, :alt, :pe, :tm)
+                        """), dados_jogador)
+                        id_jogador = conn.execute(text("SELECT last_insert_rowid()")).fetchone()[0]
+                    conn.commit()
+                return id_jogador
+        except Exception:
+            return None
 
-    def adicionar_tag_jogador(self, id_jogador, id_tag, adicionado_por=None):
+    def inserir_avaliacao(self, id_jogador: int, dados_avaliacao: dict) -> bool:
         try:
             with self.engine.connect() as conn:
-                conn.execute(text("INSERT INTO jogador_tags (id_jogador, id_tag, adicionado_por) VALUES (:id_jogador, :id_tag, :adicionado_por)"),
-                             {'id_jogador': id_jogador, 'id_tag': id_tag, 'adicionado_por': adicionado_por})
+                conn.execute(text("""
+                    INSERT INTO avaliacoes (id_jogador, data_avaliacao, nota_potencial, nota_tatico,
+                    nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador)
+                    VALUES (:id, :data, :pot, :tac, :tec, :fis, :men, :obs, :ava)
+                """), {**dados_avaliacao, 'id': self._safe_int(id_jogador)})
                 conn.commit()
-            st.cache_data.clear()
+            st.cache_data.clear()  # Limpa cache
             return True
-        except Exception: return False
-
-    def remover_tag_jogador(self, id_jogador, id_tag):
-        try:
-            with self.engine.connect() as conn:
-                conn.execute(text("DELETE FROM jogador_tags WHERE id_jogador = :id_jogador AND id_tag = :id_tag"),
-                             {'id_jogador': id_jogador, 'id_tag': id_tag})
-                conn.commit()
-            st.cache_data.clear()
-            return True
-        except Exception: return False
-
-    def get_jogador_tags(self, id_jogador):
-        query = """
-        SELECT t.id_tag, t.nome, t.cor, t.descricao, jt.adicionado_em
-        FROM jogador_tags jt
-        INNER JOIN tags t ON jt.id_tag = t.id_tag
-        WHERE jt.id_jogador = :id_jogador
-        ORDER BY jt.adicionado_em DESC
-        """
-        try:
-            return pd.read_sql(text(query), self.engine, params={'id_jogador': self._safe_int(id_jogador)})
-        except Exception: return pd.DataFrame()
+        except Exception:
+            return False
 
     def adicionar_wishlist(self, id_jogador, prioridade='media', observacao=None, adicionado_por=None):
         id_jogador = self._safe_int(id_jogador)
         try:
             with self.engine.connect() as conn:
-                # Upsert simplificado
                 check = conn.execute(text("SELECT id FROM wishlist WHERE id_jogador = :id"), {'id': id_jogador}).fetchone()
                 if check:
                     conn.execute(text("UPDATE wishlist SET prioridade=:p, observacao=:o WHERE id_jogador=:id"),
@@ -574,8 +439,7 @@ class ScoutingDatabase:
                 conn.commit()
             st.cache_data.clear()
             return True
-        except Exception as e:
-            print(f"Erro wishlist: {e}")
+        except Exception:
             return False
 
     def remover_wishlist(self, id_jogador):
@@ -585,36 +449,56 @@ class ScoutingDatabase:
                 conn.commit()
             st.cache_data.clear()
             return True
-        except Exception: return False
+        except Exception:
+            return False
 
     def esta_na_wishlist(self, id_jogador):
-        try:
-            with self.engine.connect() as conn:
-                count = conn.execute(text("SELECT COUNT(*) FROM wishlist WHERE id_jogador = :id"), 
-                                   {'id': self._safe_int(id_jogador)}).fetchone()[0]
-                return count > 0
-        except Exception: return False
+        """Verifica se jogador está na wishlist (usa cache)"""
+        ids_wishlist = self.get_ids_wishlist()
+        return self._safe_int(id_jogador) in ids_wishlist
 
-    def get_notas_rapidas(self, id_jogador):
-        return pd.read_sql(text("SELECT * FROM notas_rapidas WHERE id_jogador = :id ORDER BY data_nota DESC"),
-                           self.engine, params={'id': self._safe_int(id_jogador)})
+    # --- OUTROS MÉTODOS ÚTEIS ---
 
-    def adicionar_nota_rapida(self, id_jogador, texto, autor=None, tipo='observacao'):
+    def buscar_jogador_por_tm_id(self, tm_id: str) -> Optional[int]:
+        if not tm_id: return None
         try:
             with self.engine.connect() as conn:
-                conn.execute(text("INSERT INTO notas_rapidas (id_jogador, texto, autor, tipo) VALUES (:id, :t, :a, :tp)"),
-                             {'id': self._safe_int(id_jogador), 't': texto, 'a': autor, 'tp': tipo})
-                conn.commit()
-            return True
-        except Exception: return False
-    
-    def deletar_nota_rapida(self, id_nota):
+                row = conn.execute(text("SELECT id_jogador FROM jogadores WHERE transfermarkt_id = :tm"), {"tm": tm_id}).fetchone()
+                return row[0] if row else None
+        except Exception:
+            return None
+
+    def obter_estatisticas(self) -> dict:
         try:
             with self.engine.connect() as conn:
-                conn.execute(text("DELETE FROM notas_rapidas WHERE id_nota = :id"), {'id': id_nota})
-                conn.commit()
-            return True
-        except Exception: return False
+                total = conn.execute(text("SELECT COUNT(*) FROM jogadores")).fetchone()[0]
+                alertas = conn.execute(text(f"SELECT COUNT(*) FROM alertas WHERE ativo = {'TRUE' if self.db_type == 'postgresql' else '1'}")).fetchone()[0]
+                
+                date_expr = "CURRENT_DATE + INTERVAL '6 months'" if self.db_type == 'postgresql' else "DATE('now', '+6 months')"
+                now_expr = "CURRENT_DATE" if self.db_type == 'postgresql' else "DATE('now')"
+                
+                contratos = conn.execute(text(f"SELECT COUNT(*) FROM vinculos_clubes WHERE data_fim_contrato <= {date_expr} AND data_fim_contrato >= {now_expr}")).fetchone()[0]
+                vinculos = conn.execute(text("SELECT COUNT(*) FROM vinculos_clubes")).fetchone()[0]
+                
+                return {'total_jogadores': total, 'alertas_ativos': alertas, 'contratos_vencendo': contratos, 'total_vinculos_ativos': vinculos}
+        except Exception:
+            return {'total_jogadores': 0, 'alertas_ativos': 0, 'contratos_vencendo': 0, 'total_vinculos_ativos': 0}
+
+    def get_jogadores_com_vinculos(self):
+        """Alias para buscar_todos_jogadores"""
+        return self.buscar_todos_jogadores()
+
+    def get_avaliacoes_jogador(self, id_jogador):
+        """Alias para buscar_avaliacoes_jogador"""
+        return self.buscar_avaliacoes_jogador(id_jogador)
+
+    def get_ultima_avaliacao(self, id_jogador):
+        df = self.buscar_avaliacoes_jogador(id_jogador)
+        return df.head(1) if not df.empty else pd.DataFrame()
+
+    def salvar_avaliacao(self, **kwargs):
+        id_jogador = kwargs.pop('id_jogador', None)
+        return self.inserir_avaliacao(id_jogador, kwargs) if id_jogador else False
 
     def fechar_conexao(self):
         self.engine.dispose()
@@ -625,4 +509,4 @@ def get_database():
 if __name__ == "__main__":
     db = ScoutingDatabase()
     stats = db.obter_estatisticas()
-    print(f"Stats: {stats}")
+    print(f"📊 Stats: {stats}")
