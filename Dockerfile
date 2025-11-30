@@ -32,9 +32,8 @@ COPY . .
 # Cria diretórios necessários
 RUN mkdir -p logs backups data fotos
 
-# Expor a porta padrão HTTP
-EXPOSE  $PORT
+# Expor a porta padrão Streamlit
+EXPOSE 8501
 
-# Comando padrão: Streamlit ouvindo na porta 80
-ENV PORT=8501
-CMD ["sh", "-c", "streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=${PORT}"]
+# Usa a variável PORT do Railway OU default 8501 local
+CMD sh -c "streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=\${PORT:-8501}"
