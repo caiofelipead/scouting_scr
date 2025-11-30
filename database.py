@@ -135,7 +135,7 @@ class ScoutingDatabase:
             if self.database_url.startswith("postgres://"):
                 self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
             
-            # ✅ OTIMIZAÇÃO: echo=False desabilita logs SQL
+            # ✅ OTIMIZAÇÃO: echo=False desabilita logs SQL para performance
             self.engine = create_engine(
                 self.database_url,
                 poolclass=NullPool,
@@ -144,7 +144,7 @@ class ScoutingDatabase:
                     "options": "-c timezone=utc"
                 },
                 pool_pre_ping=True,
-                echo=False  # ← Mais rápido sem logs
+                echo=False
             )
             self.db_type = 'postgresql'
         else:
@@ -268,6 +268,7 @@ class ScoutingDatabase:
             )"""
         ]
 
+        # ✅ CORREÇÃO: Usando CREATE OR REPLACE VIEW
         view_benchmark = """
         CREATE OR REPLACE VIEW vw_benchmark_posicoes AS
         SELECT 
@@ -289,6 +290,7 @@ class ScoutingDatabase:
         else:
             condicao_data = "v.data_fim_contrato <= DATE('now', '+6 months')"
 
+        # ✅ CORREÇÃO: Usando CREATE OR REPLACE VIEW
         view_alertas_inteligentes = f"""
         CREATE OR REPLACE VIEW vw_alertas_inteligentes AS
         SELECT 
@@ -313,6 +315,7 @@ class ScoutingDatabase:
                 for sql in commands:
                     conn.execute(text(sql))
                 
+                # Drop views antigas para garantir limpeza
                 conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes"))
                 conn.execute(text(view_benchmark))
                 conn.execute(text("DROP VIEW IF EXISTS vw_alertas_inteligentes"))
@@ -320,6 +323,19 @@ class ScoutingDatabase:
                 
                 conn.commit()
                 print(f"✅ Estrutura do banco ({self.db_type}) atualizada!")
+
+                # ✅ NOVO: Carregamento Automático de Índices de Performance
+                if self.db_type == 'postgresql' and os.path.exists('sql/performance_indexes.sql'):
+                    print("🚀 Verificando índices de performance...")
+                    try:
+                        with open('sql/performance_indexes.sql', 'r') as f:
+                            conn.execute(text(f.read()))
+                            conn.commit()
+                        print("⚡ Índices aplicados/verificados com sucesso!")
+                    except Exception as e:
+                        # Ignora erro se índice já existe ou arquivo está vazio
+                        print(f"⚠️ Nota sobre índices: {e}")
+
         except Exception as e:
             print(f"❌ Erro ao criar tabelas: {e}")
 
@@ -343,7 +359,6 @@ class ScoutingDatabase:
         return _cached_get_wishlist(self.engine, prioridade)
 
     def get_ids_wishlist(self):
-        """✅ NOVO: Retorna SET com IDs da wishlist para lookup rápido"""
         return _cached_get_ids_wishlist(self.engine)
 
     # --- MÉTODOS DE ESCRITA (sem cache) ---
@@ -499,6 +514,28 @@ class ScoutingDatabase:
     def salvar_avaliacao(self, **kwargs):
         id_jogador = kwargs.pop('id_jogador', None)
         return self.inserir_avaliacao(id_jogador, kwargs) if id_jogador else False
+
+    # ✅ NOVO: Método usado pelo script de sincronização do Google Sheets
+    def limpar_dados(self):
+        """Remove todos os dados das tabelas para sincronização completa"""
+        try:
+            with self.engine.connect() as conn:
+                if self.db_type == 'postgresql':
+                    # O CASCADE é essencial no PostgreSQL
+                    conn.execute(text("TRUNCATE TABLE alertas, avaliacoes, vinculos_clubes, wishlist, notas_rapidas, jogador_tags, propostas, buscas_salvas CASCADE"))
+                    conn.execute(text("TRUNCATE TABLE jogadores CASCADE"))
+                else:
+                    # SQLite: deleta tabela por tabela
+                    tabelas = ['alertas', 'avaliacoes', 'vinculos_clubes', 'wishlist', 'notas_rapidas', 'jogador_tags', 'propostas', 'buscas_salvas', 'jogadores']
+                    for t in tabelas:
+                        conn.execute(text(f"DELETE FROM {t}"))
+                
+                conn.commit()
+                print("🧹 Banco de dados limpo com sucesso!")
+                return True
+        except Exception as e:
+            print(f"❌ Erro ao limpar dados: {e}")
+            return False
 
     def fechar_conexao(self):
         self.engine.dispose()

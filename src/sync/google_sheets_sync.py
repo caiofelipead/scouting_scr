@@ -12,7 +12,7 @@ import pandas as pd
 import requests
 from google.oauth2.service_account import Credentials
 
-from src.database.database import ScoutingDatabase
+from src.database.database_antigo_sqlite import ScoutingDatabase
 
 
 class GoogleSheetsSyncer:

@@ -91,7 +91,7 @@ def check_folders():
 def check_database_connection():
     """Testa conexão com banco de dados"""
     try:
-        from src.database.database import ScoutingDatabase
+        from src.database.database_antigo_sqlite import ScoutingDatabase
 
         db = ScoutingDatabase()
         return True, "Banco de dados OK"

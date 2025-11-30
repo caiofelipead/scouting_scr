@@ -5,7 +5,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.database.database import ScoutingDatabase
+from src.database.database_antigo_sqlite import ScoutingDatabase
 
 
 @pytest.fixture

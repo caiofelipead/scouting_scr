@@ -11,7 +11,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-from src.database.database import ScoutingDatabase
+from src.database.database_antigo_sqlite import ScoutingDatabase
 
 
 def extrair_id_da_url(tm_value):
