@@ -213,49 +213,63 @@ def aba_financeira():
             with col1:
                 # Gráfico de distribuição salarial por posição
                 df_plot = df_financeiro[df_financeiro['salario_mensal_max'].notna()].copy()
+                
+                # CORREÇÃO: Converter colunas para numérico antes de calcular
+                df_plot['salario_mensal_min'] = pd.to_numeric(df_plot['salario_mensal_min'], errors='coerce')
+                df_plot['salario_mensal_max'] = pd.to_numeric(df_plot['salario_mensal_max'], errors='coerce')
                 df_plot['salario_medio'] = (df_plot['salario_mensal_min'] + df_plot['salario_mensal_max']) / 2
                 
-                fig_pos = px.box(
-                    df_plot,
-                    x='posicao',
-                    y='salario_medio',
-                    title='Distribuição Salarial por Posição',
-                    labels={'salario_medio': 'Salário Médio (R$)', 'posicao': 'Posição'}
-                )
-                st.plotly_chart(fig_pos, use_container_width=True)
+                # Remove linhas onde salario_medio ficou NaN após conversão
+                df_plot = df_plot.dropna(subset=['salario_medio'])
+                
+                if not df_plot.empty:
+                    fig_pos = px.box(
+                        df_plot,
+                        x='posicao',
+                        y='salario_medio',
+                        title='Distribuição Salarial por Posição',
+                        labels={'salario_medio': 'Salário Médio (R$)', 'posicao': 'Posição'}
+                    )
+                    st.plotly_chart(fig_pos, use_container_width=True)
+                else:
+                    st.info("📊 Sem dados suficientes para o gráfico de distribuição")
             
             with col2:
                 # Top 10 maiores salários
-                df_top = df_plot.nlargest(10, 'salario_medio')
-                
-                fig_top = px.bar(
-                    df_top,
-                    x='salario_medio',
-                    y='nome',
-                    orientation='h',
-                    title='Top 10 Maiores Salários',
-                    labels={'salario_medio': 'Salário Médio (R$)', 'nome': ''}
-                )
-                st.plotly_chart(fig_top, use_container_width=True)
+                if not df_plot.empty:
+                    df_top = df_plot.nlargest(10, 'salario_medio')
+                    
+                    fig_top = px.bar(
+                        df_top,
+                        x='salario_medio',
+                        y='nome',
+                        orientation='h',
+                        title='Top 10 Maiores Salários',
+                        labels={'salario_medio': 'Salário Médio (R$)', 'nome': ''}
+                    )
+                    st.plotly_chart(fig_top, use_container_width=True)
+                else:
+                    st.info("📊 Sem dados suficientes para o ranking")
             
             # Estatísticas por clube
-            st.markdown("### 📈 Estatísticas por Clube")
-            
-            df_clubes = df_plot.groupby('clube').agg({
-                'salario_medio': ['mean', 'min', 'max', 'count']
-            }).round(2)
-            
-            df_clubes.columns = ['Salário Médio', 'Mínimo', 'Máximo', 'Qtd Jogadores']
-            df_clubes = df_clubes.sort_values('Salário Médio', ascending=False)
-            
-            st.dataframe(
-                df_clubes.style.format({
-                    'Salário Médio': lambda x: formatar_moeda(x),
-                    'Mínimo': lambda x: formatar_moeda(x),
-                    'Máximo': lambda x: formatar_moeda(x)
-                }),
-                use_container_width=True
-            )
+            if not df_plot.empty:
+                st.markdown("### 📈 Estatísticas por Clube")
+                
+                df_clubes = df_plot.groupby('clube').agg({
+                    'salario_medio': ['mean', 'min', 'max', 'count']
+                }).round(2)
+                
+                df_clubes.columns = ['Salário Médio', 'Mínimo', 'Máximo', 'Qtd Jogadores']
+                df_clubes = df_clubes.sort_values('Salário Médio', ascending=False)
+                
+                st.dataframe(
+                    df_clubes.style.format({
+                        'Salário Médio': lambda x: formatar_moeda(x),
+                        'Mínimo': lambda x: formatar_moeda(x),
+                        'Máximo': lambda x: formatar_moeda(x)
+                    }),
+                    use_container_width=True
+                )
         else:
             st.info("📊 Adicione informações salariais para ver análises")
     
