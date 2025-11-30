@@ -36,4 +36,5 @@ RUN mkdir -p logs backups data fotos
 EXPOSE  $PORT
 
 # Comando padrão: Streamlit ouvindo na porta 80
-CMD ["sh", "-c", "streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=$PORT"]
+ENV PORT=8501
+CMD ["sh", "-c", "streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=${PORT}"]
