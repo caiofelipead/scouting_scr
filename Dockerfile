@@ -36,4 +36,4 @@ RUN mkdir -p logs backups data fotos
 EXPOSE 8501
 
 # Usa a variável PORT do Railway OU default 8501 local
-CMD sh -c "streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=\${PORT:-8501}"
+CMD sh -c 'PORT=${PORT:-8501} && streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=$PORT'
