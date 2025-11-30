@@ -33,11 +33,7 @@ COPY . .
 RUN mkdir -p logs backups data fotos
 
 # Expor a porta padrão HTTP
-EXPOSE 80
-
-# Health check opcional (pode até remover por enquanto)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl --fail http://localhost:80/_stcore/health || exit 1
+EXPOSE  $PORT
 
 # Comando padrão: Streamlit ouvindo na porta 80
-CMD ["streamlit", "run", "app/dashboard.py", "--server.address", "0.0.0.0", "--server.port", "80"]
+CMD ["sh", "-c", "streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=$PORT"]
