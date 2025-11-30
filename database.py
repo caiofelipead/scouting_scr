@@ -185,7 +185,7 @@ class ScoutingDatabase:
         ]
 
         view_benchmark = """
-        CREATE VIEW IF NOT EXISTS vw_benchmark_posicoes AS
+        CREATE OR REPLACE VIEW vw_benchmark_posicoes AS
         SELECT 
             v.posicao,
             COUNT(j.id_jogador) as total_analisados,
@@ -206,7 +206,7 @@ class ScoutingDatabase:
             condicao_data = "v.data_fim_contrato <= DATE('now', '+6 months')"
 
         view_alertas_inteligentes = f"""
-        CREATE VIEW IF NOT EXISTS vw_alertas_inteligentes AS
+        CREATE OR REPLACE VIEW vw_alertas_inteligentes AS
         SELECT 
             a.id_jogador,
             j.nome,
