@@ -316,10 +316,10 @@ class ScoutingDatabase:
                     conn.execute(text(sql))
                 
                 # Drop views antigas para garantir limpeza
-                conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes"))
-                conn.execute(text(view_benchmark))
-                conn.execute(text("DROP VIEW IF EXISTS vw_alertas_inteligentes"))
-                conn.execute(text(view_alertas_inteligentes))
+                #conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes"))
+                #conn.execute(text(view_benchmark))
+                #conn.execute(text("DROP VIEW IF EXISTS vw_alertas_inteligentes"))
+                #conn.execute(text(view_alertas_inteligentes))
                 
                 conn.commit()
                 print(f"✅ Estrutura do banco ({self.db_type}) atualizada!")
