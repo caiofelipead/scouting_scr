@@ -157,3 +157,5 @@ exports/*.csv
 .streamlit/secrets.toml
 credentials.json
 # fotos/
+__pycache__/
+*.pyc
