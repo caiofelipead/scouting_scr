@@ -32,12 +32,10 @@ COPY . .
 # Cria diretórios necessários
 RUN mkdir -p logs backups data fotos
 
-# Expor a porta onde o Streamlit realmente roda
-EXPOSE 8000
+EXPOSE 80
 
-# Health check na porta correta
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl --fail http://localhost:8000/_stcore/health || exit 1
+  CMD curl --fail http://localhost:80/_stcore/health || exit 1
 
-# Comando padrão
-CMD ["streamlit", "run", "app/dashboard.py", "--server.address", "0.0.0.0", "--server.port", "8000"]
+CMD ["streamlit", "run", "app/dashboard.py", "--server.address", "0.0.0.0", "--server.port", "80"]
+
