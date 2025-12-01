@@ -1244,54 +1244,33 @@ def tab_ranking(db, df_jogadores):
     st.markdown("### 🏆 Ranking de Jogadores por Avaliações")
     
     # ⚡ CACHE da query mais pesada
-    @st.cache_data(ttl=300, show_spinner=False)
-    def carregar_avaliacoes(_db):
-        """Carrega avaliações COM CACHE"""
-        conn = _db.connect()
-        
-        query_avaliacoes = """
-        SELECT 
-            j.id_jogador,
-            j.nome,
-            j.nacionalidade,
-            j.idade_atual,
-            v.clube,
-            v.posicao,
-            a.nota_potencial,
-            a.nota_tatico,
-            a.nota_tecnico,
-            a.nota_fisico,
-            a.nota_mental,
-            a.data_avaliacao
-        FROM jogadores j
-        LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
-        INNER JOIN avaliacoes a ON j.id_jogador = a.id_jogador
-        INNER JOIN (
-            SELECT id_jogador, MAX(data_avaliacao) as max_data
-            FROM avaliacoes
-            GROUP BY id_jogador
-        ) ultima ON a.id_jogador = ultima.id_jogador AND a.data_avaliacao = ultima.max_data
-        """
-        
-        df = pd.read_sql_query(query_avaliacoes, conn)
-        conn.close()
+@st.cache_data(ttl=600, show_spinner=False)
+def carregar_avaliacoes(_db):
+    """Carrega última avaliação de cada jogador com cache"""
+    query = """
+    SELECT 
+        a.id_avaliacao, a.data_avaliacao, j.id_jogador, j.nome, v.clube, v.posicao,
+        a.nota_potencial, a.nota_tatico, a.nota_tecnico,
+        a.nota_fisico, a.nota_mental, a.observacoes, a.avaliador
+    FROM avaliacoes a
+    INNER JOIN jogadores j ON a.id_jogador = j.id_jogador
+    LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+    INNER JOIN (
+        SELECT id_jogador, MAX(data_avaliacao) as max_data
+        FROM avaliacoes
+        GROUP BY id_jogador
+    ) ultima ON a.id_jogador = ultima.id_jogador AND a.data_avaliacao = ultima.max_data
+    ORDER BY a.data_avaliacao DESC
+    """
+    try:
+        with _db.engine.connect() as conn:  # ✅ CORRETO: use engine.connect()
+            result = conn.execute(text(query))
+            df = pd.DataFrame(result.fetchall(), columns=result.keys())
         return df
-    
-    # Usar dados cacheados
-    df_avaliacoes = carregar_avaliacoes(db)
-    
-    if len(df_avaliacoes) == 0:
-        st.info("📝 Ainda não há avaliações cadastradas no sistema.")
-        st.markdown(
-            """
-        **Para começar:**
-        1. Vá na aba **"Lista de Jogadores"**
-        2. Clique em **"Ver Perfil"** de um jogador
-        3. Use a aba **"Nova Avaliação"** para registrar notas
-        """
-        )
-        return
-    
+    except Exception as e:
+        st.error(f"❌ Erro ao buscar avaliações: {e}")
+        return pd.DataFrame()
+        
     # Calcular média geral
     df_avaliacoes["media_geral"] = df_avaliacoes[
         ["nota_tatico", "nota_tecnico", "nota_fisico", "nota_mental"]

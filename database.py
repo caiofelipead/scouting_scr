@@ -144,8 +144,8 @@ class ScoutingDatabase:
                     
                     # Connection Pooling (trabalha COM o pooling do Railway)
                     poolclass=QueuePool,         # Pool inteligente
-                    pool_size=5,                 # Máximo 5 conexões simultâneas
-                    max_overflow=10,             # Até 15 conexões em picos
+                    pool_size=15,                 # Máximo 15 conexões simultâneas
+                    max_overflow=30,             # Até 30 conexões em picos
                     pool_timeout=30,             # Timeout de 30 segundos
                     pool_recycle=3600,           # Reciclar conexões a cada 1h
                     pool_pre_ping=True,          # Testar conexão antes de usar
