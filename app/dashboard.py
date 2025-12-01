@@ -4,7 +4,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 from migrate_financeiro import migrar_colunas_financeiras
-from PIL import Image  # ✅ ADICIONE ESTA LINHA
 migrar_colunas_financeiras()
 
 # Imports de terceiros PRIMEIRO
@@ -257,54 +256,26 @@ st.markdown(
 )
 
 
-@st.cache_resource  # Persiste durante toda a sessão (conexão)
+@st.cache_resource(ttl=None)
 def get_database():
     """Inicializa conexão com banco de dados - Cache persistente"""
     return ScoutingDatabase()
 
-@st.cache_data(ttl=7200)  # Cache por 2 horas
-def get_player_photo_cached(player_id, transfermarkt_id=None):
-    """
-    Carrega foto do jogador COM CACHE
-    Evita carregar 548 fotos de uma vez
-    """
-    return get_foto_jogador(player_id, transfermarkt_id, debug=False)
-    
-
-@st.cache_data(ttl=3600)
-def carregar_jogadores_cache(_db):
-    """Carrega jogadores COM CACHE (1 hora)"""
-    return _db.get_jogadores_com_vinculos()
-
-
-@st.cache_data(ttl=1800)
-def carregar_avaliacoes_cache(_db, id_jogador):
-    """Carrega avaliações COM CACHE (30 minutos)"""
-    return _db.get_avaliacoes_jogador(id_jogador)
-
-
-@st.cache_data(ttl=3600)  # Cache por 1 hora (dados)
-def carregar_jogadores_cache(_db):
-    """Carrega jogadores do banco COM CACHE"""
-    return _db.get_jogadores_com_vinculos()
-
-
-@st.cache_data(ttl=1800)  # 30 minutos
-def carregar_avaliacoes_cache(_db, id_jogador=None):
-    """Carrega avaliações COM CACHE"""
-    if id_jogador:
-        return _db.get_avaliacoes_jogador(id_jogador)
-    return pd.DataFrame()
-
 
 def exibir_foto_jogador(id_jogador, transfermarkt_id=None, nome="Jogador", width=150):
     """
-    Exibe foto do jogador no Streamlit (uso simplificado) - OTIMIZADO
+    Exibe foto do jogador no Streamlit (uso simplificado)
+    
+    Exemplo de uso:
+        exibir_foto_jogador(
+            id_jogador=123,
+            transfermarkt_id="68290",
+            nome="Neymar",
+            width=150
+        )
     """
-    # ✅ USA CACHE PARA NÃO RECARREGAR A MESMA FOTO
-    url_foto = get_player_photo_cached(id_jogador, transfermarkt_id)
+    url_foto = get_foto_jogador(id_jogador, transfermarkt_id, nome)
     st.image(url_foto, width=width)
-
 
 
 def get_foto_jogador_rapido(transfermarkt_id):
@@ -756,10 +727,9 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        # Buscar foto com ambos os IDs - COM CACHE
+        # Buscar foto com ambos os IDs
         tm_id = jogador.get('transfermarkt_id', None)
-        foto_path = get_player_photo_cached(id_busca, transfermarkt_id=tm_id)  # ✅
-
+        foto_path = get_foto_jogador(id_busca, transfermarkt_id=tm_id, debug=debug)
         
         if foto_path:
             st.image(foto_path, width=300)
@@ -1183,6 +1153,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
     """Exibe lista de jogadores com fotos em formato de cards - OTIMIZADO"""
     st.markdown("### Jogadores")
     
+    # Remover duplicatas e resetar index
     df_display = df_display.drop_duplicates(subset=['id_jogador'], keep='first').reset_index(drop=True)
     
     if len(df_display) == 0:
@@ -1192,38 +1163,23 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
     # ⚡ OTIMIZAÇÃO: Buscar TODOS os IDs da wishlist de uma vez
     ids_wishlist = db.get_ids_wishlist()
     
-    # ✅ ADICIONE ESTAS LINHAS AQUI:
-    # Paginação para não carregar tudo de uma vez
-    jogadores_por_pagina = 20
-    total_paginas = (len(df_display) - 1) // jogadores_por_pagina + 1
-    
-    if total_paginas > 1:
-        pagina_atual = st.number_input(
-            "Página",
-            min_value=1,
-            max_value=total_paginas,
-            value=1,
-            key=f"paginacao_{sufixo_key}"
-        )
-    else:
-        pagina_atual = 1
-    
-    # Calcular índices da página
-    inicio = (pagina_atual - 1) * jogadores_por_pagina
-    fim = min(inicio + jogadores_por_pagina, len(df_display))
-    
-    st.caption(f"Exibindo jogadores {inicio + 1} a {fim} de {len(df_display)}")
-    
-    # Filtrar apenas os jogadores da página atual
-    df_pagina = df_display.iloc[inicio:fim]
-    # ✅ FIM DA ADIÇÃO
-    
-    # Loop de exibição em grid 4 colunas (AGORA USA df_pagina)
-    for i in range(0, len(df_pagina), 4):  # ✅ Mudou de df_display para df_pagina
+    # Loop de exibição em grid 4 colunas
+    for i in range(0, len(df_display), 4):
         cols = st.columns(4)
         
+        for j, col in enumerate(cols):
+            idx = i + j
+            
+            if idx < len(df_display):
+                jogador = df_display.iloc[idx]
+                
+                with col:
+                    # === FOTO DO JOGADOR ===
+                    tm_id = jogador.get('transfermarkt_id', None)
+                    foto_path = get_foto_jogador(
                         jogador['id_jogador'],
-                        transfermarkt_id=tm_id
+                        transfermarkt_id=tm_id,
+                        debug=(debug and idx == 0)
                     )
                     
                     if foto_path:
@@ -1249,7 +1205,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                     with cola:
                         if st.button(
                             "Ver Perfil",
-                            key=f"perfil_{jogador['id_jogador']}_{idx}_{inicio}_{sufixo_key}",
+                            key=f"perfil_{jogador['id_jogador']}_{idx}_inicio_{sufixo_key}",
                             use_container_width=True,
                         ):
                             st.session_state.pagina = "perfil"
@@ -1264,7 +1220,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                         if na_wishlist:
                             if st.button(
                                 "❌",
-                                key=f"remwish_{jogador['id_jogador']}_{idx}_{inicio}_{sufixo_key}",
+                                key=f"remwish_{jogador['id_jogador']}_{idx}_inicio_{sufixo_key}",
                                 use_container_width=True,
                                 help="Remover da Wishlist"
                             ):
@@ -1274,64 +1230,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                         else:
                             if st.button(
                                 "⭐️",
-                                key=f"addwish_{jogador['id_jogador']}_{idx}_{inicio}_{sufixo_key}",
-                                use_container_width=True,
-                                help="Adicionar à Wishlist"
-                            ):
-                                if db.adicionar_wishlist(jogador['id_jogador'], prioridade='media'):
-                                    st.success("Adicionado à wishlist!")
-                                    st.rerun()
-
-                    
-                    if foto_path:
-                        st.image(foto_path, use_container_width=True)
-                    else:
-                        st.markdown(
-                            f"""
-                            <div style="width: 100%; padding-top: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; position: relative;">
-                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px;">⚽</div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-                    
-                    # === INFO DO JOGADOR ===
-                    st.markdown(f"**{jogador['nome']}**")
-                    st.caption(f"{jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'}")
-                    st.caption(f"{jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}")
-                    
-                    # === BOTÕES DE AÇÃO ===
-                    cola, colb = st.columns(2)
-                    
-                    with cola:
-                        if st.button(
-                            "Ver Perfil",
-                            key=f"perfil_{jogador['id_jogador']}_{idx}_{inicio}_{sufixo_key}",
-                            use_container_width=True,
-                        ):
-                            st.session_state.pagina = "perfil"
-                            st.session_state.jogador_selecionado = jogador['id_jogador']
-                            st.query_params["jogador"] = jogador['id_jogador']
-                            st.rerun()
-                    
-                    with colb:
-                        # ⚡ OTIMIZAÇÃO: Lookup em memória ao invés de query
-                        na_wishlist = jogador['id_jogador'] in ids_wishlist
-                        
-                        if na_wishlist:
-                            if st.button(
-                                "❌",
-                                key=f"remwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
-                                use_container_width=True,
-                                help="Remover da Wishlist"
-                            ):
-                                if db.remover_wishlist(jogador['id_jogador']):
-                                    st.success("Removido da wishlist!")
-                                    st.rerun()
-                        else:
-                            if st.button(
-                                "⭐️",
-                                key=f"addwish_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
+                                key=f"addwish_{jogador['id_jogador']}_{idx}_inicio_{sufixo_key}",
                                 use_container_width=True,
                                 help="Adicionar à Wishlist"
                             ):
@@ -1345,7 +1244,7 @@ def tab_ranking(db, df_jogadores):
     st.markdown("### 🏆 Ranking de Jogadores por Avaliações")
     
     # ⚡ CACHE da query mais pesada
-    @st.cache_data(ttl=1800, show_spinner=False)
+    @st.cache_data(ttl=300, show_spinner=False)
     def carregar_avaliacoes(_db):
         """Carrega avaliações COM CACHE"""
         conn = _db.connect()
@@ -3223,7 +3122,7 @@ def calcular_media_jogador(db, id_jogador):
 # FUNÇÃO PRINCIPAL
 # ========================================
 
-@st.cache_data(ttl=3600, show_spinner=False)  # ← ADICIONE ESTA LINHA
+@st.cache_data(ttl=300, show_spinner=False)  # ← ADICIONE ESTA LINHA
 def carregar_jogadores(_db):
     """Carrega jogadores do banco com cache"""
     return _db.get_jogadores_com_vinculos()
@@ -3245,8 +3144,8 @@ def main():
     db = get_database()
 
     # Criar tabela de avaliações se não existir
-    # db.criar_tabela_avaliacoes()
-    # db.criar_tabela_propostas()
+    db.criar_tabela_avaliacoes()
+    db.criar_tabela_propostas()
 
     # Verificar query parameters na URL
     query_params = st.query_params
@@ -3313,7 +3212,7 @@ def main():
     debug_fotos = st.sidebar.checkbox("🐛 Debug de Fotos", value=False, help="Ativa modo debug")
     
     # Carregar dados COM CACHE
-    df_jogadores = carregar_jogadores_cache(db)
+    df_jogadores = carregar_jogadores(db)
     
     # Verificar se há dados
     if len(df_jogadores) == 0:
@@ -3450,7 +3349,7 @@ def main():
             
             if len(df_filtrado) > 0:
                 st.markdown("#### 🎯 Primeiros Jogadores")
-                exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key="overview_dashboard_top10")
+                exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key="overview")
                 
                 if len(df_filtrado) > 10:
                     st.info(f"Mostrando os primeiros 10 de {len(df_filtrado)} jogadores. Use as outras tabs para explorar mais.")
@@ -3472,7 +3371,7 @@ def main():
                 st.markdown("---")
                 
                 if view_mode == "📸 Cards com Fotos":
-                    exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_jogadores_completa")
+                    exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
                 
                 else:  # Tabela
                     df_display = df_filtrado.copy()
