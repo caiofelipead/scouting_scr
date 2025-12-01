@@ -1222,19 +1222,6 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
     for i in range(0, len(df_pagina), 4):  # ✅ Mudou de df_display para df_pagina
         cols = st.columns(4)
         
-        for j, col in enumerate(cols):
-            idx = i + j
-            
-            if idx < len(df_pagina):  # ✅ Mudou para df_pagina
-                jogador = df_pagina.iloc[idx]  # ✅ Mudou para df_pagina
-                
-                with col:
-                    # === FOTO DO JOGADOR (COM CACHE) ===
-                    tm_id = jogador.get('transfermarkt_id', None)
-                    foto_path = get_player_photo_cached(
-                        jogador['id_jogador'],
-                        transfermarkt_id=tm_id
-                    )
         
         for j, col in enumerate(cols):
             idx = i + j
@@ -1332,7 +1319,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                     with cola:
                         if st.button(
                             "Ver Perfil",
-                            key=f"perfil_{jogador['id_jogador']}_{idx}_{i}_{sufixo_key}",
+                            key=f"perfil_{jogador['id_jogador']}_{idx}_{inicio}_{sufixo_key}",
                             use_container_width=True,
                         ):
                             st.session_state.pagina = "perfil"
