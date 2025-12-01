@@ -113,7 +113,6 @@ diagnostico_*.py
 fix_*.py
 corrigir_*.py
 verificar_*.py
-criar_*.py
 mapeamento_*.py
 mapeamento_*.csv
 log_*.txt
@@ -124,7 +123,6 @@ diagnostico_*.py
 fix_*.py
 corrigir_*.py
 verificar_*.py
-criar_*.py
 mapeamento_*.py
 limpar_*.py
 organizar_*.py
