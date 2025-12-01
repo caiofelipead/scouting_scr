@@ -1244,7 +1244,7 @@ def tab_ranking(db, df_jogadores):
     st.markdown("### 🏆 Ranking de Jogadores por Avaliações")
     
     # ⚡ CACHE da query mais pesada
-    @st.cache_data(ttl=300, show_spinner=False)
+    @st.cache_data(ttl=1800, show_spinner=False)
     def carregar_avaliacoes(_db):
         """Carrega avaliações COM CACHE"""
         conn = _db.connect()
@@ -3122,7 +3122,7 @@ def calcular_media_jogador(db, id_jogador):
 # FUNÇÃO PRINCIPAL
 # ========================================
 
-@st.cache_data(ttl=300, show_spinner=False)  # ← ADICIONE ESTA LINHA
+@st.cache_data(ttl=3600, show_spinner=False)  # ← ADICIONE ESTA LINHA
 def carregar_jogadores(_db):
     """Carrega jogadores do banco com cache"""
     return _db.get_jogadores_com_vinculos()
