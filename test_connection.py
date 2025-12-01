@@ -1,18 +1,19 @@
 import os
+import sys
 from dotenv import load_dotenv
 
-# Carregar .env
+# Adicionar raiz ao path
+sys.path.insert(0, '/workspaces/scouting_scr')
+
 load_dotenv()
 
 print("=" * 60)
 print("🧪 TESTE DE CONEXÃO - Railway PostgreSQL")
 print("=" * 60)
 
-# Verificar se .env foi carregado
 database_url = os.getenv('DATABASE_URL')
 
 if database_url:
-    # Mascarar senha para não expor
     url_mascarada = database_url.replace(
         database_url.split('@')[0].split('//')[1],
         "postgres:****"
@@ -20,21 +21,18 @@ if database_url:
     print(f"\n✅ DATABASE_URL encontrada!")
     print(f"📍 URL: {url_mascarada}\n")
 else:
-    print("\n❌ DATABASE_URL NÃO encontrada!")
-    print("💡 Verifique se o arquivo .env existe na raiz do projeto\n")
+    print("\n❌ DATABASE_URL NÃO encontrada!\n")
     exit(1)
 
-# Tentar conectar
 print("🔗 Tentando conectar ao banco...\n")
 
 try:
-    from app.database import ScoutingDatabase
+    # ✅ Import do database.py da raiz
+    from database import ScoutingDatabase
     
     db = ScoutingDatabase()
-    
     print("✅ Conexão estabelecida com sucesso!\n")
     
-    # Testar query
     print("🔍 Testando query...\n")
     jogadores = db.get_jogadores_com_vinculos()
     
@@ -50,9 +48,6 @@ try:
     
 except Exception as e:
     print(f"❌ ERRO: {e}\n")
-    print("💡 Possíveis causas:")
-    print("   1. Arquivo .env não está na raiz do projeto")
-    print("   2. DATABASE_URL está incorreta")
-    print("   3. Firewall bloqueando conexão")
-    print("   4. Banco Railway está offline")
+    import traceback
+    traceback.print_exc()
     print("\n" + "=" * 60)
