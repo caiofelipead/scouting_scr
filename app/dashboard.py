@@ -1246,11 +1246,32 @@ def tab_ranking(db, df_jogadores):
     def carregar_avaliacoes(_db):
         query = """
         SELECT 
-            a.id_avaliacao, a.data_avaliacao, j.id_jogador, j.nome, v.clube, v.posicao,
-            a.nota_potencial, a.nota_tatico, a.nota_tecnico,
-            a.nota_fisico, a.nota_mental, a.observacoes, a.avaliador
+            a.id_avaliacao,
+            a.data_avaliacao,
+            j.id_jogador,
+            j.nome,
+            v.clube,
+            v.posicao,
+            j.nacionalidade,
+            j.idade_atual,
+            a.nota_potencial,
+            a.nota_tatico,
+            a.nota_tecnico,
+            a.nota_fisico,
+            a.nota_mental,
+            a.observacoes,
+            a.avaliador
         FROM avaliacoes a
-        ...
+        INNER JOIN jogadores j ON a.id_jogador = j.id_jogador
+        LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+        INNER JOIN (
+            SELECT id_jogador, MAX(data_avaliacao) AS max_data
+            FROM avaliacoes
+            GROUP BY id_jogador
+        ) ultima
+            ON a.id_jogador = ultima.id_jogador
+           AND a.data_avaliacao = ultima.max_data
+        ORDER BY a.data_avaliacao DESC;
         """
         try:
             with _db.engine.connect() as conn:
