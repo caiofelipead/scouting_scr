@@ -1222,19 +1222,6 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
     for i in range(0, len(df_pagina), 4):  # ✅ Mudou de df_display para df_pagina
         cols = st.columns(4)
         
-        
-        for j, col in enumerate(cols):
-            idx = i + j
-            
-            if idx < len(df_pagina):
-                jogador = df_pagina.iloc[idx]
-                
-                with col:
-                    # === FOTO DO JOGADOR (COM CACHE) ===
-                    tm_id = jogador.get('transfermarkt_id', None)
-                    
-                    # ✅ USA CACHE - CARREGA APENAS 1 VEZ
-                    foto_path = get_player_photo_cached(
                         jogador['id_jogador'],
                         transfermarkt_id=tm_id
                     )
