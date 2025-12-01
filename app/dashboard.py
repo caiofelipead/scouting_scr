@@ -1240,38 +1240,33 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
 
 
 def tab_ranking(db, df_jogadores):
-    """Tab de Ranking de Jogadores com Múltiplas Visualizações"""
     st.markdown("### 🏆 Ranking de Jogadores por Avaliações")
-    
-    # ⚡ CACHE da query mais pesada
-@st.cache_data(ttl=600, show_spinner=False)
-def carregar_avaliacoes(_db):
-    """Carrega última avaliação de cada jogador com cache"""
-    query = """
-    SELECT 
-        a.id_avaliacao, a.data_avaliacao, j.id_jogador, j.nome, v.clube, v.posicao,
-        a.nota_potencial, a.nota_tatico, a.nota_tecnico,
-        a.nota_fisico, a.nota_mental, a.observacoes, a.avaliador
-    FROM avaliacoes a
-    INNER JOIN jogadores j ON a.id_jogador = j.id_jogador
-    LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
-    INNER JOIN (
-        SELECT id_jogador, MAX(data_avaliacao) as max_data
-        FROM avaliacoes
-        GROUP BY id_jogador
-    ) ultima ON a.id_jogador = ultima.id_jogador AND a.data_avaliacao = ultima.max_data
-    ORDER BY a.data_avaliacao DESC
-    """
-    try:
-        with _db.engine.connect() as conn:  # ✅ CORRETO: use engine.connect()
-            result = conn.execute(text(query))
-            df = pd.DataFrame(result.fetchall(), columns=result.keys())
-        return df
-    except Exception as e:
-        st.error(f"❌ Erro ao buscar avaliações: {e}")
-        return pd.DataFrame()
-        
-    # Calcular média geral
+
+    @st.cache_data(ttl=600, show_spinner=False)
+    def carregar_avaliacoes(_db):
+        query = """
+        SELECT 
+            a.id_avaliacao, a.data_avaliacao, j.id_jogador, j.nome, v.clube, v.posicao,
+            a.nota_potencial, a.nota_tatico, a.nota_tecnico,
+            a.nota_fisico, a.nota_mental, a.observacoes, a.avaliador
+        FROM avaliacoes a
+        ...
+        """
+        try:
+            with _db.engine.connect() as conn:
+                result = conn.execute(text(query))
+                df = pd.DataFrame(result.fetchall(), columns=result.keys())
+            return df
+        except Exception as e:
+            st.error(f"❌ Erro ao buscar avaliações: {e}")
+            return pd.DataFrame()
+
+    df_avaliacoes = carregar_avaliacoes(db)
+
+    if df_avaliacoes.empty:
+        st.warning("Nenhuma avaliação encontrada para montar o ranking.")
+        return
+
     df_avaliacoes["media_geral"] = df_avaliacoes[
         ["nota_tatico", "nota_tecnico", "nota_fisico", "nota_mental"]
     ].mean(axis=1)
