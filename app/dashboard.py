@@ -3476,7 +3476,7 @@ def main():
             
             if len(df_filtrado) > 0:
                 st.markdown("#### 🎯 Primeiros Jogadores")
-                exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key="overview")
+                exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key=f"overview_{len(df_filtrado)}")
                 
                 if len(df_filtrado) > 10:
                     st.info(f"Mostrando os primeiros 10 de {len(df_filtrado)} jogadores. Use as outras tabs para explorar mais.")
@@ -3498,7 +3498,7 @@ def main():
                 st.markdown("---")
                 
                 if view_mode == "📸 Cards com Fotos":
-                    exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
+                    exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key=f"lista_completa_{len(df_filtrado)}")
                 
                 else:  # Tabela
                     df_display = df_filtrado.copy()
