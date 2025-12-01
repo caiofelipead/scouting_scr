@@ -756,7 +756,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     col1, col2 = st.columns([1, 2])
 
     with col1:
-    # Buscar foto com ambos os IDs - COM CACHE
+        # Buscar foto com ambos os IDs - COM CACHE
         tm_id = jogador.get('transfermarkt_id', None)
         foto_path = get_player_photo_cached(id_busca, transfermarkt_id=tm_id)  # ✅
 
