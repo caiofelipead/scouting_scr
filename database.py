@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from sqlalchemy import create_engine, text
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import QueuePool
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -131,24 +131,52 @@ class ScoutingDatabase:
         self.database_url = os.getenv('DATABASE_URL')
         
         if self.database_url:
-            print("🔵 Conectando ao PostgreSQL (Railway)...")
+            print("🚀 Conectando ao PostgreSQL Railway...")
+            
+            # Garantir formato correto
             if self.database_url.startswith("postgres://"):
                 self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
             
-            # ✅ OTIMIZAÇÃO: echo=False desabilita logs SQL para performance
-            self.engine = create_engine(
-                self.database_url,
-                poolclass=NullPool,
-                connect_args={
-                    "connect_timeout": 10,
-                    "options": "-c timezone=utc"
-                },
-                pool_pre_ping=True,
-                echo=False
-            )
-            self.db_type = 'postgresql'
+            try:
+                # ✅ CONFIGURAÇÃO OTIMIZADA PARA RAILWAY + PGBOUNCER
+                self.engine = create_engine(
+                    self.database_url,
+                    
+                    # Connection Pooling (trabalha COM o pooling do Railway)
+                    poolclass=QueuePool,         # Pool inteligente
+                    pool_size=5,                 # Máximo 5 conexões simultâneas
+                    max_overflow=10,             # Até 15 conexões em picos
+                    pool_timeout=30,             # Timeout de 30 segundos
+                    pool_recycle=3600,           # Reciclar conexões a cada 1h
+                    pool_pre_ping=True,          # Testar conexão antes de usar
+                    
+                    # Argumentos de conexão
+                    connect_args={
+                        "sslmode": "require",           # SSL obrigatório
+                        "connect_timeout": 10,          # Timeout de conexão
+                        "options": "-c timezone=utc"    # Timezone UTC
+                    },
+                    
+                    # Performance
+                    echo=False,                  # Desabilitar logs SQL
+                    future=True                  # SQLAlchemy 2.0 style
+                )
+                
+                # ✅ TESTAR CONEXÃO
+                with self.engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                
+                self.db_type = 'postgresql'
+                print("✅ Conectado ao PostgreSQL Railway com sucesso!")
+                
+            except Exception as e:
+                print(f"⚠️  Erro ao conectar PostgreSQL: {e}")
+                print("⚠️  Usando SQLite local como fallback...")
+                self.engine = create_engine('sqlite:///scouting.db', echo=False)
+                self.db_type = 'sqlite'
+        
         else:
-            print("🟢 Usando SQLite local...")
+            print("ℹ️  DATABASE_URL não encontrada. Usando SQLite local...")
             self.engine = create_engine('sqlite:///scouting.db', echo=False)
             self.db_type = 'sqlite'
         
@@ -268,73 +296,13 @@ class ScoutingDatabase:
             )"""
         ]
 
-        # ✅ CORREÇÃO: Usando CREATE OR REPLACE VIEW
-        view_benchmark = """
-        CREATE OR REPLACE VIEW vw_benchmark_posicoes AS
-        SELECT 
-            v.posicao,
-            COUNT(j.id_jogador) as total_analisados,
-            AVG(a.nota_potencial) as med_potencial,
-            AVG(a.nota_tatico) as med_tatico,
-            AVG(a.nota_tecnico) as med_tecnico,
-            AVG(a.nota_fisico) as med_fisico,
-            AVG(a.nota_mental) as med_mental
-        FROM jogadores j
-        JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
-        JOIN avaliacoes a ON j.id_jogador = a.id_jogador
-        GROUP BY v.posicao
-        """
-
-        if self.db_type == 'postgresql':
-            condicao_data = "v.data_fim_contrato <= (CURRENT_DATE + INTERVAL '6 months')"
-        else:
-            condicao_data = "v.data_fim_contrato <= DATE('now', '+6 months')"
-
-        # ✅ CORREÇÃO: Usando CREATE OR REPLACE VIEW
-        view_alertas_inteligentes = f"""
-        CREATE OR REPLACE VIEW vw_alertas_inteligentes AS
-        SELECT 
-            a.id_jogador, j.nome, v.clube, a.tipo_alerta, a.descricao,
-            a.prioridade, a.data_criacao
-        FROM alertas a
-        JOIN jogadores j ON a.id_jogador = j.id_jogador
-        LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
-        WHERE a.ativo = 1 OR a.ativo = TRUE
-        UNION ALL
-        SELECT 
-            j.id_jogador, j.nome, v.clube, 'Contrato' as tipo_alerta,
-            'Contrato expira em menos de 6 meses' as descricao,
-            'alta' as prioridade, v.data_atualizacao as data_criacao
-        FROM vinculos_clubes v
-        JOIN jogadores j ON v.id_jogador = j.id_jogador
-        WHERE {condicao_data}
-        """
-
         try:
             with self.engine.connect() as conn:
                 for sql in commands:
                     conn.execute(text(sql))
                 
-                # Drop views antigas para garantir limpeza
-                #conn.execute(text("DROP VIEW IF EXISTS vw_benchmark_posicoes"))
-                #conn.execute(text(view_benchmark))
-                #conn.execute(text("DROP VIEW IF EXISTS vw_alertas_inteligentes"))
-                #conn.execute(text(view_alertas_inteligentes))
-                
                 conn.commit()
                 print(f"✅ Estrutura do banco ({self.db_type}) atualizada!")
-
-                # ✅ NOVO: Carregamento Automático de Índices de Performance
-                if self.db_type == 'postgresql' and os.path.exists('sql/performance_indexes.sql'):
-                    print("🚀 Verificando índices de performance...")
-                    try:
-                        with open('sql/performance_indexes.sql', 'r') as f:
-                            conn.execute(text(f.read()))
-                            conn.commit()
-                        print("⚡ Índices aplicados/verificados com sucesso!")
-                    except Exception as e:
-                        # Ignora erro se índice já existe ou arquivo está vazio
-                        print(f"⚠️ Nota sobre índices: {e}")
 
         except Exception as e:
             print(f"❌ Erro ao criar tabelas: {e}")
@@ -435,7 +403,7 @@ class ScoutingDatabase:
                     VALUES (:id, :data, :pot, :tac, :tec, :fis, :men, :obs, :ava)
                 """), {**dados_avaliacao, 'id': self._safe_int(id_jogador)})
                 conn.commit()
-            st.cache_data.clear()  # Limpa cache
+            st.cache_data.clear()
             return True
         except Exception:
             return False
@@ -515,17 +483,14 @@ class ScoutingDatabase:
         id_jogador = kwargs.pop('id_jogador', None)
         return self.inserir_avaliacao(id_jogador, kwargs) if id_jogador else False
 
-    # ✅ NOVO: Método usado pelo script de sincronização do Google Sheets
     def limpar_dados(self):
         """Remove todos os dados das tabelas para sincronização completa"""
         try:
             with self.engine.connect() as conn:
                 if self.db_type == 'postgresql':
-                    # O CASCADE é essencial no PostgreSQL
                     conn.execute(text("TRUNCATE TABLE alertas, avaliacoes, vinculos_clubes, wishlist, notas_rapidas, jogador_tags, propostas, buscas_salvas CASCADE"))
                     conn.execute(text("TRUNCATE TABLE jogadores CASCADE"))
                 else:
-                    # SQLite: deleta tabela por tabela
                     tabelas = ['alertas', 'avaliacoes', 'vinculos_clubes', 'wishlist', 'notas_rapidas', 'jogador_tags', 'propostas', 'buscas_salvas', 'jogadores']
                     for t in tabelas:
                         conn.execute(text(f"DELETE FROM {t}"))
