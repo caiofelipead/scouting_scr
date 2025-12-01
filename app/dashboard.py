@@ -3144,8 +3144,8 @@ def main():
     db = get_database()
 
     # Criar tabela de avaliações se não existir
-    db.criar_tabela_avaliacoes()
-    db.criar_tabela_propostas()
+    db.criar_tabelas()
+    db.criar_tabelas()
 
     # Verificar query parameters na URL
     query_params = st.query_params
