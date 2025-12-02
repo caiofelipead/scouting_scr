@@ -1,0 +1,23 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "streamlit run app/dashboard.py --server.port $PORT --server.address 0.0.0.0 --server.headless true"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+```
+
+---
+
+## 📋 Checklist Rápido
+```
+[ ] 1. Corrigir db.connect() → db.engine.connect()
+[ ] 2. Aumentar TTL do cache para 600
+[ ] 3. Adicionar funções de cache (get_opcoes_filtros_cached, etc)
+[ ] 4. Otimizar get_foto_jogador_rapido()
+[ ] 5. Usar cache na sidebar
+[ ] 6. Usar invalidar_caches() na sincronização
+[ ] 7. Criar .streamlit/config.toml
+[ ] 8. Criar railway.toml
+[ ] 9. git add . && git commit -m "Performance" && git push
