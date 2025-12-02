@@ -708,6 +708,8 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         v.clube,
         v.liga_clube,
         v.posicao,
+            v.liga_clube,
+            v.liga_clube,
         v.data_fim_contrato,
         v.status_contrato
     FROM jogadores j
@@ -1091,7 +1093,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             st.markdown("---")
             st.markdown("#### 📊 Estatísticas")
 
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3, col4, col5 = st.columns(5)
 
             categorias = {
                 "nota_tatico": ("Tático", col1),
@@ -1248,7 +1250,6 @@ def tab_ranking(db, df_jogadores):
     st.markdown("### 🏆 Ranking de Jogadores por Avaliações")
 
     @st.cache_data(ttl=600, show_spinner=False)
-    @st.cache_data(ttl=600, show_spinner=False)
     def carregar_avaliacoes(_db):
         """Carrega média das avaliações dos últimos 6 meses por jogador"""
         query = """
@@ -1257,6 +1258,7 @@ def tab_ranking(db, df_jogadores):
             j.nome,
             v.clube,
             v.posicao,
+            v.liga_clube,
             j.nacionalidade,
             j.idade_atual,
             ROUND(AVG(a.nota_potencial)::numeric, 1) as nota_potencial,
@@ -1274,7 +1276,8 @@ def tab_ranking(db, df_jogadores):
             j.id_jogador, 
             j.nome, 
             v.clube, 
-            v.posicao, 
+            v.posicao,
+            v.liga_clube,
             j.nacionalidade, 
             j.idade_atual
         ORDER BY AVG(a.nota_potencial) DESC
@@ -1299,7 +1302,7 @@ def tab_ranking(db, df_jogadores):
     ].mean(axis=1)
     
     # --- FILTROS SUPERIORES ---
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
         posicoes_rank = ["Todas"] + sorted(
@@ -1337,6 +1340,12 @@ def tab_ranking(db, df_jogadores):
         )
         clube_rank = st.selectbox("⚽ Clube", clubes_rank, key="rank_clube")
     
+    with col5:
+        ligas_rank = ["Todas"] + sorted(
+            df_avaliacoes["liga_clube"].dropna().unique().tolist()
+        )
+        liga_rank = st.selectbox("🏆 Liga", ligas_rank, key="rank_liga")
+    
     # Aplicar filtros
     df_rank = df_avaliacoes.copy()
     
@@ -1348,6 +1357,9 @@ def tab_ranking(db, df_jogadores):
     
     if clube_rank != "Todos":
         df_rank = df_rank[df_rank["clube"] == clube_rank]
+    
+    if liga_rank != "Todas":
+        df_rank = df_rank[df_rank["liga_clube"] == liga_rank]
     
     # Mapear ordenação
     ordem_map = {
@@ -1611,7 +1623,7 @@ def tab_ranking(db, df_jogadores):
     st.markdown("---")
     st.markdown("### 📊 Estatísticas do Ranking")
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
         st.metric(
@@ -2805,7 +2817,7 @@ def tab_analise_mercado(db, df_jogadores):
     st.markdown("Visão estratégica do mercado de jogadores")
     
     # === FILTROS RÁPIDOS ===
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
         posicao_mercado = st.selectbox(
@@ -2843,7 +2855,7 @@ def tab_analise_mercado(db, df_jogadores):
     st.markdown("---")
     
     # === KPIS DO MERCADO ===
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
         st.metric("Total de Jogadores", len(df_mercado))
@@ -3339,7 +3351,7 @@ def main():
         with st.spinner("Carregando visão geral..."):
             st.subheader(f"📋 Visão Geral do Sistema")
             
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3, col4, col5 = st.columns(5)
             
             with col1:
                 st.metric("Total de Jogadores", len(df_filtrado))
