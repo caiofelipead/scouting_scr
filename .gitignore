@@ -168,3 +168,4 @@ __pycache__/
 *.db-shm
 *.db-wal
 scouting.db
+.streamlit/secrets.toml
