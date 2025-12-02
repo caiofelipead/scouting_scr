@@ -690,7 +690,7 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True, coordenadas_fixas=None)
 
 def exibir_perfil_jogador(db, id_jogador, debug=False):
     """Exibe perfil detalhado do jogador"""
-    conn = db.connect()
+    conn = db.engine.connect()
 
     try:
         id_busca = int(id_jogador)
