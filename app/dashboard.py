@@ -1248,35 +1248,36 @@ def tab_ranking(db, df_jogadores):
     st.markdown("### 🏆 Ranking de Jogadores por Avaliações")
 
     @st.cache_data(ttl=600, show_spinner=False)
+    @st.cache_data(ttl=600, show_spinner=False)
     def carregar_avaliacoes(_db):
+        """Carrega média das avaliações dos últimos 6 meses por jogador"""
         query = """
         SELECT 
-            a.id_avaliacao,
-            a.data_avaliacao,
             j.id_jogador,
             j.nome,
             v.clube,
             v.posicao,
             j.nacionalidade,
             j.idade_atual,
-            a.nota_potencial,
-            a.nota_tatico,
-            a.nota_tecnico,
-            a.nota_fisico,
-            a.nota_mental,
-            a.observacoes,
-            a.avaliador
-        FROM avaliacoes a
-        INNER JOIN jogadores j ON a.id_jogador = j.id_jogador
+            ROUND(AVG(a.nota_potencial)::numeric, 1) as nota_potencial,
+            ROUND(AVG(a.nota_tatico)::numeric, 1) as nota_tatico,
+            ROUND(AVG(a.nota_tecnico)::numeric, 1) as nota_tecnico,
+            ROUND(AVG(a.nota_fisico)::numeric, 1) as nota_fisico,
+            ROUND(AVG(a.nota_mental)::numeric, 1) as nota_mental,
+            COUNT(a.id_avaliacao) as total_avaliacoes,
+            MAX(a.data_avaliacao) as data_avaliacao
+        FROM jogadores j
+        INNER JOIN avaliacoes a ON j.id_jogador = a.id_jogador
         LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
-        INNER JOIN (
-            SELECT id_jogador, MAX(data_avaliacao) AS max_data
-            FROM avaliacoes
-            GROUP BY id_jogador
-        ) ultima
-            ON a.id_jogador = ultima.id_jogador
-           AND a.data_avaliacao = ultima.max_data
-        ORDER BY a.data_avaliacao DESC;
+        WHERE a.data_avaliacao >= CURRENT_DATE - INTERVAL '6 months'
+        GROUP BY 
+            j.id_jogador, 
+            j.nome, 
+            v.clube, 
+            v.posicao, 
+            j.nacionalidade, 
+            j.idade_atual
+        ORDER BY AVG(a.nota_potencial) DESC
         """
         try:
             with _db.engine.connect() as conn:
