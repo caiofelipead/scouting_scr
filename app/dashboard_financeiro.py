@@ -31,6 +31,10 @@ def aba_financeira():
     """
     st.title("💰 Gestão Financeira")
     
+    if st.button("🔄 Atualizar Dados", key="refresh_financeiro"):
+        st.cache_data.clear()
+        st.rerun()
+    
     db = ScoutingDatabaseExtended()
     
     # Estatísticas separadas
