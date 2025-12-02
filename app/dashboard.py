@@ -3147,7 +3147,8 @@ def get_opcoes_filtros_cached(_db):
     return {
         'posicoes': sorted(df['posicao'].dropna().unique().tolist()) if 'posicao' in df.columns else [],
         'clubes': sorted(df['clube'].dropna().unique().tolist()) if 'clube' in df.columns else [],
-        'nacionalidades': sorted(df['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df.columns else []
+        'nacionalidades': sorted(df['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df.columns else [],
+        'ligas': sorted(df['liga_clube'].dropna().unique().tolist()) if 'liga_clube' in df.columns else []
     }
 
 
@@ -3277,6 +3278,7 @@ def main():
     posicoes = opcoes['posicoes']
     nacionalidades = opcoes['nacionalidades']
     clubes = opcoes['clubes']
+    ligas = opcoes['ligas']
     
     # Filtros da sidebar
     filtro_nome = st.sidebar.text_input("🔎 Buscar por nome", "")
@@ -3302,6 +3304,12 @@ def main():
         default=[]
     )
     
+    filtro_liga = st.sidebar.multiselect(
+        "🏆 Liga",
+        options=ligas,
+        default=[]
+    )
+    
     # Aplicar filtros
     df_filtrado = df_jogadores.copy()
     
@@ -3322,6 +3330,9 @@ def main():
     
     if filtro_clube:
         df_filtrado = df_filtrado[df_filtrado['clube'].isin(filtro_clube)]
+    
+    if filtro_liga:
+        df_filtrado = df_filtrado[df_filtrado['liga_clube'].isin(filtro_liga)]
     
     # ============== NAVEGAÇÃO OTIMIZADA (LAZY LOADING) ==============
     st.markdown("---")
