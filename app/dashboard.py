@@ -283,15 +283,20 @@ def get_foto_jogador_rapido(transfermarkt_id):
     Versão ultra-rápida: apenas URL padrão, sem scraping
     Use quando performance é crítica (lista com muitos jogadores)
     """
+    import re
+    
     if not transfermarkt_id:
-        return "https://via.placeholder.com/150?text=Sem+Foto"
+        return "https://via.placeholder.com/150/667eea/ffffff?text=Sem+Foto"
     
-    tm_id = extrair_id_da_url(transfermarkt_id)
+    # Extrair ID numérico diretamente
+    tm_str = str(transfermarkt_id)
+    match = re.search(r'(\d+)', tm_str)
     
-    if tm_id:
-        return f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg"
+    if match:
+        tm_id = match.group(1)
+        return f"https://img.a.transfermarkt.technology/portrait/medium/{tm_id}.jpg"
     
-    return "https://via.placeholder.com/150?text=Sem+Foto"
+    return "https://via.placeholder.com/150/667eea/ffffff?text=Sem+Foto"
 
 
 def get_perfil_url(id_jogador):
@@ -3117,10 +3122,33 @@ def calcular_media_jogador(db, id_jogador):
 # FUNÇÃO PRINCIPAL
 # ========================================
 
-@st.cache_data(ttl=300, show_spinner=False)  # ← ADICIONE ESTA LINHA
+@st.cache_data(ttl=600, show_spinner=False)  # ← ADICIONE ESTA LINHA
 def carregar_jogadores(_db):
     """Carrega jogadores do banco com cache"""
     return _db.get_jogadores_com_vinculos()
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_opcoes_filtros_cached(_db):
+    """Cache das opções de filtros para a sidebar"""
+    df = _db.get_jogadores_com_vinculos()
+    return {
+        'posicoes': sorted(df['posicao'].dropna().unique().tolist()) if 'posicao' in df.columns else [],
+        'clubes': sorted(df['clube'].dropna().unique().tolist()) if 'clube' in df.columns else [],
+        'nacionalidades': sorted(df['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df.columns else []
+    }
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_ids_wishlist_cached(_db):
+    """Cache de IDs da wishlist para lookup O(1)"""
+    return _db.get_ids_wishlist()
+
+
+def invalidar_caches():
+    """Limpa todos os caches após sincronização"""
+    carregar_jogadores.clear()
+    get_opcoes_filtros_cached.clear()
+    get_ids_wishlist_cached.clear()
 
 
 def main():
@@ -3190,7 +3218,7 @@ def main():
                 
                 if sucesso:
                     st.sidebar.success("✅ Sincronização concluída!")
-                    st.cache_data.clear()
+                    invalidar_caches()  # ⚡ Função específica ao invés de clear() geral
                     time.sleep(1)
                     st.rerun()
                 else:
@@ -3231,10 +3259,11 @@ def main():
                     st.error(f"Erro: {str(e)}")
         st.stop()
     
-    # Extrair valores únicos para os filtros
-    posicoes = sorted(df_jogadores['posicao'].dropna().unique().tolist()) if 'posicao' in df_jogadores.columns else []
-    nacionalidades = sorted(df_jogadores['nacionalidade'].dropna().unique().tolist()) if 'nacionalidade' in df_jogadores.columns else []
-    clubes = sorted(df_jogadores['clube'].dropna().unique().tolist()) if 'clube' in df_jogadores.columns else []
+    # ⚡ Usar opções em cache (evita recalcular a cada rerun)
+    opcoes = get_opcoes_filtros_cached(db)
+    posicoes = opcoes['posicoes']
+    nacionalidades = opcoes['nacionalidades']
+    clubes = opcoes['clubes']
     
     # Filtros da sidebar
     filtro_nome = st.sidebar.text_input("🔎 Buscar por nome", "")
