@@ -25,7 +25,7 @@ def criar_aba_avaliacao_massiva(db_connection):
         """
         return pd.read_sql(query, db.engine)
     
-    df_jogadores = carregar_jogadores()
+    df_jogadores = carregar_jogadores(db)
     
     # Modo de operação
     modo = st.radio(
