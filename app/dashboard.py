@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from migrate_financeiro import migrar_colunas_financeiras
+from avaliacao_massiva import criar_aba_avaliacao_massiva
 migrar_colunas_financeiras()
 
 # Imports de terceiros PRIMEIRO
@@ -3349,7 +3350,8 @@ def main():
             "🔍 Busca Avançada",
             "📈 Análise de Mercado",
             "🔔 Alertas",
-            "💰 Financeiro"
+            "💰 Financeiro",
+            "📋 Avaliação Massiva"
         ],
         key="nav_principal",
         label_visibility="collapsed"
@@ -3521,6 +3523,9 @@ def main():
         with st.spinner("Carregando financeiro..."):
             aba_financeira()
 
+    elif tab_selecionada == "📋 Avaliação Massiva":  # ← ADICIONAR ESTE BLOCO
+        with st.spinner("Carregando avaliação massiva..."):
+            criar_aba_avaliacao_massiva(db)
 
 if __name__ == "__main__":
     main()
