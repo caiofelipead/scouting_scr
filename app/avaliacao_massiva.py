@@ -4,6 +4,16 @@ from datetime import datetime
 import psycopg2
 from psycopg2.extras import execute_batch
 
+@st.cache_data(ttl=300)
+def carregar_jogadores():
+        query = """
+        SELECT id_jogador, nome, posicao, clube, idade 
+        FROM jogadores 
+        ORDER BY nome
+        """
+        return pd.read_sql(query, db.engine)
+
+
 def criar_aba_avaliacao_massiva(db_connection):
     """
     Aba para avaliação massiva de atletas
@@ -16,14 +26,7 @@ def criar_aba_avaliacao_massiva(db_connection):
     data_avaliacao = st.sidebar.date_input("Data da Avaliação", value=datetime.now())
     
     # Carregar lista de jogadores do banco
-    @st.cache_data(ttl=300)
-    def carregar_jogadores():
-        query = """
-        SELECT id_jogador, nome, posicao, clube, idade 
-        FROM jogadores 
-        ORDER BY nome
-        """
-        return pd.read_sql(query, db.engine)
+
     
     df_jogadores = carregar_jogadores(db)
     
