@@ -1267,7 +1267,7 @@ def tab_ranking(db, df_jogadores):
             ROUND(AVG(a.nota_tecnico)::numeric, 1) as nota_tecnico,
             ROUND(AVG(a.nota_fisico)::numeric, 1) as nota_fisico,
             ROUND(AVG(a.nota_mental)::numeric, 1) as nota_mental,
-            COUNT(a.id_avaliacao) as total_avaliacoes,
+            COUNT(a.id) as total_avaliacoes,
             MAX(a.data_avaliacao) as data_avaliacao
         FROM jogadores j
         INNER JOIN avaliacoes a ON j.id_jogador = a.id_jogador
