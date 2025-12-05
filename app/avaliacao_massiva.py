@@ -19,7 +19,7 @@ def criar_aba_avaliacao_massiva(db_connection):
     @st.cache_data(ttl=300)
     def carregar_jogadores():
         query = """
-        SELECT id, nome, posicao, clube, idade 
+        SELECT id_jogador, nome, posicao, clube, idade 
         FROM jogadores 
         ORDER BY nome
         """
@@ -65,14 +65,14 @@ def avaliacao_tabela(df_jogadores, avaliador, data_avaliacao, db_connection):
     # Seleção múltipla
     jogadores_selecionados = st.multiselect(
         "Selecione os jogadores para avaliar",
-        options=df_filtrado['id'].tolist(),
-        format_func=lambda x: f"{df_filtrado[df_filtrado['id']==x]['nome'].values[0]} - {df_filtrado[df_filtrado['id']==x]['posicao'].values[0]}"
+        options=df_filtrado['id_jogador'].tolist(),
+        format_func=lambda x: f"{df_filtrado[df_filtrado['id_jogador']==x]['nome'].values[0]} - {df_filtrado[df_filtrado['id_jogador']==x]['posicao'].values[0]}"
     )
     
     if jogadores_selecionados:
         # Criar dataframe para avaliação
-        df_avaliacao = df_filtrado[df_filtrado['id'].isin(jogadores_selecionados)][
-            ['id', 'nome', 'posicao', 'clube']
+        df_avaliacao = df_filtrado[df_filtrado['id_jogador'].isin(jogadores_selecionados)][
+            ['id_jogador', 'nome', 'posicao', 'clube']
         ].copy()
         
         # Adicionar colunas de avaliação
@@ -89,7 +89,7 @@ def avaliacao_tabela(df_jogadores, avaliador, data_avaliacao, db_connection):
         edited_df = st.data_editor(
             df_avaliacao,
             column_config={
-                "id": st.column_config.NumberColumn("ID", disabled=True),
+                "id_jogador": st.column_config.NumberColumn("ID", disabled=True),
                 "nome": st.column_config.TextColumn("Nome", disabled=True),
                 "posicao": st.column_config.TextColumn("Posição", disabled=True),
                 "clube": st.column_config.TextColumn("Clube", disabled=True),
@@ -171,8 +171,8 @@ def avaliacao_formulario(df_jogadores, avaliador, data_avaliacao, db_connection)
     
     jogadores_selecionados = st.multiselect(
         "Selecione os jogadores para avaliar",
-        options=df_filtrado['id'].tolist(),
-        format_func=lambda x: f"{df_filtrado[df_filtrado['id']==x]['nome'].values[0]} - {df_filtrado[df_filtrado['id']==x]['posicao'].values[0]}"
+        options=df_filtrado['id_jogador'].tolist(),
+        format_func=lambda x: f"{df_filtrado[df_filtrado['id_jogador']==x]['nome'].values[0]} - {df_filtrado[df_filtrado['id_jogador']==x]['posicao'].values[0]}"
     )
     
     if jogadores_selecionados:
@@ -181,11 +181,11 @@ def avaliacao_formulario(df_jogadores, avaliador, data_avaliacao, db_connection)
         st.progress(progress, text=f"Avaliados: {len(st.session_state.avaliacoes_temp)}/{len(jogadores_selecionados)}")
         
         # Determinar próximo jogador a avaliar
-        jogadores_restantes = [j for j in jogadores_selecionados if j not in [a['id'] for a in st.session_state.avaliacoes_temp]]
+        jogadores_restantes = [j for j in jogadores_selecionados if j not in [a['id_jogador'] for a in st.session_state.avaliacoes_temp]]
         
         if jogadores_restantes:
             jogador_id = jogadores_restantes[0]
-            jogador_info = df_filtrado[df_filtrado['id'] == jogador_id].iloc[0]
+            jogador_info = df_filtrado[df_filtrado['id_jogador'] == jogador_id].iloc[0]
             
             st.markdown(f"### Avaliando: {jogador_info['nome']}")
             
@@ -215,7 +215,7 @@ def avaliacao_formulario(df_jogadores, avaliador, data_avaliacao, db_connection)
                 
                 if submitted:
                     avaliacao = {
-                        'id': jogador_id,
+                        'id_jogador': jogador_id,
                         'nome': jogador_info['nome'],
                         'posicao': jogador_info['posicao'],
                         'clube': jogador_info['clube'],
@@ -266,7 +266,7 @@ def salvar_avaliacoes_lote(df, avaliador, data_avaliacao, db_connection):
         avaliacoes = []
         for _, row in df.iterrows():
             avaliacao = (
-                int(row['id']),
+                int(row['id_jogador']),
                 float(row['Técnico']),
                 float(row['Tático']),
                 float(row['Físico']),
@@ -280,7 +280,7 @@ def salvar_avaliacoes_lote(df, avaliador, data_avaliacao, db_connection):
         # Query de inserção
         insert_query = """
         INSERT INTO avaliacoes (
-            jogador_id, 
+            id_jogador, 
             nota_tecnico, 
             nota_tatico, 
             nota_fisico, 
