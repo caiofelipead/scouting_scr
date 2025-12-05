@@ -23,7 +23,7 @@ def criar_aba_avaliacao_massiva(db_connection):
         FROM jogadores 
         ORDER BY nome
         """
-        return pd.read_sql(query, db_connection)
+        return pd.read_sql(query, db.engine)
     
     df_jogadores = carregar_jogadores()
     
