@@ -101,7 +101,8 @@ def avaliacao_tabela(df_jogadores, avaliador, data_avaliacao, db):
             ['id_jogador', 'nome', 'posicao', 'clube']
         ].copy()
         
-        # Adicionar colunas de avaliação
+        # Adicionar colunas de avaliação (POTENCIAL PRIMEIRO!)
+        df_avaliacao['⭐ Potencial'] = 3.0
         df_avaliacao['Técnico'] = 3.0
         df_avaliacao['Tático'] = 3.0
         df_avaliacao['Físico'] = 3.0
@@ -119,6 +120,14 @@ def avaliacao_tabela(df_jogadores, avaliador, data_avaliacao, db):
                 "nome": st.column_config.TextColumn("Nome", disabled=True),
                 "posicao": st.column_config.TextColumn("Posição", disabled=True),
                 "clube": st.column_config.TextColumn("Clube", disabled=True),
+                "⭐ Potencial": st.column_config.NumberColumn(
+                    "⭐ Potencial",
+                    min_value=1.0,
+                    max_value=5.0,
+                    step=0.5,
+                    format="%.1f",
+                    help="Avaliação geral de potencial do atleta"
+                ),
                 "Técnico": st.column_config.NumberColumn(
                     "Técnico",
                     min_value=1.0,
@@ -154,13 +163,16 @@ def avaliacao_tabela(df_jogadores, avaliador, data_avaliacao, db):
         )
         
         # Resumo
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Jogadores Avaliados", len(edited_df))
         with col2:
+            media_potencial = edited_df['⭐ Potencial'].mean()
+            st.metric("⭐ Potencial Médio", f"{media_potencial:.2f}")
+        with col3:
             media_geral = edited_df[['Técnico', 'Tático', 'Físico', 'Mental']].mean().mean()
             st.metric("Média Geral", f"{media_geral:.2f}")
-        with col3:
+        with col4:
             st.metric("Avaliador", avaliador)
         
         # Botões de ação
@@ -225,7 +237,16 @@ def avaliacao_formulario(df_jogadores, avaliador, data_avaliacao, db):
             
             # Formulário de avaliação
             with st.form(key=f"form_{jogador_id}"):
-                st.markdown("#### Notas (1 a 5)")
+                # POTENCIAL EM DESTAQUE
+                st.markdown("#### ⭐ Avaliação de Potencial")
+                potencial = st.slider(
+                    "Potencial Geral do Atleta", 
+                    1.0, 5.0, 3.0, 0.5,
+                    help="Avaliação geral considerando projeção futura e capacidade de desenvolvimento"
+                )
+                
+                st.markdown("---")
+                st.markdown("#### 📊 Notas por Dimensão (1 a 5)")
                 
                 col1, col2 = st.columns(2)
                 with col1:
@@ -245,6 +266,7 @@ def avaliacao_formulario(df_jogadores, avaliador, data_avaliacao, db):
                         'nome': jogador_info['nome'],
                         'posicao': jogador_info['posicao'] if pd.notna(jogador_info['posicao']) else 'N/A',
                         'clube': jogador_info['clube'] if pd.notna(jogador_info['clube']) else 'N/A',
+                        '⭐ Potencial': potencial,
                         'Técnico': tecnico,
                         'Tático': tatico,
                         'Físico': fisico,
@@ -263,7 +285,18 @@ def avaliacao_formulario(df_jogadores, avaliador, data_avaliacao, db):
                 df_resumo = pd.DataFrame(st.session_state.avaliacoes_temp)
                 st.dataframe(df_resumo, use_container_width=True)
                 
+                # Estatísticas
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("⭐ Potencial Médio", f"{df_resumo['⭐ Potencial'].mean():.2f}")
+                with col2:
+                    media_geral = df_resumo[['Técnico', 'Tático', 'Físico', 'Mental']].mean().mean()
+                    st.metric("Média Geral", f"{media_geral:.2f}")
+                with col3:
+                    st.metric("Total Avaliados", len(df_resumo))
+                
                 # Botões finais
+                st.markdown("---")
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     if st.button("💾 Salvar Tudo", type="primary", use_container_width=True):
@@ -294,6 +327,7 @@ def salvar_avaliacoes_lote(df, avaliador, data_avaliacao, db):
         for _, row in df.iterrows():
             avaliacao = (
                 int(row['id_jogador']),
+                float(row['⭐ Potencial']),  # ← POTENCIAL ADICIONADO
                 float(row['Técnico']),
                 float(row['Tático']),
                 float(row['Físico']),
@@ -304,10 +338,11 @@ def salvar_avaliacoes_lote(df, avaliador, data_avaliacao, db):
             )
             avaliacoes.append(avaliacao)
         
-        # Query de inserção
+        # Query de inserção (COM POTENCIAL)
         insert_query = """
         INSERT INTO avaliacoes (
-            id_jogador, 
+            id_jogador,
+            nota_potencial,
             nota_tecnico, 
             nota_tatico, 
             nota_fisico, 
@@ -315,7 +350,7 @@ def salvar_avaliacoes_lote(df, avaliador, data_avaliacao, db):
             observacoes,
             avaliador,
             data_avaliacao
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         # Executar em lote
