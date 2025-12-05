@@ -17,9 +17,15 @@ from psycopg2.extras import execute_batch
 def carregar_jogadores(_db):
     """Carrega jogadores do banco com cache"""
     query = """
-    SELECT id_jogador, nome, posicao, clube, idade_atual as idade
-    FROM jogadores 
-    ORDER BY nome
+    SELECT 
+        j.id_jogador,
+        j.nome,
+        v.posicao,
+        v.clube,
+        j.idade_atual as idade
+    FROM jogadores j
+    LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+    ORDER BY j.nome
     """
     return pd.read_sql(query, _db.engine)
 
@@ -41,6 +47,11 @@ def criar_aba_avaliacao_massiva(db):
     
     # Carregar lista de jogadores do banco
     df_jogadores = carregar_jogadores(db)
+    
+    # Verificar se há jogadores
+    if len(df_jogadores) == 0:
+        st.warning("Nenhum jogador encontrado no banco de dados.")
+        return
     
     # Modo de operação
     modo = st.radio(
@@ -81,7 +92,7 @@ def avaliacao_tabela(df_jogadores, avaliador, data_avaliacao, db):
     jogadores_selecionados = st.multiselect(
         "Selecione os jogadores para avaliar",
         options=df_filtrado['id_jogador'].tolist(),
-        format_func=lambda x: f"{df_filtrado[df_filtrado['id_jogador']==x]['nome'].values[0]} - {df_filtrado[df_filtrado['id_jogador']==x]['posicao'].values[0]}"
+        format_func=lambda x: f"{df_filtrado[df_filtrado['id_jogador']==x]['nome'].values[0]} - {df_filtrado[df_filtrado['id_jogador']==x]['posicao'].values[0] if pd.notna(df_filtrado[df_filtrado['id_jogador']==x]['posicao'].values[0]) else 'N/A'}"
     )
     
     if jogadores_selecionados:
@@ -187,7 +198,7 @@ def avaliacao_formulario(df_jogadores, avaliador, data_avaliacao, db):
     jogadores_selecionados = st.multiselect(
         "Selecione os jogadores para avaliar",
         options=df_filtrado['id_jogador'].tolist(),
-        format_func=lambda x: f"{df_filtrado[df_filtrado['id_jogador']==x]['nome'].values[0]} - {df_filtrado[df_filtrado['id_jogador']==x]['posicao'].values[0]}"
+        format_func=lambda x: f"{df_filtrado[df_filtrado['id_jogador']==x]['nome'].values[0]} - {df_filtrado[df_filtrado['id_jogador']==x]['posicao'].values[0] if pd.notna(df_filtrado[df_filtrado['id_jogador']==x]['posicao'].values[0]) else 'N/A'}"
     )
     
     if jogadores_selecionados:
@@ -206,9 +217,9 @@ def avaliacao_formulario(df_jogadores, avaliador, data_avaliacao, db):
             
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.info(f"**Posição:** {jogador_info['posicao']}")
+                st.info(f"**Posição:** {jogador_info['posicao'] if pd.notna(jogador_info['posicao']) else 'N/A'}")
             with col2:
-                st.info(f"**Clube:** {jogador_info['clube']}")
+                st.info(f"**Clube:** {jogador_info['clube'] if pd.notna(jogador_info['clube']) else 'N/A'}")
             with col3:
                 st.info(f"**Idade:** {jogador_info.get('idade', 'N/A')}")
             
@@ -232,8 +243,8 @@ def avaliacao_formulario(df_jogadores, avaliador, data_avaliacao, db):
                     avaliacao = {
                         'id_jogador': jogador_id,
                         'nome': jogador_info['nome'],
-                        'posicao': jogador_info['posicao'],
-                        'clube': jogador_info['clube'],
+                        'posicao': jogador_info['posicao'] if pd.notna(jogador_info['posicao']) else 'N/A',
+                        'clube': jogador_info['clube'] if pd.notna(jogador_info['clube']) else 'N/A',
                         'Técnico': tecnico,
                         'Tático': tatico,
                         'Físico': fisico,
