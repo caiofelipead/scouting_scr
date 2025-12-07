@@ -413,14 +413,14 @@ class ScoutingDatabase:
                 
                 if check:
                     conn.execute(text("""
-                        UPDATE vinculos_clubes SET clube=:c, liga_clube=:l, posicao=:p,
-                        data_fim_contrato=:d, status_contrato=:s, data_atualizacao=CURRENT_TIMESTAMP
+                        UPDATE vinculos_clubes SET clube=:clube, liga_clube=:liga_clube, posicao=:posicao,
+                        data_fim_contrato=:data_fim_contrato, status_contrato=:status_contrato, data_atualizacao=CURRENT_TIMESTAMP
                         WHERE id_jogador=:id
                     """), {**dados_vinculo, 'id': id_jogador})
                 else:
                     conn.execute(text("""
                         INSERT INTO vinculos_clubes (id_jogador, clube, liga_clube, posicao, data_fim_contrato, status_contrato)
-                        VALUES (:id, :c, :l, :p, :d, :s)
+                        VALUES (:id, :clube, :liga_clube, :posicao, :data_fim_contrato, :status_contrato)
                     """), {**dados_vinculo, 'id': id_jogador})
                 conn.commit()
             return True
