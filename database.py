@@ -444,9 +444,9 @@ class ScoutingDatabase:
             with self.engine.connect() as conn:
                 if id_jogador:
                     conn.execute(text("""
-                        UPDATE jogadores SET nome=:n, nacionalidade=:nat, ano_nascimento=:ano,
-                        idade_atual=:idade, altura=:alt, pe_dominante=:pe,
-                        transfermarkt_id=:tm, data_atualizacao=CURRENT_TIMESTAMP
+                        UPDATE jogadores SET nome=:nome, nacionalidade=:nacionalidade, ano_nascimento=:ano_nascimento,
+                        idade_atual=:idade_atual, altura=:altura, pe_dominante=:pe_dominante,
+                        transfermarkt_id=:transfermarkt_id, data_atualizacao=CURRENT_TIMESTAMP
                         WHERE id_jogador=:id
                     """), {**dados_jogador, 'id': id_jogador})
                     conn.commit()
@@ -454,13 +454,13 @@ class ScoutingDatabase:
                     if self.db_type == 'postgresql':
                         result = conn.execute(text("""
                             INSERT INTO jogadores (nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id)
-                            VALUES (:n, :nat, :ano, :idade, :alt, :pe, :tm) RETURNING id_jogador
+                            VALUES (:nome, :nacionalidade, :ano_nascimento, :idade_atual, :altura, :pe_dominante, :transfermarkt_id) RETURNING id_jogador
                         """), dados_jogador)
                         id_jogador = result.fetchone()[0]
                     else:
                         conn.execute(text("""
                             INSERT INTO jogadores (nome, nacionalidade, ano_nascimento, idade_atual, altura, pe_dominante, transfermarkt_id)
-                            VALUES (:n, :nat, :ano, :idade, :alt, :pe, :tm)
+                            VALUES (:nome, :nacionalidade, :ano_nascimento, :idade_atual, :altura, :pe_dominante, :transfermarkt_id)
                         """), dados_jogador)
                         id_jogador = conn.execute(text("SELECT last_insert_rowid()")).fetchone()[0]
                     conn.commit()
