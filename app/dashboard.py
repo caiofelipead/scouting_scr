@@ -709,8 +709,6 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         v.clube,
         v.liga_clube,
         v.posicao,
-            v.liga_clube,
-            v.liga_clube,
         v.data_fim_contrato,
         v.status_contrato
     FROM jogadores j
