@@ -26,7 +26,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     # CSS customizado para o header - Tema Claro
     st.markdown("""
     <style>
-    /* Container principal do header */
+    /* Container principal do header - QUASE PRETO */
     .player-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 16px;

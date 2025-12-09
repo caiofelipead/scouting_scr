@@ -88,7 +88,7 @@ st.markdown(
 
     /* Header com gradiente roxo/azul */
     .header-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #0a0a0a 0%, #000000 100%);
         padding: 1.5rem 2rem;
         border-radius: 12px;
         margin-bottom: 2rem;
@@ -172,6 +172,7 @@ st.markdown(
         border-radius: 10px;
         overflow: hidden;
         margin: 1rem 0;
+        border: 1px solid #1a1a1a;
     }
 
     th {
