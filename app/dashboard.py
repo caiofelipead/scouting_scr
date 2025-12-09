@@ -18,14 +18,16 @@ from sqlalchemy import text
 
 # Carrega CSS customizado
 def load_custom_css():
-    with open('app/styles/custom.css') as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-
-# Chame no início do app
-load_custom_css()
+    """Carrega CSS customizado do tema ScoutingStats"""
+    from pathlib import Path
+    css_path = Path(__file__).parent / "styles" / "custom.css"
+    if css_path.exists():
+        with open(css_path) as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 # Configuração da página (DEVE SER A PRIMEIRA CHAMADA)
 st.set_page_config(page_title="Scout Pro", page_icon="⚽", layout="wide")
+load_custom_css()
 
 # --- CORREÇÃO DE CAMINHOS (CRÍTICO) ---
 try:
