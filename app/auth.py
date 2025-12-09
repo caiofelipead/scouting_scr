@@ -354,117 +354,23 @@ def check_password():
 def _mostrar_formulario_login():
     """Renderiza o formulário de login"""
 
-    # CSS ULTRA DARK MODE para tela de login - FORÇADO
+    # CSS Limpo para tela de login
     st.markdown("""
     <style>
-    /* === FORÇA TUDO PARA PRETO === */
-    * {
-        background-color: transparent !important;
-    }
-
-    .stApp, .main, body, html, section, div {
-        background-color: #000000 !important;
-    }
-
-    /* === INPUTS === */
-    .stTextInput > div > div {
-        background-color: #0a0a0a !important;
-    }
-
-    .stTextInput input {
-        background-color: #0a0a0a !important;
-        color: #ffffff !important;
-        border: 2px solid #333333 !important;
-        border-radius: 8px !important;
-    }
-
-    .stTextInput input::placeholder {
-        color: #666666 !important;
-    }
-
-    .stTextInput input:focus {
-        border-color: #00bfff !important;
-        box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.2) !important;
-    }
-
-    /* === LABELS === */
-    .stTextInput label, .stCheckbox label {
-        color: #ffffff !important;
-        font-size: 14px !important;
-        font-weight: 500 !important;
-    }
-
-    /* === CHECKBOX === */
-    .stCheckbox {
-        color: #ffffff !important;
-    }
-
-    .stCheckbox > label {
-        color: #ffffff !important;
-    }
-
-    /* === BOTÃO ENTRAR === */
+    /* Botão gradiente */
     .stButton > button, button[kind="formSubmit"] {
-        background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%) !important;
-        color: #ffffff !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
         border: none !important;
         padding: 0.75rem 1.5rem !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
         transition: all 0.3s ease !important;
-        width: 100% !important;
     }
 
     .stButton > button:hover, button[kind="formSubmit"]:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 8px 16px rgba(0, 191, 255, 0.4) !important;
-    }
-
-    /* === TÍTULOS === */
-    h1, h2, h3, h4, h5, h6 {
-        color: #ffffff !important;
-        background-color: transparent !important;
-    }
-
-    /* === MARKDOWN === */
-    .stMarkdown {
-        color: #ffffff !important;
-    }
-
-    /* === LINHA HORIZONTAL === */
-    hr {
-        border-color: #333333 !important;
-        background-color: #333333 !important;
-    }
-
-    /* === MENSAGENS === */
-    .stAlert {
-        background-color: #0a0a0a !important;
-        color: #ffffff !important;
-        border-radius: 8px !important;
-        border: 1px solid #333333 !important;
-    }
-
-    /* === CAPTION === */
-    .stCaption {
-        color: #888888 !important;
-    }
-
-    /* === FORM === */
-    .stForm {
-        background-color: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-    }
-
-    /* === COLUNAS === */
-    .css-1544g2n, .css-12oz5g7 {
-        background-color: transparent !important;
-    }
-
-    /* === TEXTO GERAL === */
-    p, span, div, label {
-        color: #ffffff !important;
+        box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4) !important;
     }
     </style>
     """, unsafe_allow_html=True)
