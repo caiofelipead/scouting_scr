@@ -76,26 +76,30 @@ if not check_password():
 # Se passou do login, mostra info do usuário
 mostrar_info_usuario()
 
-# CSS Profissional - Scout Pro (ULTRA DARK MODE - QUASE PRETO)
+# CSS Profissional - Scout Pro (ULTRA DARK MODE - FORÇADO)
 st.markdown(
     """
     <style>
-    /* === ULTRA DARK MODE - QUASE PRETO === */
+    /* === FORÇA TUDO PARA PRETO - MÁXIMA PRIORIDADE === */
 
-    /* Layout principal com fundo PRETO */
-    .main {
-        padding: 0rem 1rem;
-        background-color: #000000 !important;
-    }
-
-    /* Forçar tema PRETO em todos elementos */
-    .stApp {
-        background-color: #000000 !important;
-    }
-
-    /* Força fundo preto em todas seções */
-    section, div {
+    /* Força universal */
+    * {
         background-color: transparent !important;
+    }
+
+    /* Fundo PRETO */
+    .stApp, .main, body, html {
+        background-color: #000000 !important;
+    }
+
+    /* Força sections e divs */
+    section, div, [data-testid="stVerticalBlock"], [data-testid="stHorizontalBlock"] {
+        background-color: transparent !important;
+    }
+
+    /* Força texto BRANCO em tudo */
+    p, span, div, label, li, td, th {
+        color: #ffffff !important;
     }
 
     /* Header com gradiente escuro */
