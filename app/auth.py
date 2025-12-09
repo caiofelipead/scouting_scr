@@ -353,10 +353,89 @@ def check_password():
 
 def _mostrar_formulario_login():
     """Renderiza o formulário de login"""
+
+    # CSS DARK MODE para tela de login
+    st.markdown("""
+    <style>
+    /* Forçar tema escuro na tela de login */
+    .stApp {
+        background-color: #0f172a !important;
+    }
+
+    .main {
+        background-color: #0f172a !important;
+    }
+
+    /* Inputs escuros */
+    .stTextInput input {
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        border: 2px solid #334155 !important;
+        border-radius: 8px;
+    }
+
+    .stTextInput input:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Checkbox */
+    .stCheckbox {
+        color: #e2e8f0 !important;
+    }
+
+    /* Botão de submit */
+    .stButton button {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+        color: white !important;
+        border: none !important;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .stButton button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Títulos */
+    h1, h2, h3 {
+        color: #f1f5f9 !important;
+    }
+
+    /* Linha horizontal */
+    hr {
+        border-color: #334155 !important;
+    }
+
+    /* Mensagens de erro/sucesso */
+    .stAlert {
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        border-radius: 8px;
+    }
+
+    /* Caption */
+    .stCaption {
+        color: #94a3b8 !important;
+    }
+
+    /* Form */
+    .stForm {
+        background-color: rgba(30, 41, 59, 0.5) !important;
+        border: 1px solid #334155 !important;
+        border-radius: 12px;
+        padding: 1.5rem !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("<br><br>", unsafe_allow_html=True)
-    
+
     col1, col2, col3 = st.columns([1, 2, 1])
-    
+
     with col2:
         st.markdown("# 🔐 Scout Pro")
         st.markdown("### Sistema de Scouting")
