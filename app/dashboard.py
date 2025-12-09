@@ -16,6 +16,14 @@ import streamlit as st
 from mplsoccer import Pitch
 from sqlalchemy import text
 
+# Carrega CSS customizado
+def load_custom_css():
+    with open('app/styles/custom.css') as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+# Chame no início do app
+load_custom_css()
+
 # Configuração da página (DEVE SER A PRIMEIRA CHAMADA)
 st.set_page_config(page_title="Scout Pro", page_icon="⚽", layout="wide")
 
