@@ -43,6 +43,12 @@ try:
         criar_grid_cards_estatisticas,
         criar_barras_gradiente
     )
+    from perfil_visual_moderno import (
+        criar_header_profissional,
+        criar_secao_stats_rapidas,
+        criar_cards_categorias,
+        criar_badge_status
+    )
 except ImportError as e:
     st.error(f"❌ Erro Crítico de Importação: {e}")
     st.info(f"📂 Caminho tentado: {root_path}")
@@ -736,132 +742,88 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     jogador = jogador.iloc[0]
 
-    # Layout de 2 colunas
-    col1, col2 = st.columns([1, 2])
+    # ========================================
+    # HEADER PROFISSIONAL ESTILO SCOUTINGSTATS.AI
+    # ========================================
 
-    with col1:
-        # Buscar foto com ambos os IDs
-        tm_id = jogador.get('transfermarkt_id', None)
-        foto_path = get_foto_jogador(id_busca, transfermarkt_id=tm_id, debug=debug)
-        
-        if foto_path:
-            st.image(foto_path, width=300)
-        else:
-            st.markdown(
-                """
-            <div style='
-                width: 300px; 
-                height: 300px; 
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 120px;
-                color: white;
-            '>
-                ⚽
-            </div>
-            """,
-                unsafe_allow_html=True,
-            )
+    # Buscar foto do jogador
+    tm_id = jogador.get('transfermarkt_id', None)
+    foto_path = get_foto_jogador(id_busca, transfermarkt_id=tm_id, debug=debug)
 
-        st.markdown("---")
-        st.metric(
-            "Idade",
-            (
-                f"{jogador['idade_atual']} anos"
-                if pd.notna(jogador["idade_atual"])
-                else "N/A"
-            ),
-        )
-        st.metric(
-            "Altura",
-            f"{jogador['altura']} cm" if pd.notna(jogador["altura"]) else "N/A",
-        )
-        st.metric(
-            "Pé Dominante",
-            jogador["pe_dominante"] if pd.notna(jogador["pe_dominante"]) else "N/A",
-        )
-        st.metric(
-            "Nacionalidade",
-            jogador["nacionalidade"] if pd.notna(jogador["nacionalidade"]) else "N/A",
-        )
+    # Criar header moderno
+    criar_header_profissional(jogador, foto_path)
 
-    with col2:
-        st.title(jogador["nome"])
-        st.subheader(
-            f"{jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'} • {jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}"
-        )
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("---")
-        st.markdown("### 📋 Informações do Vínculo")
+    # ========================================
+    # CARDS DE ESTATÍSTICAS RÁPIDAS
+    # ========================================
 
-        col_a, col_b, col_c = st.columns(3)
+    # Buscar última avaliação para stats rápidas
+    avaliacoes = db.get_avaliacoes_jogador(id_busca)
 
-        with col_a:
-            st.markdown("**Clube Atual**")
-            st.markdown(
-                f"🏟️ {jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}"
-            )
+    if len(avaliacoes) > 0:
+        ultima = avaliacoes.iloc[0]
 
-        with col_b:
-            st.markdown("**Liga**")
-            st.markdown(
-                f"🏆 {jogador['liga_clube'] if pd.notna(jogador['liga_clube']) else 'N/A'}"
-            )
+        # Calcular média geral
+        media_geral = (
+            ultima.get('nota_tatico', 0) +
+            ultima.get('nota_tecnico', 0) +
+            ultima.get('nota_fisico', 0) +
+            ultima.get('nota_mental', 0)
+        ) / 4.0
 
-        with col_c:
-            st.markdown("**Fim de Contrato**")
-            if pd.notna(jogador["data_fim_contrato"]):
-                st.markdown(f"📅 {jogador['data_fim_contrato']}")
-            else:
-                st.markdown("📅 N/A")
-
-        st.markdown("---")
-        status = (
-            jogador["status_contrato"]
-            if pd.notna(jogador["status_contrato"])
-            else "desconhecido"
-        )
-
-        status_color = {
-            "ativo": "🟢",
-            "ultimo_ano": "🟡",
-            "ultimos_6_meses": "🔴",
-            "vencido": "⚫",
-            "livre": "⚪",
-            "desconhecido": "❓",
+        stats_rapidas = {
+            "MÉDIA GERAL": {
+                "value": f"{media_geral:.1f}",
+                "subtitle": "Avaliação Scout Pro"
+            },
+            "POTENCIAL": {
+                "value": f"{ultima.get('nota_potencial', 0):.1f}",
+                "subtitle": "Projeção Futura"
+            },
+            "AVALIAÇÕES": {
+                "value": str(len(avaliacoes)),
+                "subtitle": "Total de Relatórios"
+            }
         }
 
-        status_text = {
-            "ativo": "Contrato Ativo",
-            "ultimo_ano": "Último Ano de Contrato",
-            "ultimos_6_meses": "Vence em Menos de 6 Meses",
-            "vencido": "Contrato Vencido",
-            "livre": "Jogador Livre",
-            "desconhecido": "Status Desconhecido",
-        }
+        criar_secao_stats_rapidas(stats_rapidas)
 
-        st.markdown(
-            f"### {status_color.get(status, '❓')} {status_text.get(status, 'Status Desconhecido')}"
-        )
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        if pd.notna(jogador["data_fim_contrato"]) and status not in [
-            "vencido",
-            "livre",
-        ]:
-            try:
-                data_fim = pd.to_datetime(jogador["data_fim_contrato"], dayfirst=True)
-                dias_restantes = (data_fim - datetime.now()).days
+    # ========================================
+    # STATUS DO CONTRATO (Badge Moderno)
+    # ========================================
 
-                if dias_restantes > 0:
-                    st.info(f"⏱️ **{dias_restantes} dias** até o vencimento do contrato")
-                    dias_totais = 1095
-                    progresso = max(0, min(100, (dias_restantes / dias_totais) * 100))
-                    st.progress(progresso / 100)
-            except Exception:
-                pass
+    status = jogador.get("status_contrato", "desconhecido")
+
+    status_mapping = {
+        "ativo": ("ATIVO", "success"),
+        "ultimo_ano": ("ÚLTIMO ANO", "warning"),
+        "ultimos_6_meses": ("VENCE EM BREVE", "error"),
+        "vencido": ("VENCIDO", "error"),
+        "livre": ("LIVRE", "info"),
+        "desconhecido": ("DESCONHECIDO", "info")
+    }
+
+    status_text, status_tipo = status_mapping.get(status, ("N/A", "info"))
+
+    st.markdown(f"**Status do Contrato:** {criar_badge_status(status_text, status_tipo)}", unsafe_allow_html=True)
+
+    # Barra de progresso do contrato (se aplicável)
+    if pd.notna(jogador.get("data_fim_contrato")) and status not in ["vencido", "livre"]:
+        try:
+            data_fim = pd.to_datetime(jogador["data_fim_contrato"], dayfirst=True)
+            dias_restantes = (data_fim - datetime.now()).days
+
+            if dias_restantes > 0:
+                st.info(f"⏱️ **{dias_restantes} dias** até o vencimento do contrato")
+                dias_totais = 1095
+                progresso = max(0, min(100, (dias_restantes / dias_totais) * 100))
+                st.progress(progresso / 100)
+        except Exception:
+            pass
 
     # ============== SEÇÃO DE AVALIAÇÕES ==============
     st.markdown("---")

@@ -470,16 +470,30 @@ class ScoutingDatabase:
 
     def inserir_avaliacao(self, id_jogador: int, dados_avaliacao: dict) -> bool:
         try:
+            # Mapeia os nomes dos parâmetros corretamente
+            params = {
+                'id': self._safe_int(id_jogador),
+                'data': dados_avaliacao.get('data_avaliacao'),
+                'pot': dados_avaliacao.get('nota_potencial'),
+                'tac': dados_avaliacao.get('nota_tatico'),
+                'tec': dados_avaliacao.get('nota_tecnico'),
+                'fis': dados_avaliacao.get('nota_fisico'),
+                'men': dados_avaliacao.get('nota_mental'),
+                'obs': dados_avaliacao.get('observacoes', ''),
+                'ava': dados_avaliacao.get('avaliador', '')
+            }
+
             with self.engine.connect() as conn:
                 conn.execute(text("""
                     INSERT INTO avaliacoes (id_jogador, data_avaliacao, nota_potencial, nota_tatico,
                     nota_tecnico, nota_fisico, nota_mental, observacoes, avaliador)
                     VALUES (:id, :data, :pot, :tac, :tec, :fis, :men, :obs, :ava)
-                """), {**dados_avaliacao, 'id': self._safe_int(id_jogador)})
+                """), params)
                 conn.commit()
             st.cache_data.clear()
             return True
-        except Exception:
+        except Exception as e:
+            print(f"❌ Erro ao inserir avaliação: {e}")
             return False
 
     def adicionar_wishlist(self, id_jogador, prioridade='media', observacao=None, adicionado_por=None):
