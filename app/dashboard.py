@@ -36,6 +36,13 @@ try:
     from auth import check_password, mostrar_info_usuario
     from dashboard_financeiro import aba_financeira
     from database import ScoutingDatabase
+    from visualizacoes_avancadas import (
+        criar_grafico_percentil,
+        criar_heatmap_performance,
+        criar_scatter_plot_comparativo,
+        criar_grid_cards_estatisticas,
+        criar_barras_gradiente
+    )
 except ImportError as e:
     st.error(f"❌ Erro Crítico de Importação: {e}")
     st.info(f"📂 Caminho tentado: {root_path}")
@@ -861,8 +868,8 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     st.markdown("---")
 
     # Tabs para organizar avaliações
-    tab_avaliacao, tab_historico, tab_evolucao = st.tabs(
-        ["📝 Nova Avaliação", "📊 Histórico", "📈 Evolução"]
+    tab_avaliacao, tab_historico, tab_evolucao, tab_analise_avancada = st.tabs(
+        ["📝 Nova Avaliação", "📊 Histórico", "📈 Evolução", "🎯 Análise Avançada"]
     )
 
     with tab_avaliacao:
@@ -1121,6 +1128,182 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             )
         else:
             st.info("📝 Nenhuma avaliação registrada ainda.")
+
+    with tab_analise_avancada:
+        st.markdown("### 🎯 Análise Avançada de Performance")
+        st.markdown("Visualizações modernas inspiradas em plataformas profissionais de scouting")
+
+        # Buscar avaliações do jogador
+        avaliacoes = db.get_avaliacoes_jogador(id_busca)
+
+        if len(avaliacoes) > 0:
+            # Última avaliação
+            ultima = avaliacoes.iloc[0]
+
+            # Preparar dados do jogador
+            jogador_stats = {
+                'nome': jogador['nome'],
+                'nota_tatico': ultima.get('nota_tatico', 0),
+                'nota_tecnico': ultima.get('nota_tecnico', 0),
+                'nota_fisico': ultima.get('nota_fisico', 0),
+                'nota_mental': ultima.get('nota_mental', 0),
+                'nota_potencial': ultima.get('nota_potencial', 0),
+                'media_geral': (
+                    ultima.get('nota_tatico', 0) +
+                    ultima.get('nota_tecnico', 0) +
+                    ultima.get('nota_fisico', 0) +
+                    ultima.get('nota_mental', 0)
+                ) / 4.0
+            }
+
+            # === SEÇÃO 1: CARDS DE ESTATÍSTICAS ===
+            st.markdown("#### 📊 Métricas Principais")
+
+            # Buscar benchmark da posição para calcular percentis
+            posicao = jogador.get('posicao')
+            benchmark_df = None
+
+            if posicao and pd.notna(posicao):
+                try:
+                    # Query para buscar todos jogadores da mesma posição com avaliações
+                    query_benchmark = text("""
+                        SELECT
+                            j.id_jogador,
+                            j.nome,
+                            a.nota_tatico,
+                            a.nota_tecnico,
+                            a.nota_fisico,
+                            a.nota_mental,
+                            a.nota_potencial,
+                            (a.nota_tatico + a.nota_tecnico + a.nota_fisico + a.nota_mental) / 4.0 as media_geral
+                        FROM jogadores j
+                        INNER JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                        INNER JOIN LATERAL (
+                            SELECT * FROM avaliacoes
+                            WHERE id_jogador = j.id_jogador
+                            ORDER BY data_avaliacao DESC
+                            LIMIT 1
+                        ) a ON true
+                        WHERE v.posicao = :posicao
+                        AND a.id_avaliacao IS NOT NULL
+                    """)
+
+                    result = conn.execute(query_benchmark, {"posicao": posicao})
+                    benchmark_df = pd.DataFrame(result.fetchall(), columns=result.keys())
+
+                except Exception as e:
+                    st.warning(f"⚠️ Não foi possível carregar benchmark: {e}")
+
+            # Renderizar cards
+            cards_html = criar_grid_cards_estatisticas(jogador_stats, benchmark_df)
+            st.markdown(cards_html, unsafe_allow_html=True)
+
+            st.markdown("---")
+
+            # === SEÇÃO 2: GRÁFICO DE PERCENTIL ===
+            if benchmark_df is not None and len(benchmark_df) > 1:
+                st.markdown("#### 📊 Análise de Percentil")
+                st.markdown(f"Comparação com {len(benchmark_df)} jogadores da posição **{posicao}**")
+
+                col1, col2 = st.columns([2, 1])
+
+                with col1:
+                    fig_percentil = criar_grafico_percentil(
+                        jogador_stats,
+                        benchmark_df,
+                        dimensoes=['nota_tatico', 'nota_tecnico', 'nota_fisico', 'nota_mental', 'nota_potencial']
+                    )
+                    st.plotly_chart(fig_percentil, use_container_width=True)
+
+                with col2:
+                    st.markdown("##### 📈 Interpretação")
+                    st.markdown("""
+                    **Percentil** indica a porcentagem de jogadores que estão *abaixo* do desempenho do atleta.
+
+                    - 🟢 **90%+**: Elite (Top 10%)
+                    - 🔵 **75-89%**: Muito Bom (Top 25%)
+                    - 🟡 **50-74%**: Acima da Média
+                    - 🔴 **<50%**: Abaixo da Média
+
+                    Use esta análise para identificar pontos fortes e áreas de desenvolvimento.
+                    """)
+
+                st.markdown("---")
+
+                # === SEÇÃO 3: SCATTER PLOT COMPARATIVO ===
+                st.markdown("#### 🎯 Análise Bidimensional")
+                st.markdown("Compare duas dimensões simultaneamente para identificar perfis de jogadores")
+
+                col_x, col_y = st.columns(2)
+
+                with col_x:
+                    dim_x = st.selectbox(
+                        "Eixo X (Horizontal)",
+                        options=['nota_tecnico', 'nota_tatico', 'nota_fisico', 'nota_mental', 'nota_potencial'],
+                        format_func=lambda x: x.replace('nota_', '').replace('_', ' ').title(),
+                        index=0
+                    )
+
+                with col_y:
+                    dim_y = st.selectbox(
+                        "Eixo Y (Vertical)",
+                        options=['nota_fisico', 'nota_tatico', 'nota_tecnico', 'nota_mental', 'nota_potencial'],
+                        format_func=lambda x: x.replace('nota_', '').replace('_', ' ').title(),
+                        index=0
+                    )
+
+                if dim_x != dim_y:
+                    fig_scatter = criar_scatter_plot_comparativo(
+                        benchmark_df,
+                        dim_x=dim_x,
+                        dim_y=dim_y,
+                        highlight_jogadores=[jogador['nome']],
+                        posicao_filtro=posicao
+                    )
+                    st.plotly_chart(fig_scatter, use_container_width=True)
+                else:
+                    st.warning("⚠️ Selecione dimensões diferentes para o eixo X e Y")
+
+                st.markdown("---")
+
+                # === SEÇÃO 4: HEATMAP DE PERFORMANCE ===
+                st.markdown("#### 🔥 Heatmap Comparativo")
+                st.markdown(f"Comparação visual com os top jogadores da posição **{posicao}**")
+
+                # Filtrar jogador + top 14 da posição
+                benchmark_sorted = benchmark_df.sort_values('media_geral', ascending=False)
+
+                # Garantir que o jogador atual está incluído
+                outros_jogadores = benchmark_sorted[benchmark_sorted['nome'] != jogador['nome']].head(14)
+                jogador_row = benchmark_sorted[benchmark_sorted['nome'] == jogador['nome']]
+
+                df_heatmap = pd.concat([jogador_row, outros_jogadores], ignore_index=True)
+
+                fig_heatmap = criar_heatmap_performance(
+                    df_heatmap,
+                    dimensoes=['nota_tatico', 'nota_tecnico', 'nota_fisico', 'nota_mental', 'nota_potencial'],
+                    max_jogadores=15
+                )
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+
+            else:
+                st.info("📊 Benchmark não disponível. É necessário ter mais jogadores avaliados na mesma posição para análises comparativas.")
+
+                # Mostrar apenas os cards
+                st.markdown("#### 📈 Perfil Individual")
+                st.markdown("Avaliações do jogador (sem comparação)")
+
+                # Gráfico de barras simples
+                fig_barras = criar_barras_gradiente(
+                    pd.DataFrame([jogador_stats]),
+                    metrica='media_geral',
+                    top_n=1,
+                    titulo=f"Perfil de {jogador['nome']}"
+                )
+                st.plotly_chart(fig_barras, use_container_width=True)
+
+        else:
+            st.info("📝 Nenhuma avaliação registrada ainda. Adicione avaliações na aba 'Nova Avaliação' para ver análises avançadas.")
 
     # Informações adicionais
     st.markdown("---")
