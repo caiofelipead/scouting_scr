@@ -38,7 +38,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     .player-name {
         font-size: 42px;
         font-weight: 900;
-        color: #ffffff;
+        color: #ffffff !important;
         margin-bottom: 8px;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         line-height: 1.2;
@@ -47,7 +47,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     .player-position {
         font-size: 18px;
         font-weight: 600;
-        color: rgba(255,255,255,0.95);
+        color: rgba(255,255,255,0.95) !important;
         text-transform: uppercase;
         letter-spacing: 2px;
         margin-bottom: 16px;
@@ -67,7 +67,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     .club-name {
         font-size: 20px;
         font-weight: 700;
-        color: #ffffff;
+        color: #ffffff !important;
     }
 
     .league-badge {
@@ -76,7 +76,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         border-radius: 8px;
         font-size: 13px;
         font-weight: 600;
-        color: #ffffff;
+        color: #ffffff !important;
     }
 
     .info-chip {
@@ -86,16 +86,16 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         border-radius: 20px;
         margin: 4px;
         font-size: 14px;
-        color: #ffffff;
+        color: #ffffff !important;
     }
 
     .info-chip-label {
-        color: rgba(255,255,255,0.8);
+        color: rgba(255,255,255,0.8) !important;
         font-weight: 500;
     }
 
     .info-chip-value {
-        color: #ffffff;
+        color: #ffffff !important;
         font-weight: 700;
         margin-left: 6px;
     }
