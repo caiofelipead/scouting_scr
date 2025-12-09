@@ -22,16 +22,17 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         foto_path: Caminho para a foto do jogador
     """
 
-    # CSS customizado para o header
+    # CSS customizado para o header - ULTRA DARK MODE
     st.markdown("""
     <style>
-    /* Container principal do header */
+    /* Container principal do header - QUASE PRETO */
     .player-header {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+        background: linear-gradient(135deg, #0a0a0a 0%, #000000 100%) !important;
         border-radius: 16px;
         padding: 32px;
         margin-bottom: 24px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.9);
+        border: 1px solid #1a1a1a;
     }
 
     /* Garantir que divs dentro do header tenham background escuro */
@@ -44,14 +45,14 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         font-weight: 900;
         color: #ffffff !important;
         margin-bottom: 8px;
-        text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+        text-shadow: 2px 2px 12px rgba(0, 191, 255, 0.5);
         line-height: 1.2;
     }
 
     .player-position {
         font-size: 18px;
         font-weight: 600;
-        color: #3b82f6;
+        color: #00bfff;
         text-transform: uppercase;
         letter-spacing: 2px;
         margin-bottom: 16px;
@@ -62,10 +63,11 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         align-items: center;
         gap: 12px;
         margin-top: 16px;
-        background: rgba(255,255,255,0.05);
+        background: #0a0a0a !important;
         padding: 12px 20px;
         border-radius: 12px;
-        border-left: 4px solid #3b82f6;
+        border-left: 4px solid #00bfff;
+        border: 1px solid #1a1a1a;
     }
 
     .club-name {
@@ -75,26 +77,28 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     }
 
     .league-badge {
-        background: rgba(59, 130, 246, 0.2);
+        background: rgba(0, 191, 255, 0.15);
         padding: 6px 12px;
         border-radius: 8px;
         font-size: 13px;
         font-weight: 600;
-        color: #93c5fd;
+        color: #00bfff;
+        border: 1px solid rgba(0, 191, 255, 0.3);
     }
 
     .info-chip {
         display: inline-block;
-        background: rgba(255,255,255,0.08);
+        background: #0a0a0a !important;
         padding: 8px 16px;
         border-radius: 20px;
         margin: 4px;
         font-size: 14px;
-        color: #e2e8f0;
+        color: #ffffff;
+        border: 1px solid #1a1a1a;
     }
 
     .info-chip-label {
-        color: #94a3b8;
+        color: #888888 !important;
         font-weight: 500;
     }
 
@@ -104,33 +108,30 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         margin-left: 6px;
     }
 
-    .info-chip-label {
-        color: #94a3b8 !important;
-    }
-
     .player-photo {
         border-radius: 16px;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-        border: 4px solid rgba(255,255,255,0.1);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.9);
+        border: 4px solid #1a1a1a;
     }
 
     .stat-card-pro {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
+        background: #0a0a0a !important;
         border-radius: 12px;
         padding: 20px;
         text-align: center;
-        border: 1px solid rgba(59, 130, 246, 0.3);
+        border: 1px solid #1a1a1a;
         transition: all 0.3s ease;
     }
 
     .stat-card-pro:hover {
         transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 8px 24px rgba(0, 191, 255, 0.3);
+        border-color: #00bfff;
     }
 
     .stat-label-pro {
         font-size: 12px;
-        color: #94a3b8;
+        color: #888888;
         text-transform: uppercase;
         letter-spacing: 1px;
         font-weight: 600;
@@ -141,12 +142,12 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         font-size: 32px;
         font-weight: 900;
         color: #ffffff;
-        text-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        text-shadow: 0 2px 8px rgba(0, 191, 255, 0.6);
     }
 
     .stat-subtitle-pro {
         font-size: 11px;
-        color: #64748b;
+        color: #666666;
         margin-top: 4px;
     }
     </style>
