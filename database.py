@@ -593,6 +593,50 @@ class ScoutingDatabase:
     def fechar_conexao(self):
         self.engine.dispose()
 
+    def atualizar_status_contratos(self):
+        """
+        Atualiza automaticamente o status dos contratos baseado na data_fim_contrato
+
+        Regras:
+        - livre: sem contrato ou data_fim_contrato vazia
+        - vencido: data_fim_contrato no passado
+        - ultimos_6_meses: faltam 180 dias ou menos
+        - ultimo_ano: faltam 365 dias ou menos (mas mais de 180)
+        - ativo: mais de 365 dias restantes
+        """
+        try:
+            with self.engine.connect() as conn:
+                if self.db_type == 'postgresql':
+                    query = text("""
+                        UPDATE vinculos_clubes
+                        SET status_contrato = CASE
+                            WHEN data_fim_contrato IS NULL THEN 'livre'
+                            WHEN data_fim_contrato < CURRENT_DATE THEN 'vencido'
+                            WHEN data_fim_contrato <= CURRENT_DATE + INTERVAL '180 days' THEN 'ultimos_6_meses'
+                            WHEN data_fim_contrato <= CURRENT_DATE + INTERVAL '365 days' THEN 'ultimo_ano'
+                            ELSE 'ativo'
+                        END
+                    """)
+                else:
+                    query = text("""
+                        UPDATE vinculos_clubes
+                        SET status_contrato = CASE
+                            WHEN data_fim_contrato IS NULL THEN 'livre'
+                            WHEN date(data_fim_contrato) < date('now') THEN 'vencido'
+                            WHEN date(data_fim_contrato) <= date('now', '+180 days') THEN 'ultimos_6_meses'
+                            WHEN date(data_fim_contrato) <= date('now', '+365 days') THEN 'ultimo_ano'
+                            ELSE 'ativo'
+                        END
+                    """)
+
+                conn.execute(query)
+                conn.commit()
+                st.cache_data.clear()  # Limpar cache para refletir mudanças
+                return True
+        except Exception as e:
+            print(f"❌ Erro ao atualizar status dos contratos: {e}")
+            return False
+
 def get_database():
     return ScoutingDatabase()
 

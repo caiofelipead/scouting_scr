@@ -3282,6 +3282,14 @@ def main():
     db.criar_tabelas()
     db.criar_tabelas()
 
+    # Atualizar status dos contratos automaticamente (1x por sessão)
+    if 'status_contratos_atualizado' not in st.session_state:
+        try:
+            db.atualizar_status_contratos()
+            st.session_state.status_contratos_atualizado = True
+        except Exception as e:
+            print(f"⚠️ Erro ao atualizar status de contratos: {e}")
+
     # Verificar query parameters na URL
     query_params = st.query_params
     jogador_id_url = query_params.get("jogador", None)

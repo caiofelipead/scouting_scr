@@ -7,7 +7,6 @@ import re
 import requests
 from bs4 import BeautifulSoup
 import streamlit as st
-from functools import lru_cache
 
 
 def extrair_id_da_url(tm_value):
@@ -35,81 +34,83 @@ def extrair_id_da_url(tm_value):
     return None
 
 
-@lru_cache(maxsize=1000)
+@st.cache_data(ttl=86400)  # Cache por 24 horas
 def extrair_url_foto_transfermarkt(tm_id, usar_scraping=True):
     """
     Extrai a URL da foto do Transfermarkt
-    
+
     Args:
         tm_id: ID numérico do Transfermarkt
         usar_scraping: Se True, faz scraping da página (mais lento mas confiável)
                        Se False, usa URL padrão (rápido mas pode falhar)
-    
+
     Returns:
         URL da foto ou None
     """
     if not tm_id:
         return None
-    
-    # MÉTODO 1: URL Padrão (RÁPIDO - tente primeiro)
+
+    # MÉTODO 1: URLs Padrão (RÁPIDO - tente primeiro)
     if not usar_scraping:
-        # URLs comuns do Transfermarkt
+        # URLs comuns do Transfermarkt (múltiplos CDNs)
         urls_padrao = [
             f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg",
+            f"https://tmssl.akamaized.net/images/portrait/big/{tm_id}.jpg",
             f"https://img.a.transfermarkt.technology/portrait/medium/{tm_id}.jpg",
+            f"https://tmssl.akamaized.net/images/portrait/medium/{tm_id}.jpg",
         ]
-        
+
         for url in urls_padrao:
             try:
-                response = requests.head(url, timeout=2)
+                response = requests.head(url, timeout=3, allow_redirects=True)
                 if response.status_code == 200:
                     return url
             except:
                 continue
-        
+
         # Se falhar, tenta scraping
         usar_scraping = True
-    
+
     # MÉTODO 2: Scraping (CONFIÁVEL mas mais lento)
     if usar_scraping:
         url_pagina = f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}"
-        
+
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
-        
+
         try:
             response = requests.get(url_pagina, headers=headers, timeout=10)
-            
+
             if response.status_code != 200:
                 return None
-            
+
             soup = BeautifulSoup(response.content, "html.parser")
-            
+
             # Procurar pela tag img com a foto
             # Método 1: Buscar no modal da foto
-            modal_img = soup.find("img", {"src": re.compile(r"portrait/big/.*\.jpg")})
+            modal_img = soup.find("img", {"src": re.compile(r"portrait/(big|medium)/.*\.jpg")})
             if modal_img and modal_img.get("src"):
                 url_foto = modal_img["src"].split("?")[0]
                 return url_foto
-            
+
             # Método 2: Buscar em data-src
-            modal_img = soup.find("img", {"data-src": re.compile(r"portrait/big/.*\.jpg")})
+            modal_img = soup.find("img", {"data-src": re.compile(r"portrait/(big|medium)/.*\.jpg")})
             if modal_img and modal_img.get("data-src"):
                 url_foto = modal_img["data-src"].split("?")[0]
                 return url_foto
-            
-            # Método 3: Buscar qualquer img com portrait/big
+
+            # Método 3: Buscar qualquer img com portrait
             for img in soup.find_all("img"):
                 src = img.get("src", "") or img.get("data-src", "")
-                if "portrait/big" in src and ".jpg" in src:
+                if "portrait" in src and ".jpg" in src:
                     url_foto = src.split("?")[0]
                     return url_foto
-            
+
         except Exception as e:
             print(f"Erro no scraping: {e}")
             return None
-    
+
     return None
 
 
@@ -188,17 +189,34 @@ def exibir_foto_jogador(id_jogador, transfermarkt_id=None, nome="Jogador", width
     st.image(url_foto, width=width)
 
 
+@st.cache_data(ttl=86400)  # Cache por 24 horas
 def get_foto_jogador_rapido(transfermarkt_id):
     """
-    Versão ultra-rápida: apenas URL padrão, sem scraping
+    Versão ultra-rápida: tenta múltiplas URLs do Transfermarkt
     Use quando performance é crítica (lista com muitos jogadores)
     """
     if not transfermarkt_id:
-        return "https://via.placeholder.com/150?text=Sem+Foto"
-    
+        return "https://ui-avatars.com/api/?name=?&size=200&background=667eea&color=fff&bold=true"
+
     tm_id = extrair_id_da_url(transfermarkt_id)
-    
+
     if tm_id:
-        return f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg"
-    
-    return "https://via.placeholder.com/150?text=Sem+Foto"
+        # Tentar múltiplas URLs do Transfermarkt (CDN)
+        urls_tentativa = [
+            f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg",
+            f"https://img.a.transfermarkt.technology/portrait/medium/{tm_id}.jpg",
+            f"https://tmssl.akamaized.net/images/portrait/big/{tm_id}.jpg",
+        ]
+
+        for url in urls_tentativa:
+            try:
+                response = requests.head(url, timeout=2, allow_redirects=True)
+                if response.status_code == 200:
+                    return url
+            except:
+                continue
+
+        # Se nenhuma funcionar, retorna a primeira mesmo assim (browser pode carregar)
+        return urls_tentativa[0]
+
+    return "https://ui-avatars.com/api/?name=?&size=200&background=667eea&color=fff&bold=true"
