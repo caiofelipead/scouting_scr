@@ -25,20 +25,27 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     # CSS customizado para o header
     st.markdown("""
     <style>
+    /* Container principal do header */
     .player-header {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
         border-radius: 16px;
         padding: 32px;
         margin-bottom: 24px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     }
 
+    /* Garantir que divs dentro do header tenham background escuro */
+    .player-header div {
+        background-color: transparent !important;
+    }
+
     .player-name {
         font-size: 42px;
         font-weight: 900;
-        color: #ffffff;
+        color: #ffffff !important;
         margin-bottom: 8px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+        line-height: 1.2;
     }
 
     .player-position {
@@ -64,7 +71,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     .club-name {
         font-size: 20px;
         font-weight: 700;
-        color: #ffffff;
+        color: #ffffff !important;
     }
 
     .league-badge {
@@ -92,9 +99,13 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     }
 
     .info-chip-value {
-        color: #ffffff;
+        color: #ffffff !important;
         font-weight: 700;
         margin-left: 6px;
+    }
+
+    .info-chip-label {
+        color: #94a3b8 !important;
     }
 
     .player-photo {
@@ -140,6 +151,9 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     }
     </style>
     """, unsafe_allow_html=True)
+
+    # Container com background escuro
+    st.markdown('<div class="player-header">', unsafe_allow_html=True)
 
     # Layout principal: 3 colunas (foto | info | stats)
     col_foto, col_info, col_stats = st.columns([1, 2, 1])
@@ -236,11 +250,29 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
 
         if info_chips:
             st.markdown("<div>" + "".join(info_chips) + "</div>", unsafe_allow_html=True)
+        else:
+            # Aviso se não houver dados preenchidos
+            st.markdown("""
+            <div style='
+                background: rgba(251, 191, 36, 0.1);
+                border-left: 4px solid #f59e0b;
+                padding: 12px 16px;
+                border-radius: 8px;
+                margin-top: 12px;
+            '>
+                <span style='color: #fbbf24; font-size: 13px;'>
+                    ℹ️ Complete o perfil do jogador para ver mais informações (idade, altura, nacionalidade, etc.)
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
 
     with col_stats:
         st.markdown("<br>", unsafe_allow_html=True)
         # Cards de estatísticas rápidas (serão preenchidos depois)
         pass
+
+    # Fechar container do header
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def criar_secao_stats_rapidas(stats: Dict) -> None:
