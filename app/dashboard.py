@@ -76,192 +76,107 @@ if not check_password():
 # Se passou do login, mostra info do usuário
 mostrar_info_usuario()
 
-# CSS Profissional - Scout Pro (ULTRA DARK MODE - FORÇADO)
+# CSS Profissional - Scout Pro (Tema Claro Natural)
 st.markdown(
     """
     <style>
-    /* === FORÇA TUDO PARA PRETO - MÁXIMA PRIORIDADE === */
+    /* === TEMA CLARO NATURAL === */
 
-    /* Força universal */
-    * {
-        background-color: transparent !important;
+    .main {
+        padding: 0rem 1rem;
     }
 
-    /* Fundo PRETO */
-    .stApp, .main, body, html {
-        background-color: #000000 !important;
-    }
-
-    /* Força sections e divs */
-    section, div, [data-testid="stVerticalBlock"], [data-testid="stHorizontalBlock"] {
-        background-color: transparent !important;
-    }
-
-    /* Força texto BRANCO em tudo */
-    p, span, div, label, li, td, th {
-        color: #ffffff !important;
-    }
-
-    /* Header com gradiente escuro */
+    /* Header com gradiente roxo/azul */
     .header-container {
-        background: linear-gradient(135deg, #0a0a0a 0%, #000000 100%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1.5rem 2rem;
         border-radius: 12px;
         margin-bottom: 2rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.9);
-        border: 1px solid #1a1a1a;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
     }
 
     .header-title {
-        color: white !important;
+        color: white;
         font-size: 2.5rem;
         font-weight: bold;
         margin: 0;
-        text-shadow: 2px 2px 8px rgba(0, 191, 255, 0.5);
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
     }
 
     .header-subtitle {
-        color: rgba(255,255,255,0.95) !important;
+        color: rgba(255,255,255,0.95);
         font-size: 1.1rem;
         margin: 0.5rem 0 0 0;
     }
 
-    /* Métricas melhoradas - ULTRA DARK */
+    /* Métricas melhoradas */
     div[data-testid="stMetric"] {
-        background: #0a0a0a !important;
+        background: rgba(102, 126, 234, 0.05);
         padding: 1.2rem;
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.9);
-        border-left: 4px solid #00bfff;
-        border: 1px solid #1a1a1a;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-left: 4px solid #667eea;
     }
 
     div[data-testid="stMetric"]:hover {
         transform: translateY(-3px);
-        box-shadow: 0 6px 16px rgba(0, 191, 255, 0.3);
-        border-color: #00bfff;
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
         transition: all 0.2s ease;
     }
 
-    /* Labels das métricas - texto claro */
-    div[data-testid="stMetric"] label {
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
-        color: #888888 !important;
-    }
-
-    /* Valores das métricas - destaque ciano */
-    div[data-testid="stMetric"] > div {
-        font-size: 1.8rem !important;
-        font-weight: 700 !important;
-        color: #00bfff !important;
-    }
-
-    /* Tabs customizadas - ULTRA DARK */
+    /* Tabs customizadas */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
-        background-color: #0a0a0a !important;
         padding: 0.75rem;
         border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.9);
-        border: 1px solid #1a1a1a;
     }
 
     .stTabs [data-baseweb="tab"] {
         height: 55px;
-        background-color: #000000 !important;
         border-radius: 10px;
-        color: #ffffff !important;
         font-weight: 600;
         font-size: 0.95rem;
         padding: 0 1.5rem;
-        border: 1px solid #1a1a1a;
-    }
-
-    .stTabs [data-baseweb="tab"]:hover {
-        background-color: #1a1a1a !important;
     }
 
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%) !important;
-        color: white !important;
-        border-color: #00bfff;
-        box-shadow: 0 4px 8px rgba(0, 191, 255, 0.4);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
     }
 
-    /* Sidebar - ULTRA DARK */
-    [data-testid="stSidebar"] {
-        background-color: #000000 !important;
-    }
-
-    [data-testid="stSidebar"] > div {
-        background-color: #000000 !important;
-    }
-
-    /* Botões */
+    /* Botões com gradiente */
     .stButton>button {
         border-radius: 8px;
         font-weight: 600;
-        border: 1px solid #1a1a1a;
-        background-color: #0a0a0a !important;
+        transition: all 0.2s ease;
     }
 
     .stButton>button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
-        border-color: #00bfff;
-        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
 
     /* Imagens dos jogadores */
     img {
         border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.9);
-        border: 2px solid #1a1a1a;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    /* Cards */
-    .element-container {
-        transition: all 0.2s ease;
-    }
-
-    /* Scrollbar customizada - ULTRA DARK */
-    ::-webkit-scrollbar {
-        width: 12px;
-        height: 12px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: #000000;
-        border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%);
-        border-radius: 10px;
-        border: 2px solid #000000;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(135deg, #0080ff 0%, #00bfff 100%);
-    }
-
-    /* === TABELAS HTML - ULTRA DARK === */
+    /* Tabelas limpas */
     table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.9em;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.9);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         border-radius: 10px;
         overflow: hidden;
-        background: #0a0a0a !important;
         margin: 1rem 0;
-        border: 1px solid #1a1a1a;
     }
 
     th {
-        background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%) !important;
-        color: white !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
         padding: 14px 12px;
         text-align: left;
         font-weight: 600;
@@ -272,59 +187,36 @@ st.markdown(
 
     td {
         padding: 12px;
-        border-bottom: 1px solid #1a1a1a;
-        color: #ffffff !important;
+        border-bottom: 1px solid #e2e8f0;
     }
 
     tr:nth-child(even) {
-        background-color: #000000 !important;
+        background-color: #f8f9fa;
     }
 
     tr:hover {
-        background-color: rgba(0, 191, 255, 0.1) !important;
+        background-color: rgba(102, 126, 234, 0.05);
         transition: background-color 0.2s;
     }
 
-    /* Links na tabela - ULTRA DARK */
+    /* Links na tabela */
     table a {
-        color: #00bfff !important;
+        color: #667eea;
         text-decoration: none;
         font-weight: 600;
         padding: 0.3rem 0.8rem;
         border-radius: 6px;
-        background: rgba(0, 191, 255, 0.15);
-        border: 1px solid rgba(0, 191, 255, 0.3);
+        background: rgba(102, 126, 234, 0.1);
+        border: 1px solid rgba(102, 126, 234, 0.2);
         transition: all 0.2s;
         display: inline-block;
     }
 
     table a:hover {
-        background: #00bfff;
-        color: #000000 !important;
+        background: #667eea;
+        color: white;
         text-decoration: none;
         transform: scale(1.05);
-    }
-
-    /* Input fields - ULTRA DARK */
-    .stTextInput input, .stSelectbox select, .stNumberInput input {
-        background-color: #0a0a0a !important;
-        color: #ffffff !important;
-        border-color: #1a1a1a !important;
-    }
-
-    /* Text color global */
-    p, span, div, label {
-        color: #ffffff !important;
-    }
-
-    /* Headers h1, h2, h3 */
-    h1, h2, h3, h4, h5, h6 {
-        color: #ffffff !important;
-    }
-
-    /* Força texto branco em todos elementos de texto */
-    .stMarkdown, .stText {
-        color: #ffffff !important;
     }
     </style>
     """,

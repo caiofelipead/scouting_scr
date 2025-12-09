@@ -23,37 +23,31 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         foto_path: Caminho para a foto do jogador
     """
 
-    # CSS customizado para o header - ULTRA DARK MODE
+    # CSS customizado para o header - Tema Claro
     st.markdown("""
     <style>
-    /* Container principal do header - QUASE PRETO */
+    /* Container principal do header */
     .player-header {
-        background: linear-gradient(135deg, #0a0a0a 0%, #000000 100%) !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 16px;
         padding: 32px;
         margin-bottom: 24px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.9);
-        border: 1px solid #1a1a1a;
-    }
-
-    /* Garantir que divs dentro do header tenham background escuro */
-    .player-header div {
-        background-color: transparent !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.15);
     }
 
     .player-name {
         font-size: 42px;
         font-weight: 900;
-        color: #ffffff !important;
+        color: #ffffff;
         margin-bottom: 8px;
-        text-shadow: 2px 2px 12px rgba(0, 191, 255, 0.5);
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         line-height: 1.2;
     }
 
     .player-position {
         font-size: 18px;
         font-weight: 600;
-        color: #00bfff;
+        color: rgba(255,255,255,0.95);
         text-transform: uppercase;
         letter-spacing: 2px;
         margin-bottom: 16px;
@@ -64,75 +58,71 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         align-items: center;
         gap: 12px;
         margin-top: 16px;
-        background: #0a0a0a !important;
+        background: rgba(255,255,255,0.15);
         padding: 12px 20px;
         border-radius: 12px;
-        border-left: 4px solid #00bfff;
-        border: 1px solid #1a1a1a;
+        border-left: 4px solid rgba(255,255,255,0.5);
     }
 
     .club-name {
         font-size: 20px;
         font-weight: 700;
-        color: #ffffff !important;
+        color: #ffffff;
     }
 
     .league-badge {
-        background: rgba(0, 191, 255, 0.15);
+        background: rgba(255,255,255,0.2);
         padding: 6px 12px;
         border-radius: 8px;
         font-size: 13px;
         font-weight: 600;
-        color: #00bfff;
-        border: 1px solid rgba(0, 191, 255, 0.3);
+        color: #ffffff;
     }
 
     .info-chip {
         display: inline-block;
-        background: #0a0a0a !important;
+        background: rgba(255,255,255,0.15);
         padding: 8px 16px;
         border-radius: 20px;
         margin: 4px;
         font-size: 14px;
         color: #ffffff;
-        border: 1px solid #1a1a1a;
     }
 
     .info-chip-label {
-        color: #888888 !important;
+        color: rgba(255,255,255,0.8);
         font-weight: 500;
     }
 
     .info-chip-value {
-        color: #ffffff !important;
+        color: #ffffff;
         font-weight: 700;
         margin-left: 6px;
     }
 
     .player-photo {
         border-radius: 16px;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.9);
-        border: 4px solid #1a1a1a;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        border: 4px solid rgba(255,255,255,0.3);
     }
 
     .stat-card-pro {
-        background: #0a0a0a !important;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
         border-radius: 12px;
         padding: 20px;
         text-align: center;
-        border: 1px solid #1a1a1a;
+        border: 1px solid rgba(102, 126, 234, 0.2);
         transition: all 0.3s ease;
     }
 
     .stat-card-pro:hover {
         transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 191, 255, 0.3);
-        border-color: #00bfff;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
     }
 
     .stat-label-pro {
         font-size: 12px;
-        color: #888888;
+        color: #667eea;
         text-transform: uppercase;
         letter-spacing: 1px;
         font-weight: 600;
@@ -142,13 +132,13 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     .stat-value-pro {
         font-size: 32px;
         font-weight: 900;
-        color: #ffffff;
-        text-shadow: 0 2px 8px rgba(0, 191, 255, 0.6);
+        color: #2c3e50;
+        text-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
     }
 
     .stat-subtitle-pro {
         font-size: 11px;
-        color: #666666;
+        color: #718096;
         margin-top: 4px;
     }
     </style>
