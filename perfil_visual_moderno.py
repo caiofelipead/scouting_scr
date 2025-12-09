@@ -26,7 +26,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     # CSS customizado para o header - Tema Claro
     st.markdown("""
     <style>
-    /* Container principal do header */
+    /* Container principal do header - QUASE PRETO */
     .player-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 16px;
@@ -38,7 +38,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     .player-name {
         font-size: 42px;
         font-weight: 900;
-        color: #ffffff !important;
+        color: #ffffff;
         margin-bottom: 8px;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         line-height: 1.2;
@@ -67,7 +67,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     .club-name {
         font-size: 20px;
         font-weight: 700;
-        color: #ffffff !important;
+        color: #ffffff;
     }
 
     .league-badge {
@@ -95,7 +95,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     }
 
     .info-chip-value {
-        color: #ffffff !important;
+        color: #ffffff;
         font-weight: 700;
         margin-left: 6px;
     }
