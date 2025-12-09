@@ -193,29 +193,22 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         posicao = jogador.get('posicao', 'N/A')
         st.markdown(f"<div class='player-position'>🎯 {posicao}</div>", unsafe_allow_html=True)
 
-        # Informações do clube com logos
+        # Informações do clube com emojis estilizados
         clube = jogador.get('clube', '')
         liga = jogador.get('liga_clube', '')
 
         if clube or liga:
             club_html = "<div class='club-info'>"
 
-            # Logo do clube
-            logo_clube = get_logo_clube(clube) if clube else None
-            if logo_clube:
-                club_html += f'<img src="{logo_clube}" width="40" height="40" style="object-fit: contain;">'
-
-            # Nome do clube
+            # Emoji do clube (sempre visível)
             if clube:
+                club_html += f'<span style="font-size: 32px; margin-right: 12px;">⚽</span>'
                 club_html += f"<span class='club-name'>{clube}</span>"
 
-            # Logo da liga
-            logo_liga = get_logo_liga(liga) if liga else None
-            if logo_liga:
-                club_html += f'<img src="{logo_liga}" width="32" height="32" style="object-fit: contain; margin-left: auto;">'
-
-            # Nome da liga
+            # Emoji da liga
             if liga:
+                liga_emoji = "🏆" if "Série A" in liga or "Serie A" in liga else "🏅"
+                club_html += f'<span style="font-size: 24px; margin-left: auto; margin-right: 8px;">{liga_emoji}</span>'
                 club_html += f"<span class='league-badge'>{liga}</span>"
 
             club_html += "</div>"
