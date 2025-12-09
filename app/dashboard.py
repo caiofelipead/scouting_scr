@@ -43,6 +43,12 @@ try:
         criar_grid_cards_estatisticas,
         criar_barras_gradiente
     )
+    from perfil_visual_moderno import (
+        criar_header_profissional,
+        criar_secao_stats_rapidas,
+        criar_cards_categorias,
+        criar_badge_status
+    )
 except ImportError as e:
     st.error(f"❌ Erro Crítico de Importação: {e}")
     st.info(f"📂 Caminho tentado: {root_path}")
