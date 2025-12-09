@@ -76,30 +76,36 @@ if not check_password():
 # Se passou do login, mostra info do usuário
 mostrar_info_usuario()
 
-# CSS Profissional - Scout Pro (DARK MODE)
+# CSS Profissional - Scout Pro (ULTRA DARK MODE - QUASE PRETO)
 st.markdown(
     """
     <style>
-    /* === DARK MODE THEME === */
+    /* === ULTRA DARK MODE - QUASE PRETO === */
 
-    /* Layout principal com fundo escuro */
+    /* Layout principal com fundo PRETO */
     .main {
         padding: 0rem 1rem;
-        background-color: #0f172a !important;
+        background-color: #000000 !important;
     }
 
-    /* Forçar tema escuro em todos elementos */
+    /* Forçar tema PRETO em todos elementos */
     .stApp {
-        background-color: #0f172a !important;
+        background-color: #000000 !important;
     }
 
-    /* Header com gradiente */
+    /* Força fundo preto em todas seções */
+    section, div {
+        background-color: transparent !important;
+    }
+
+    /* Header com gradiente escuro */
     .header-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #0a0a0a 0%, #000000 100%);
         padding: 1.5rem 2rem;
         border-radius: 12px;
         margin-bottom: 2rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.9);
+        border: 1px solid #1a1a1a;
     }
 
     .header-title {
@@ -107,7 +113,7 @@ st.markdown(
         font-size: 2.5rem;
         font-weight: bold;
         margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        text-shadow: 2px 2px 8px rgba(0, 191, 255, 0.5);
     }
 
     .header-subtitle {
@@ -116,18 +122,20 @@ st.markdown(
         margin: 0.5rem 0 0 0;
     }
 
-    /* Métricas melhoradas - DARK MODE */
+    /* Métricas melhoradas - ULTRA DARK */
     div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
+        background: #0a0a0a !important;
         padding: 1.2rem;
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        border-left: 4px solid #3b82f6;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.9);
+        border-left: 4px solid #00bfff;
+        border: 1px solid #1a1a1a;
     }
 
     div[data-testid="stMetric"]:hover {
         transform: translateY(-3px);
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 6px 16px rgba(0, 191, 255, 0.3);
+        border-color: #00bfff;
         transition: all 0.2s ease;
     }
 
@@ -135,73 +143,77 @@ st.markdown(
     div[data-testid="stMetric"] label {
         font-size: 0.9rem !important;
         font-weight: 600 !important;
-        color: #94a3b8 !important;
+        color: #888888 !important;
     }
 
-    /* Valores das métricas - destaque azul */
+    /* Valores das métricas - destaque ciano */
     div[data-testid="stMetric"] > div {
         font-size: 1.8rem !important;
         font-weight: 700 !important;
-        color: #3b82f6 !important;
+        color: #00bfff !important;
     }
 
-    /* Tabs customizadas - DARK MODE */
+    /* Tabs customizadas - ULTRA DARK */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
-        background-color: rgba(30, 41, 59, 0.5) !important;
+        background-color: #0a0a0a !important;
         padding: 0.75rem;
         border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.9);
+        border: 1px solid #1a1a1a;
     }
 
     .stTabs [data-baseweb="tab"] {
         height: 55px;
-        background-color: rgba(51, 65, 85, 0.6) !important;
+        background-color: #000000 !important;
         border-radius: 10px;
-        color: #cbd5e1 !important;
+        color: #ffffff !important;
         font-weight: 600;
         font-size: 0.95rem;
         padding: 0 1.5rem;
-        border: 2px solid transparent;
+        border: 1px solid #1a1a1a;
     }
 
     .stTabs [data-baseweb="tab"]:hover {
-        background-color: rgba(71, 85, 105, 0.8) !important;
+        background-color: #1a1a1a !important;
     }
 
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+        background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%) !important;
         color: white !important;
-        border-color: #3b82f6;
-        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+        border-color: #00bfff;
+        box-shadow: 0 4px 8px rgba(0, 191, 255, 0.4);
     }
 
-    /* Sidebar - DARK MODE */
+    /* Sidebar - ULTRA DARK */
     [data-testid="stSidebar"] {
-        background-color: #1e293b !important;
+        background-color: #000000 !important;
     }
 
     [data-testid="stSidebar"] > div {
-        background-color: #1e293b !important;
+        background-color: #000000 !important;
     }
 
     /* Botões */
     .stButton>button {
         border-radius: 8px;
         font-weight: 600;
-        border: 2px solid transparent;
+        border: 1px solid #1a1a1a;
+        background-color: #0a0a0a !important;
     }
 
     .stButton>button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
+        border-color: #00bfff;
         transition: all 0.2s ease;
     }
 
     /* Imagens dos jogadores */
     img {
         border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.9);
+        border: 2px solid #1a1a1a;
     }
 
     /* Cards */
@@ -209,41 +221,42 @@ st.markdown(
         transition: all 0.2s ease;
     }
 
-    /* Scrollbar customizada - DARK MODE */
+    /* Scrollbar customizada - ULTRA DARK */
     ::-webkit-scrollbar {
         width: 12px;
         height: 12px;
     }
 
     ::-webkit-scrollbar-track {
-        background: #1e293b;
+        background: #000000;
         border-radius: 10px;
     }
 
     ::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%);
         border-radius: 10px;
-        border: 2px solid #1e293b;
+        border: 2px solid #000000;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        background: linear-gradient(135deg, #0080ff 0%, #00bfff 100%);
     }
 
-    /* === TABELAS HTML - DARK MODE === */
+    /* === TABELAS HTML - ULTRA DARK === */
     table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.9em;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.9);
         border-radius: 10px;
         overflow: hidden;
-        background: #1e293b !important;
+        background: #0a0a0a !important;
         margin: 1rem 0;
+        border: 1px solid #1a1a1a;
     }
 
     th {
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+        background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%) !important;
         color: white !important;
         padding: 14px 12px;
         text-align: left;
@@ -255,53 +268,59 @@ st.markdown(
 
     td {
         padding: 12px;
-        border-bottom: 1px solid rgba(51, 65, 85, 0.5);
-        color: #e2e8f0 !important;
+        border-bottom: 1px solid #1a1a1a;
+        color: #ffffff !important;
     }
 
     tr:nth-child(even) {
-        background-color: rgba(30, 41, 59, 0.5) !important;
+        background-color: #000000 !important;
     }
 
     tr:hover {
-        background-color: rgba(59, 130, 246, 0.15) !important;
+        background-color: rgba(0, 191, 255, 0.1) !important;
         transition: background-color 0.2s;
     }
 
-    /* Links na tabela - DARK MODE */
+    /* Links na tabela - ULTRA DARK */
     table a {
-        color: #60a5fa !important;
+        color: #00bfff !important;
         text-decoration: none;
         font-weight: 600;
         padding: 0.3rem 0.8rem;
         border-radius: 6px;
-        background: rgba(59, 130, 246, 0.15);
+        background: rgba(0, 191, 255, 0.15);
+        border: 1px solid rgba(0, 191, 255, 0.3);
         transition: all 0.2s;
         display: inline-block;
     }
 
     table a:hover {
-        background: #3b82f6;
-        color: white !important;
+        background: #00bfff;
+        color: #000000 !important;
         text-decoration: none;
         transform: scale(1.05);
     }
 
-    /* Input fields - DARK MODE */
+    /* Input fields - ULTRA DARK */
     .stTextInput input, .stSelectbox select, .stNumberInput input {
-        background-color: #1e293b !important;
-        color: #f1f5f9 !important;
-        border-color: #334155 !important;
+        background-color: #0a0a0a !important;
+        color: #ffffff !important;
+        border-color: #1a1a1a !important;
     }
 
     /* Text color global */
     p, span, div, label {
-        color: #e2e8f0 !important;
+        color: #ffffff !important;
     }
 
     /* Headers h1, h2, h3 */
     h1, h2, h3, h4, h5, h6 {
-        color: #f1f5f9 !important;
+        color: #ffffff !important;
+    }
+
+    /* Força texto branco em todos elementos de texto */
+    .stMarkdown, .stText {
+        color: #ffffff !important;
     }
     </style>
     """,
