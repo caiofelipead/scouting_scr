@@ -76,163 +76,175 @@ if not check_password():
 # Se passou do login, mostra info do usuário
 mostrar_info_usuario()
 
-# CSS Profissional - Scout Pro (TODO O CSS AQUI)
+# CSS Profissional - Scout Pro (DARK MODE)
 st.markdown(
     """
     <style>
-    /* Layout principal */
+    /* === DARK MODE THEME === */
+
+    /* Layout principal com fundo escuro */
     .main {
         padding: 0rem 1rem;
+        background-color: #0f172a !important;
     }
-    
+
+    /* Forçar tema escuro em todos elementos */
+    .stApp {
+        background-color: #0f172a !important;
+    }
+
     /* Header com gradiente */
     .header-container {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1.5rem 2rem;
         border-radius: 12px;
         margin-bottom: 2rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
-    
+
     .header-title {
-        color: white;
+        color: white !important;
         font-size: 2.5rem;
         font-weight: bold;
         margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
-    
+
     .header-subtitle {
-        color: rgba(255,255,255,0.95);
+        color: rgba(255,255,255,0.95) !important;
         font-size: 1.1rem;
         margin: 0.5rem 0 0 0;
     }
-    
-    /* Métricas melhoradas */
+
+    /* Métricas melhoradas - DARK MODE */
     div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
         padding: 1.2rem;
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border-left: 4px solid #667eea;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        border-left: 4px solid #3b82f6;
     }
-    
+
     div[data-testid="stMetric"]:hover {
         transform: translateY(-3px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
         transition: all 0.2s ease;
     }
-    
-    /* Labels das métricas */
+
+    /* Labels das métricas - texto claro */
     div[data-testid="stMetric"] label {
         font-size: 0.9rem !important;
         font-weight: 600 !important;
-        color: #2c3e50 !important;
+        color: #94a3b8 !important;
     }
-    
-    /* Valores das métricas */
+
+    /* Valores das métricas - destaque azul */
     div[data-testid="stMetric"] > div {
         font-size: 1.8rem !important;
         font-weight: 700 !important;
-        color: #667eea !important;
+        color: #3b82f6 !important;
     }
-    
-    /* Tabs customizadas */
+
+    /* Tabs customizadas - DARK MODE */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
-        background-color: #f8f9fa;
+        background-color: rgba(30, 41, 59, 0.5) !important;
         padding: 0.75rem;
         border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
-    
+
     .stTabs [data-baseweb="tab"] {
         height: 55px;
-        background-color: white;
+        background-color: rgba(51, 65, 85, 0.6) !important;
         border-radius: 10px;
-        color: #495057;
+        color: #cbd5e1 !important;
         font-weight: 600;
         font-size: 0.95rem;
         padding: 0 1.5rem;
         border: 2px solid transparent;
     }
-    
+
     .stTabs [data-baseweb="tab"]:hover {
-        background-color: #e9ecef;
+        background-color: rgba(71, 85, 105, 0.8) !important;
     }
-    
+
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
         color: white !important;
-        border-color: #667eea;
-        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        border-color: #3b82f6;
+        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
     }
-    
-    /* Sidebar */
+
+    /* Sidebar - DARK MODE */
     [data-testid="stSidebar"] {
-        background-color: #f8f9fa;
+        background-color: #1e293b !important;
     }
-    
+
+    [data-testid="stSidebar"] > div {
+        background-color: #1e293b !important;
+    }
+
     /* Botões */
     .stButton>button {
         border-radius: 8px;
         font-weight: 600;
         border: 2px solid transparent;
     }
-    
+
     .stButton>button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         transition: all 0.2s ease;
     }
-    
+
     /* Imagens dos jogadores */
     img {
         border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     }
-    
+
     /* Cards */
     .element-container {
         transition: all 0.2s ease;
     }
-    
-    /* Scrollbar customizada */
+
+    /* Scrollbar customizada - DARK MODE */
     ::-webkit-scrollbar {
         width: 12px;
         height: 12px;
     }
-    
+
     ::-webkit-scrollbar-track {
-        background: #f1f3f4;
+        background: #1e293b;
         border-radius: 10px;
     }
-    
+
     ::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
         border-radius: 10px;
-        border: 2px solid #f1f3f4;
+        border: 2px solid #1e293b;
     }
-    
+
     ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
     }
-    
-    /* ========== NOVO: TABELAS HTML ESTILIZADAS ========== */
+
+    /* === TABELAS HTML - DARK MODE === */
     table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.9em;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         border-radius: 10px;
         overflow: hidden;
-        background: white;
+        background: #1e293b !important;
         margin: 1rem 0;
     }
-    
+
     th {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+        color: white !important;
         padding: 14px 12px;
         text-align: left;
         font-weight: 600;
@@ -240,39 +252,56 @@ st.markdown(
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    
+
     td {
         padding: 12px;
-        border-bottom: 1px solid #e9ecef;
-        color: #2c3e50;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+        color: #e2e8f0 !important;
     }
-    
+
     tr:nth-child(even) {
-        background-color: #f8f9fa;
+        background-color: rgba(30, 41, 59, 0.5) !important;
     }
-    
+
     tr:hover {
-        background-color: #e3f2fd !important;
+        background-color: rgba(59, 130, 246, 0.15) !important;
         transition: background-color 0.2s;
     }
-    
-    /* Links na tabela */
+
+    /* Links na tabela - DARK MODE */
     table a {
-        color: #667eea;
+        color: #60a5fa !important;
         text-decoration: none;
         font-weight: 600;
         padding: 0.3rem 0.8rem;
         border-radius: 6px;
-        background: #f0f3ff;
+        background: rgba(59, 130, 246, 0.15);
         transition: all 0.2s;
         display: inline-block;
     }
-    
+
     table a:hover {
-        background: #667eea;
-        color: white;
+        background: #3b82f6;
+        color: white !important;
         text-decoration: none;
         transform: scale(1.05);
+    }
+
+    /* Input fields - DARK MODE */
+    .stTextInput input, .stSelectbox select, .stNumberInput input {
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        border-color: #334155 !important;
+    }
+
+    /* Text color global */
+    p, span, div, label {
+        color: #e2e8f0 !important;
+    }
+
+    /* Headers h1, h2, h3 */
+    h1, h2, h3, h4, h5, h6 {
+        color: #f1f5f9 !important;
     }
     </style>
     """,
