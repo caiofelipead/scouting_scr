@@ -10,7 +10,8 @@ Data: 2025-12-09
 import streamlit as st
 import pandas as pd
 from typing import Optional, Dict
-from logos_clubes import get_logo_clube, get_logo_liga, get_bandeira_pais
+from logos_clubes import get_bandeira_pais
+from transfermarkt_logos import get_logo_clube_transfermarkt, get_logo_liga_transfermarkt
 
 
 def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = None) -> None:
@@ -193,22 +194,41 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         posicao = jogador.get('posicao', 'N/A')
         st.markdown(f"<div class='player-position'>🎯 {posicao}</div>", unsafe_allow_html=True)
 
-        # Informações do clube com emojis estilizados
+        # Informações do clube com logos do Transfermarkt
         clube = jogador.get('clube', '')
         liga = jogador.get('liga_clube', '')
+        transfermarkt_id = jogador.get('transfermarkt_id', None)
 
         if clube or liga:
             club_html = "<div class='club-info'>"
 
-            # Emoji do clube (sempre visível)
+            # Logo do clube (Transfermarkt)
             if clube:
-                club_html += f'<span style="font-size: 32px; margin-right: 12px;">⚽</span>'
+                logo_clube = get_logo_clube_transfermarkt(clube, transfermarkt_id)
+                if logo_clube:
+                    club_html += f'''<img src="{logo_clube}"
+                        width="40" height="40"
+                        style="object-fit: contain; margin-right: 12px; background: white; padding: 4px; border-radius: 50%;"
+                        onerror="this.style.display='none'">'''
+                else:
+                    # Fallback para emoji
+                    club_html += f'<span style="font-size: 32px; margin-right: 12px;">⚽</span>'
+
                 club_html += f"<span class='club-name'>{clube}</span>"
 
-            # Emoji da liga
+            # Logo da liga (Transfermarkt)
             if liga:
-                liga_emoji = "🏆" if "Série A" in liga or "Serie A" in liga else "🏅"
-                club_html += f'<span style="font-size: 24px; margin-left: auto; margin-right: 8px;">{liga_emoji}</span>'
+                logo_liga = get_logo_liga_transfermarkt(liga)
+                if logo_liga:
+                    club_html += f'''<img src="{logo_liga}"
+                        width="32" height="32"
+                        style="object-fit: contain; margin-left: auto; margin-right: 8px; background: white; padding: 2px; border-radius: 4px;"
+                        onerror="this.style.display='none'">'''
+                else:
+                    # Fallback para emoji
+                    liga_emoji = "🏆" if "Série A" in liga or "Serie A" in liga else "🏅"
+                    club_html += f'<span style="font-size: 24px; margin-left: auto; margin-right: 8px;">{liga_emoji}</span>'
+
                 club_html += f"<span class='league-badge'>{liga}</span>"
 
             club_html += "</div>"

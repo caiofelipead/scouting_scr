@@ -354,81 +354,117 @@ def check_password():
 def _mostrar_formulario_login():
     """Renderiza o formulário de login"""
 
-    # CSS ULTRA DARK MODE para tela de login
+    # CSS ULTRA DARK MODE para tela de login - FORÇADO
     st.markdown("""
     <style>
-    /* Forçar tema PRETO na tela de login */
-    .stApp {
+    /* === FORÇA TUDO PARA PRETO === */
+    * {
+        background-color: transparent !important;
+    }
+
+    .stApp, .main, body, html, section, div {
         background-color: #000000 !important;
     }
 
-    .main {
-        background-color: #000000 !important;
+    /* === INPUTS === */
+    .stTextInput > div > div {
+        background-color: #0a0a0a !important;
     }
 
-    /* Inputs QUASE PRETOS */
     .stTextInput input {
         background-color: #0a0a0a !important;
         color: #ffffff !important;
-        border: 2px solid #1a1a1a !important;
-        border-radius: 8px;
+        border: 2px solid #333333 !important;
+        border-radius: 8px !important;
+    }
+
+    .stTextInput input::placeholder {
+        color: #666666 !important;
     }
 
     .stTextInput input:focus {
         border-color: #00bfff !important;
-        box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.2);
+        box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.2) !important;
     }
 
-    /* Checkbox */
+    /* === LABELS === */
+    .stTextInput label, .stCheckbox label {
+        color: #ffffff !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+    }
+
+    /* === CHECKBOX === */
     .stCheckbox {
         color: #ffffff !important;
     }
 
-    /* Botão de submit - CIANO */
-    .stButton button {
-        background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%) !important;
-        color: white !important;
-        border: none !important;
-        padding: 0.75rem 1.5rem;
-        font-weight: 600;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-    }
-
-    .stButton button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(0, 191, 255, 0.4);
-    }
-
-    /* Títulos */
-    h1, h2, h3 {
+    .stCheckbox > label {
         color: #ffffff !important;
     }
 
-    /* Linha horizontal */
-    hr {
-        border-color: #1a1a1a !important;
+    /* === BOTÃO ENTRAR === */
+    .stButton > button, button[kind="formSubmit"] {
+        background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        padding: 0.75rem 1.5rem !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
     }
 
-    /* Mensagens de erro/sucesso */
+    .stButton > button:hover, button[kind="formSubmit"]:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 16px rgba(0, 191, 255, 0.4) !important;
+    }
+
+    /* === TÍTULOS === */
+    h1, h2, h3, h4, h5, h6 {
+        color: #ffffff !important;
+        background-color: transparent !important;
+    }
+
+    /* === MARKDOWN === */
+    .stMarkdown {
+        color: #ffffff !important;
+    }
+
+    /* === LINHA HORIZONTAL === */
+    hr {
+        border-color: #333333 !important;
+        background-color: #333333 !important;
+    }
+
+    /* === MENSAGENS === */
     .stAlert {
         background-color: #0a0a0a !important;
         color: #ffffff !important;
-        border-radius: 8px;
-        border: 1px solid #1a1a1a;
+        border-radius: 8px !important;
+        border: 1px solid #333333 !important;
     }
 
-    /* Caption */
+    /* === CAPTION === */
     .stCaption {
         color: #888888 !important;
     }
 
-    /* Form - QUASE PRETO */
+    /* === FORM === */
     .stForm {
-        background-color: #0a0a0a !important;
-        border: 1px solid #1a1a1a !important;
-        border-radius: 12px;
-        padding: 1.5rem !important;
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    /* === COLUNAS === */
+    .css-1544g2n, .css-12oz5g7 {
+        background-color: transparent !important;
+    }
+
+    /* === TEXTO GERAL === */
+    p, span, div, label {
+        color: #ffffff !important;
     }
     </style>
     """, unsafe_allow_html=True)
