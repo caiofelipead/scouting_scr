@@ -703,7 +703,8 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     # Buscar foto do jogador
     tm_id = jogador.get('transfermarkt_id', None)
-    foto_path = get_foto_jogador(id_busca, transfermarkt_id=tm_id, debug=debug)
+    nome_jogador = jogador.get('nome', 'Jogador')
+    foto_path = get_foto_jogador(id_busca, transfermarkt_id=tm_id, nome_jogador=nome_jogador, debug=debug)
 
     # Criar header moderno
     criar_header_profissional(jogador, foto_path)

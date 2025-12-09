@@ -12,9 +12,16 @@
     border-radius: 12px;
 }
 
-/* Texto de títulos com gradiente roxo */
-h1, h2, h3 {
+/* Texto de títulos com gradiente roxo (exceto no player-header) */
+h1:not(.player-header h1):not(.player-header *),
+h2:not(.player-header h2):not(.player-header *),
+h3:not(.player-header h3):not(.player-header *) {
     color: #667eea !important;
+}
+
+/* Preservar estilos do player-header */
+.player-header, .player-header * {
+    color: inherit !important;
 }
 
 /* Métricas com cor destaque */

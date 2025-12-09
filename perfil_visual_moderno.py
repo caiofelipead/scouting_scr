@@ -47,7 +47,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     .player-position {
         font-size: 18px;
         font-weight: 600;
-        color: rgba(255,255,255,0.95);
+        color: rgba(255,255,255,0.95) !important;
         text-transform: uppercase;
         letter-spacing: 2px;
         margin-bottom: 16px;
@@ -76,7 +76,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         border-radius: 8px;
         font-size: 13px;
         font-weight: 600;
-        color: #ffffff;
+        color: #ffffff !important;
     }
 
     .info-chip {
@@ -86,11 +86,11 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         border-radius: 20px;
         margin: 4px;
         font-size: 14px;
-        color: #ffffff;
+        color: #ffffff !important;
     }
 
     .info-chip-label {
-        color: rgba(255,255,255,0.8);
+        color: rgba(255,255,255,0.8) !important;
         font-weight: 500;
     }
 
