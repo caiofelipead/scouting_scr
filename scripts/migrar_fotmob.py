@@ -70,46 +70,48 @@ def executar_migracao():
 
         print(f"📊 Executando {len(statements)} statements SQL...\n")
 
-        with engine.begin() as conn:
-            sucesso = 0
-            erros = 0
+        sucesso = 0
+        erros = 0
 
-            for i, statement in enumerate(statements, 1):
-                # Pula comentários
-                if statement.startswith('--'):
-                    continue
+        for i, statement in enumerate(statements, 1):
+            # Pula comentários vazios
+            if statement.startswith('--') or not statement.strip():
+                continue
 
-                try:
-                    # Detecta tipo de statement
-                    statement_lower = statement.lower().strip()
+            try:
+                # Detecta tipo de statement
+                statement_lower = statement.lower().strip()
 
-                    if statement_lower.startswith('create table'):
-                        tipo = "TABELA"
-                        # Extrai nome da tabela
-                        nome = statement_lower.split('create table if not exists')[1].split('(')[0].strip()
-                    elif statement_lower.startswith('create index'):
-                        tipo = "ÍNDICE"
-                        nome = statement_lower.split('create index if not exists')[1].split('on')[0].strip()
-                    elif statement_lower.startswith('create or replace view'):
-                        tipo = "VIEW"
-                        nome = statement_lower.split('create or replace view')[1].split('as')[0].strip()
-                    elif statement_lower.startswith('comment on'):
-                        tipo = "COMENTÁRIO"
-                        nome = ""
-                    else:
-                        tipo = "STATEMENT"
-                        nome = ""
+                if statement_lower.startswith('create table'):
+                    tipo = "TABELA"
+                    # Extrai nome da tabela
+                    nome = statement_lower.split('create table if not exists')[1].split('(')[0].strip()
+                elif statement_lower.startswith('create index'):
+                    tipo = "ÍNDICE"
+                    nome = statement_lower.split('create index if not exists')[1].split('on')[0].strip()
+                elif statement_lower.startswith('create or replace view'):
+                    tipo = "VIEW"
+                    nome = statement_lower.split('create or replace view')[1].split('as')[0].strip()
+                elif statement_lower.startswith('comment on'):
+                    tipo = "COMENTÁRIO"
+                    nome = ""
+                else:
+                    tipo = "STATEMENT"
+                    nome = ""
 
-                    print(f"[{i}/{len(statements)}] Executando {tipo} {nome}...", end=" ")
+                print(f"[{i}/{len(statements)}] Executando {tipo} {nome}...", end=" ")
 
+                # Executa cada statement em sua própria transação
+                with engine.begin() as conn:
                     conn.execute(text(statement))
 
-                    print("✅")
-                    sucesso += 1
+                print("✅")
+                sucesso += 1
 
-                except Exception as e:
-                    print(f"❌ Erro: {e}")
-                    erros += 1
+            except Exception as e:
+                print(f"❌ Erro: {e}")
+                erros += 1
+                # Continua executando os próximos statements
 
         print(f"\n{'='*60}")
         print(f"🎉 Migração Concluída!")
