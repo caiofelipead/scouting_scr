@@ -1,50 +1,69 @@
-/* Background principal */
+/* === TEMA CLARO NATURAL - Scout Pro === */
+
+/* Background principal limpo */
 .main {
-    background-color: #0A0E1A;
+    background-color: #ffffff;
 }
 
 /* Cards e containers */
 .stCard, .element-container {
-    background-color: #131B2E;
-    border: 1px solid #1E2A42;
-    border-radius: 8px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
 }
 
-/* Texto de títulos */
+/* Texto de títulos com gradiente roxo */
 h1, h2, h3 {
-    color: #00D9FF !important;
+    color: #667eea !important;
 }
 
-/* Métricas */
+/* Métricas com cor destaque */
 [data-testid="stMetricValue"] {
-    color: #00D9FF;
+    color: #667eea;
+    font-weight: 700;
 }
 
-/* Botões */
+/* Botões com gradiente */
 .stButton > button {
-    background-color: #00D9FF;
-    color: #0A0E1A;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
     border: none;
     font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
 }
 
 .stButton > button:hover {
-    background-color: #00B8E0;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
     border: none;
 }
 
-/* Sidebar */
+/* Sidebar clara */
 [data-testid="stSidebar"] {
-    background-color: #0D1321;
+    background-color: #f8f9fa;
 }
 
-/* Dataframes e tabelas */
+/* Dataframes e tabelas claras */
 .dataframe {
-    background-color: #131B2E !important;
-    color: #E8EAED !important;
+    background-color: #ffffff !important;
+    color: #2c3e50 !important;
 }
 
-/* Gráficos (fundo transparente) */
+/* Gráficos com fundo transparente */
 .js-plotly-plot {
     background-color: transparent !important;
+}
+
+/* Input fields limpos */
+.stTextInput input, .stSelectbox select, .stNumberInput input {
+    background-color: #ffffff;
+    color: #2c3e50;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+}
+
+.stTextInput input:focus, .stSelectbox select:focus, .stNumberInput input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
 }
