@@ -999,7 +999,6 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     # ============== SEÇÃO DE AVALIAÇÕES ==============
     st.markdown("---")
-    st.markdown("---")
 
     # Tabs para organizar avaliações
     tab_avaliacao, tab_historico, tab_evolucao, tab_analise_avancada = st.tabs(
