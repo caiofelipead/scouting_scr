@@ -1,7 +1,5 @@
 """
 Perfil Visual Ultra Simples - Apenas Funcionalidade
-===================================================
-Header minimalista estilo Transfermarkt - sem CSS complexo
 
 Autor: Scout Pro
 Data: 2025-12-10
