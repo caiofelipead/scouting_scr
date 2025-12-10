@@ -731,81 +731,87 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     st.markdown("""
     <style>
+        /* Container Principal */
         .profile-container {
             background: white;
             border-radius: 16px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            padding: 24px;
-            margin-bottom: 20px;
+            padding: 28px;
+            margin-bottom: 24px;
         }
 
+        /* Hero Section - Header com Foto */
         .profile-header {
             display: flex;
             align-items: center;
             gap: 24px;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #e9ecef;
         }
 
         .player-photo {
-            width: 140px;
-            height: 140px;
-            border-radius: 70px;
+            width: 120px;
+            height: 120px;
+            border-radius: 60px;
             object-fit: cover;
             border: 3px solid #f0f0f0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            flex-shrink: 0;
         }
 
         .player-photo-fallback {
-            width: 140px;
-            height: 140px;
-            border-radius: 70px;
+            width: 120px;
+            height: 120px;
+            border-radius: 60px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 64px;
+            font-size: 54px;
             color: white;
+            font-weight: 700;
             border: 3px solid #f0f0f0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            flex-shrink: 0;
         }
 
-        .player-info {
-            flex: 1;
-        }
-
-        .player-name {
-            font-size: 32px;
+        .player-info h1 {
+            font-size: 28px;
             font-weight: 700;
             color: #1a1a1a;
             margin: 0 0 8px 0;
             line-height: 1.2;
         }
 
-        .player-position {
-            font-size: 18px;
-            color: #666;
+        .player-info p {
+            font-size: 16px;
+            color: #6c757d;
             font-weight: 500;
             margin: 0;
         }
 
+        /* Grid de Estatísticas */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 12px;
-            margin-top: 20px;
+            margin: 20px 0;
         }
 
         .stat-card {
             background: #f8f9fa;
             padding: 16px 12px;
-            border-radius: 12px;
+            border-radius: 10px;
             text-align: center;
+            border: 1px solid #dee2e6;
             transition: all 0.2s ease;
         }
 
         .stat-card:hover {
             background: #e9ecef;
             transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
         .stat-label {
@@ -814,65 +820,58 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             text-transform: uppercase;
             letter-spacing: 0.8px;
             font-weight: 600;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            display: block;
         }
 
         .stat-value {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             color: #212529;
+            display: block;
         }
 
+        /* Barra Clube e Liga */
         .club-league-bar {
             display: flex;
             align-items: center;
-            gap: 32px;
-            padding: 16px 0;
+            gap: 24px;
+            padding-top: 20px;
             border-top: 1px solid #e9ecef;
             margin-top: 20px;
         }
 
-        .club-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-img {
-            width: 36px;
-            height: 36px;
+        .club-league-bar img {
+            width: 32px;
+            height: 32px;
             object-fit: contain;
+            vertical-align: middle;
+            margin-right: 8px;
         }
 
-        .logo-fallback {
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-
-        .club-name {
-            font-size: 16px;
+        .club-league-bar .club-name {
+            font-size: 15px;
             font-weight: 600;
             color: #212529;
+            vertical-align: middle;
         }
 
-        .separator {
+        .club-league-bar .separator {
             color: #dee2e6;
-            font-size: 20px;
+            font-size: 18px;
+            margin: 0 4px;
         }
 
+        /* Status Badge */
         .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 15px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
             font-weight: 600;
-            margin-top: 16px;
+            margin-top: 20px;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -908,19 +907,17 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         inicial = nome[0].upper() if nome else '⚽'
         foto_html = f'<div class="player-photo-fallback">{inicial}</div>'
 
-    # Logo Clube HTML (com tratamento de None)
+    # Logo Clube HTML (simplificado)
     if logo_clube:
-        logo_clube_html = f'<img src="{logo_clube}" class="logo-img" alt="{clube}" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">'
-        logo_clube_html += '<div class="logo-fallback" style="display:none;">🛡️</div>'
+        logo_clube_html = f'<img src="{logo_clube}" alt="{clube}" onerror="this.onerror=null; this.src=\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2220%22%3E🛡️%3C/text%3E%3C/svg%3E\';">'
     else:
-        logo_clube_html = '<div class="logo-fallback">🛡️</div>'
+        logo_clube_html = '🛡️'
 
-    # Logo Liga HTML (com tratamento de None)
+    # Logo Liga HTML (simplificado)
     if logo_liga:
-        logo_liga_html = f'<img src="{logo_liga}" class="logo-img" alt="{liga}" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">'
-        logo_liga_html += '<div class="logo-fallback" style="display:none;">🏆</div>'
+        logo_liga_html = f'<img src="{logo_liga}" alt="{liga}" onerror="this.onerror=null; this.src=\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2220%22%3E🏆%3C/text%3E%3C/svg%3E\';">'
     else:
-        logo_liga_html = '<div class="logo-fallback">🏆</div>'
+        logo_liga_html = '🏆'
 
     # ==========================================
     # RENDERIZAR PERFIL COMPLETO
@@ -932,46 +929,40 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         <div class="profile-header">
             {foto_html}
             <div class="player-info">
-                <h1 class="player-name">{nome}</h1>
-                <p class="player-position">{posicao} • {clube}</p>
+                <h1>{nome}</h1>
+                <p>{posicao} • {clube}</p>
             </div>
         </div>
 
         <!-- GRID DE ESTATÍSTICAS -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Idade</div>
-                <div class="stat-value">{idade}</div>
+                <span class="stat-label">Idade</span>
+                <span class="stat-value">{idade}</span>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Altura</div>
-                <div class="stat-value">{altura}</div>
+                <span class="stat-label">Altura</span>
+                <span class="stat-value">{altura}</span>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Pé</div>
-                <div class="stat-value">{pe_dom}</div>
+                <span class="stat-label">Pé</span>
+                <span class="stat-value">{pe_dom}</span>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Nacionalidade</div>
-                <div class="stat-value">{nacionalidade}</div>
+                <span class="stat-label">Nacionalidade</span>
+                <span class="stat-value">{nacionalidade}</span>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Contrato</div>
-                <div class="stat-value">{fim_contrato}</div>
+                <span class="stat-label">Contrato</span>
+                <span class="stat-value">{fim_contrato}</span>
             </div>
         </div>
 
         <!-- BARRA CLUBE E LIGA -->
         <div class="club-league-bar">
-            <div class="club-item">
-                {logo_clube_html}
-                <span class="club-name">{clube}</span>
-            </div>
+            {logo_clube_html} <span class="club-name">{clube}</span>
             <span class="separator">•</span>
-            <div class="club-item">
-                {logo_liga_html}
-                <span class="club-name">{liga}</span>
-            </div>
+            {logo_liga_html} <span class="club-name">{liga}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
