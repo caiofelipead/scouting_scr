@@ -981,46 +981,42 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     else:
         logo_liga_html = '<span style="font-size: 24px; margin-right: 8px;">🏆</span>'
 
-    st.markdown(f"""
-    <div class="profile-container">
-        <div class="profile-header">
-            {foto_html}
-            <div class="player-info">
-                <h1>{nome_safe}</h1>
-                <p>{posicao_safe} • {clube_safe}</p>
-            </div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <span class="stat-label">Idade</span>
-                <span class="stat-value">{idade_safe}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Altura</span>
-                <span class="stat-value">{altura_safe}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Pé</span>
-                <span class="stat-value">{pe_dom_safe}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Nacionalidade</span>
-                <span class="stat-value">{nacionalidade_safe}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Contrato</span>
-                <span class="stat-value">{fim_contrato_safe}</span>
-            </div>
-        </div>
-
-        <div class="club-league-bar">
-            {logo_clube_html} <span class="club-name">{clube_safe}</span>
-            <span class="separator">•</span>
-            {logo_liga_html} <span class="club-name">{liga_safe}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="profile-container">
+<div class="profile-header">
+{foto_html}
+<div class="player-info">
+<h1>{nome_safe}</h1>
+<p>{posicao_safe} • {clube_safe}</p>
+</div>
+</div>
+<div class="stats-grid">
+<div class="stat-card">
+<span class="stat-label">Idade</span>
+<span class="stat-value">{idade_safe}</span>
+</div>
+<div class="stat-card">
+<span class="stat-label">Altura</span>
+<span class="stat-value">{altura_safe}</span>
+</div>
+<div class="stat-card">
+<span class="stat-label">Pé</span>
+<span class="stat-value">{pe_dom_safe}</span>
+</div>
+<div class="stat-card">
+<span class="stat-label">Nacionalidade</span>
+<span class="stat-value">{nacionalidade_safe}</span>
+</div>
+<div class="stat-card">
+<span class="stat-label">Contrato</span>
+<span class="stat-value">{fim_contrato_safe}</span>
+</div>
+</div>
+<div class="club-league-bar">
+{logo_clube_html} <span class="club-name">{clube_safe}</span>
+<span class="separator">•</span>
+{logo_liga_html} <span class="club-name">{liga_safe}</span>
+</div>
+</div>""", unsafe_allow_html=True)
 
     # ==========================================
     # STATUS DO CONTRATO (Badge Moderno)
@@ -1037,12 +1033,10 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     config = status_config.get(status, status_config["desconhecido"])
 
-    st.markdown(f"""
-        <div class="status-badge" style="background: {config['bg']}; color: {config['color']};">
-            <span style="font-size: 18px;">{config['icon']}</span>
-            <span>{config['text']}</span>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="status-badge" style="background: {config['bg']}; color: {config['color']};">
+<span style="font-size: 18px;">{config['icon']}</span>
+<span>{config['text']}</span>
+</div>""", unsafe_allow_html=True)
 
     # Barra de progresso do contrato (só se tiver dias restantes válidos)
     if dias_restantes is not None and dias_restantes > 0:
