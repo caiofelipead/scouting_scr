@@ -93,6 +93,32 @@ div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div[data-testid
     gap: 0rem !important;
 }
 
+/* Colapsa elementos vazios do Streamlit */
+div[data-testid="stVerticalBlock"] > div:has(> div:empty) {
+    display: none !important;
+}
+
+.element-container:empty {
+    display: none !important;
+}
+
+div[data-testid="stElementContainer"]:empty {
+    display: none !important;
+}
+
+/* Remove espaçamento extra entre elementos */
+div[data-testid="stVerticalBlock"] > div[style*="padding-top"] {
+    padding-top: 0 !important;
+}
+
+/* Container de botões sem fundo/borda */
+.stButton[data-testid="baseButton-secondary"] > div {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
 /* Sidebar limpa */
 [data-testid="stSidebar"] {
     background-color: #f8fafc;
