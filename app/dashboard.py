@@ -1283,23 +1283,30 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                 with col:
                     # === FOTO DO JOGADOR ===
                     tm_id = jogador.get('transfermarkt_id', None)
+                    nome_jogador = jogador.get('nome', 'Jogador')
                     foto_path = get_foto_jogador(
                         jogador['id_jogador'],
                         transfermarkt_id=tm_id,
+                        nome_jogador=nome_jogador,
                         debug=(debug and idx == 0)
                     )
-                    
-                    if foto_path:
-                        st.image(foto_path, use_container_width=True)
-                    else:
-                        st.markdown(
-                            f"""
-                            <div style="width: 100%; padding-top: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; position: relative;">
-                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px;">⚽</div>
+
+                    # Renderizar foto com HTML direto (mais confiável que st.image)
+                    inicial = nome_jogador[0].upper() if nome_jogador else "?"
+                    st.markdown(
+                        f"""
+                        <div style="position: relative; width: 100%; padding-top: 133.33%; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                            <img src="{foto_path}"
+                                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                 alt="{nome_jogador}">
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: none; align-items: center; justify-content: center; font-size: 60px; color: white; font-weight: bold;">
+                                {inicial}
                             </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                     
                     # === INFO DO JOGADOR ===
                     st.markdown(f"**{jogador['nome']}**")
