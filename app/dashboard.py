@@ -744,7 +744,27 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         clube = jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'
         st.markdown(f"### {posicao} • {clube}")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        if foto_path:
+            st.image(foto_path, width=300)
+        else:
+            st.markdown(
+                """
+            <div style='
+                width: 300px;
+                height: 300px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 120px;
+                color: white;
+            '>
+                ⚽
+            </div>
+            """,
+                unsafe_allow_html=True,
+            )
 
         # Cards de informações básicas (inline)
         info_col1, info_col2, info_col3, info_col4 = st.columns(4)
@@ -845,7 +865,11 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    status = jogador.get("status_contrato", "desconhecido")
+    with col2:
+        st.title(jogador["nome"])
+        st.subheader(
+            f"{jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'} • {jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}"
+        )
 
     status_config = {
         "ativo": {"icon": "🟢", "text": "Contrato Ativo", "color": "#28a745"},
