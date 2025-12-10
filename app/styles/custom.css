@@ -1,76 +1,218 @@
-/* === TEMA CLARO NATURAL - Scout Pro === */
+/* === TEMA MINIMALISTA - Scout Pro === */
+/* Sistema de spacing: 8px, 16px, 24px, 32px */
 
 /* Background principal limpo */
 .main {
     background-color: #ffffff;
+    padding: 16px;
 }
 
-/* Cards e containers */
+/* Cards e containers com spacing consistente */
 .stCard, .element-container {
     background-color: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
 }
 
-/* Texto de títulos com gradiente roxo (exceto no player-header) */
-h1:not(.player-header h1):not(.player-header *),
-h2:not(.player-header h2):not(.player-header *),
-h3:not(.player-header h3):not(.player-header *) {
-    color: #667eea !important;
+/* Títulos simples */
+h1, h2, h3 {
+    color: #1e293b !important;
+    margin-bottom: 16px;
+    margin-top: 24px;
 }
 
-/* Preservar estilos do player-header */
-.player-header, .player-header * {
-    color: inherit !important;
+h1 {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+h2 {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+h3 {
+    font-size: 18px;
+    font-weight: 600;
 }
 
 /* Métricas com cor destaque */
 [data-testid="stMetricValue"] {
-    color: #667eea;
+    color: #6366f1;
     font-weight: 700;
 }
 
-/* Botões com gradiente */
+[data-testid="stMetricLabel"] {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Botões simples e funcionais */
 .stButton > button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #6366f1;
     color: white;
     border: none;
     font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+    border-radius: 6px;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
 }
 
 .stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
-    border: none;
+    background: #4f46e5;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
 
-/* Sidebar clara */
+.stButton > button:active {
+    transform: scale(0.98);
+}
+
+/* Sidebar limpa */
 [data-testid="stSidebar"] {
-    background-color: #f8f9fa;
+    background-color: #f8fafc;
+    padding: 16px;
 }
 
-/* Dataframes e tabelas claras */
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    font-size: 16px;
+    color: #475569 !important;
+}
+
+/* Dataframes e tabelas limpas */
 .dataframe {
     background-color: #ffffff !important;
-    color: #2c3e50 !important;
+    color: #1e293b !important;
+    border: 1px solid #e2e8f0 !important;
+    font-size: 13px;
 }
 
-/* Gráficos com fundo transparente */
-.js-plotly-plot {
-    background-color: transparent !important;
+.dataframe th {
+    background-color: #f8fafc !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 8px !important;
+}
+
+.dataframe td {
+    padding: 8px !important;
 }
 
 /* Input fields limpos */
-.stTextInput input, .stSelectbox select, .stNumberInput input {
+.stTextInput input,
+.stSelectbox select,
+.stNumberInput input,
+.stTextArea textarea {
     background-color: #ffffff;
-    color: #2c3e50;
+    color: #1e293b;
     border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.stTextInput input:focus,
+.stSelectbox select:focus,
+.stNumberInput input:focus,
+.stTextArea textarea:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    outline: none;
+}
+
+/* Tabs simples */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    background-color: #f8fafc;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background-color: transparent;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 8px 16px;
     border-radius: 6px;
 }
 
-.stTextInput input:focus, .stSelectbox select:focus, .stNumberInput input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+.stTabs [aria-selected="true"] {
+    background-color: #ffffff !important;
+    color: #6366f1 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Expanders limpos */
+.streamlit-expanderHeader {
+    background-color: #f8fafc;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.streamlit-expanderHeader:hover {
+    background-color: #f1f5f9;
+}
+
+/* Alertas e avisos */
+.stAlert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    border-left-width: 4px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .main {
+        padding: 8px;
+    }
+
+    .stCard, .element-container {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    h2 {
+        font-size: 18px;
+    }
+
+    h3 {
+        font-size: 16px;
+    }
+}
+
+/* Remove overflow e scrolls desnecessários */
+.main .block-container {
+    max-width: 100%;
+    padding-top: 24px;
+    padding-bottom: 24px;
+}
+
+/* Imagens responsivas */
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+/* Links limpos */
+a {
+    color: #6366f1;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
 }

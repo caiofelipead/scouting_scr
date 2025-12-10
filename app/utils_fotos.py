@@ -73,35 +73,41 @@ def extrair_url_foto_transfermarkt(tm_id, usar_scraping=True):
 
     # MÉTODO 2: Scraping (CONFIÁVEL mas mais lento)
     # Apenas use se explicitamente solicitado
-    if usar_scraping:
-        url_pagina = f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}"
+    url_pagina = f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}"
 
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-        }
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    }
 
         try:
             response = requests.get(url_pagina, headers=headers, timeout=10)
 
-            if response.status_code != 200:
-                st.warning(f"⚠️ Transfermarkt retornou status {response.status_code}")
-                return None
+        if response.status_code != 200:
+            # Não mostra warning para não poluir a UI
+            return None
 
-            soup = BeautifulSoup(response.content, "html.parser")
+        soup = BeautifulSoup(response.content, "html.parser")
 
-            # Procurar pela tag img com a foto
-            # Método 1: Buscar no modal da foto
-            modal_img = soup.find("img", {"src": re.compile(r"portrait/(big|medium)/.*\.jpg")})
-            if modal_img and modal_img.get("src"):
-                url_foto = modal_img["src"].split("?")[0]
-                return url_foto
+        # Procurar pela tag img com a foto
+        # Método 1: Buscar no modal da foto
+        modal_img = soup.find("img", {"src": re.compile(r"portrait/(big|medium)/.*\.jpg")})
+        if modal_img and modal_img.get("src"):
+            url_foto = modal_img["src"].split("?")[0]
+            return url_foto
 
-            # Método 2: Buscar em data-src
-            modal_img = soup.find("img", {"data-src": re.compile(r"portrait/(big|medium)/.*\.jpg")})
-            if modal_img and modal_img.get("data-src"):
-                url_foto = modal_img["data-src"].split("?")[0]
+        # Método 2: Buscar em data-src
+        modal_img = soup.find("img", {"data-src": re.compile(r"portrait/(big|medium)/.*\.jpg")})
+        if modal_img and modal_img.get("data-src"):
+            url_foto = modal_img["data-src"].split("?")[0]
+            return url_foto
+
+        # Método 3: Buscar qualquer img com portrait
+        for img in soup.find_all("img"):
+            src = img.get("src", "") or img.get("data-src", "")
+            if "portrait" in src and ".jpg" in src:
+                url_foto = src.split("?")[0]
                 return url_foto
 
             # Método 3: Buscar qualquer img com portrait
