@@ -1,7 +1,5 @@
 """
 Perfil Visual Ultra Simples - Apenas Funcionalidade
-===================================================
-Header minimalista estilo Transfermarkt - sem CSS complexo
 
 Autor: Scout Pro
 Data: 2025-12-10
@@ -154,6 +152,39 @@ def criar_secao_stats_rapidas(stats: Dict) -> None:
     Args:
         stats: Dicionário com estatísticas {label: {value, subtitle}}
     """
+
+    st.markdown("""
+    <style>
+    .stat-card-simple {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .stat-label-simple {
+        font-size: 11px;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .stat-value-simple {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .stat-subtitle-simple {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 4px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     cols = st.columns(len(stats))
 
