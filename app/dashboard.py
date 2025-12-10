@@ -938,28 +938,41 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     fim_contrato = jogador.get('data_fim_contrato', 'N/A') if pd.notna(jogador.get('data_fim_contrato')) else 'N/A'
 
     # Foto HTML (com tratamento de None)
+    nome_safe = nome.replace('"', '&quot;').replace("'", "&apos;") if nome else ""
     if foto_url:
-        foto_html = f'<img src="{foto_url}" class="player-photo" alt="{nome}" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">'
+        foto_html = f'<img src="{foto_url}" class="player-photo" alt="{nome_safe}" onerror="this.style.display=`none`; this.nextElementSibling.style.display=`flex`;">'
         foto_html += f'<div class="player-photo-fallback" style="display:none;">{nome[0].upper() if nome else "⚽"}</div>'
     else:
         inicial = nome[0].upper() if nome else '⚽'
         foto_html = f'<div class="player-photo-fallback">{inicial}</div>'
 
     # Logo Clube HTML (simplificado)
+    clube_safe = clube.replace('"', '&quot;').replace("'", "&apos;") if clube else ""
+    liga_safe = liga.replace('"', '&quot;').replace("'", "&apos;") if liga else ""
+
     if logo_clube:
-        logo_clube_html = f'<img src="{logo_clube}" alt="{clube}" onerror="this.onerror=null; this.src=\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2220%22%3E🛡️%3C/text%3E%3C/svg%3E\';">'
+        logo_clube_html = f'<img src="{logo_clube}" alt="{clube_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
     else:
-        logo_clube_html = '🛡️'
+        logo_clube_html = '<span style="font-size: 24px; margin-right: 8px;">🛡️</span>'
 
     # Logo Liga HTML (simplificado)
     if logo_liga:
-        logo_liga_html = f'<img src="{logo_liga}" alt="{liga}" onerror="this.onerror=null; this.src=\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2220%22%3E🏆%3C/text%3E%3C/svg%3E\';">'
+        logo_liga_html = f'<img src="{logo_liga}" alt="{liga_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
     else:
-        logo_liga_html = '🏆'
+        logo_liga_html = '<span style="font-size: 24px; margin-right: 8px;">🏆</span>'
 
     # ==========================================
     # RENDERIZAR PERFIL COMPLETO
     # ==========================================
+
+    # Escapar todas as variáveis de texto para HTML
+    posicao_safe = posicao.replace('<', '&lt;').replace('>', '&gt;') if posicao else 'N/A'
+    clube_display = clube.replace('<', '&lt;').replace('>', '&gt;') if clube else 'Livre'
+    idade_safe = str(idade).replace('<', '&lt;').replace('>', '&gt;')
+    altura_safe = str(altura).replace('<', '&lt;').replace('>', '&gt;')
+    pe_dom_safe = str(pe_dom).replace('<', '&lt;').replace('>', '&gt;')
+    nacionalidade_safe = str(nacionalidade).replace('<', '&lt;').replace('>', '&gt;')
+    fim_contrato_safe = str(fim_contrato).replace('<', '&lt;').replace('>', '&gt;')
 
     st.markdown(f"""
     <div class="profile-container">
@@ -968,7 +981,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             {foto_html}
             <div class="player-info">
                 <h1>{nome}</h1>
-                <p>{posicao} • {clube}</p>
+                <p>{posicao_safe} • {clube_display}</p>
             </div>
         </div>
 
@@ -976,31 +989,31 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         <div class="stats-grid">
             <div class="stat-card">
                 <span class="stat-label">Idade</span>
-                <span class="stat-value">{idade}</span>
+                <span class="stat-value">{idade_safe}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label">Altura</span>
-                <span class="stat-value">{altura}</span>
+                <span class="stat-value">{altura_safe}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label">Pé</span>
-                <span class="stat-value">{pe_dom}</span>
+                <span class="stat-value">{pe_dom_safe}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label">Nacionalidade</span>
-                <span class="stat-value">{nacionalidade}</span>
+                <span class="stat-value">{nacionalidade_safe}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label">Contrato</span>
-                <span class="stat-value">{fim_contrato}</span>
+                <span class="stat-value">{fim_contrato_safe}</span>
             </div>
         </div>
 
         <!-- BARRA CLUBE E LIGA -->
         <div class="club-league-bar">
-            {logo_clube_html} <span class="club-name">{clube}</span>
+            {logo_clube_html} <span class="club-name">{clube_display}</span>
             <span class="separator">•</span>
-            {logo_liga_html} <span class="club-name">{liga}</span>
+            {logo_liga_html} <span class="club-name">{liga_safe}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
