@@ -745,22 +745,29 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     st.markdown("""
     <style>
+        /* Compactação Extra para Perfil */
+        .block-container {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+
         /* Container Principal */
         .profile-container {
             background: white;
             border-radius: 16px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            padding: 28px;
-            margin-bottom: 24px;
+            padding: 20px;
+            margin-bottom: 16px;
+            margin-top: 0 !important;
         }
 
         /* Hero Section - Header com Foto */
         .profile-header {
             display: flex;
             align-items: center;
-            gap: 24px;
-            margin-bottom: 28px;
-            padding-bottom: 24px;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
             border-bottom: 1px solid #e9ecef;
         }
 
@@ -809,14 +816,14 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 12px;
-            margin: 20px 0;
+            gap: 10px;
+            margin: 16px 0;
         }
 
         .stat-card {
             background: #f8f9fa;
-            padding: 16px 12px;
-            border-radius: 10px;
+            padding: 12px 10px;
+            border-radius: 8px;
             text-align: center;
             border: 1px solid #dee2e6;
             transition: all 0.2s ease;
@@ -849,10 +856,10 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         .club-league-bar {
             display: flex;
             align-items: center;
-            gap: 24px;
-            padding-top: 20px;
+            gap: 20px;
+            padding-top: 16px;
             border-top: 1px solid #e9ecef;
-            margin-top: 20px;
+            margin-top: 16px;
         }
 
         .club-league-bar img {
@@ -881,11 +888,28 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 18px;
+            padding: 8px 16px;
             border-radius: 8px;
             font-size: 14px;
             font-weight: 600;
-            margin-top: 20px;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+
+        /* Compactar separadores hr */
+        hr {
+            margin: 1rem 0 !important;
+        }
+
+        /* Compactar elementos st.info, st.success, etc */
+        .stAlert {
+            padding: 0.5rem 1rem !important;
+            margin: 0.5rem 0 !important;
+        }
+
+        /* Compactar progress bar */
+        .stProgress {
+            margin: 0.5rem 0 !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -1005,7 +1029,6 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     # Barra de progresso do contrato (só se tiver dias restantes válidos)
     if dias_restantes is not None and dias_restantes > 0:
-        st.markdown("<br>", unsafe_allow_html=True)
         st.info(f"⏱️ **{dias_restantes} dias** até o fim do contrato")
         dias_totais = 1095  # 3 anos
         progresso = max(0, min(100, (dias_restantes / dias_totais) * 100))
@@ -3502,6 +3525,62 @@ def invalidar_caches():
 
 
 def main():
+    # ==========================================
+    # CSS DE COMPACTAÇÃO (PRIORIDADE MÁXIMA)
+    # ==========================================
+    st.markdown("""
+    <style>
+        /* Remover espaço gigante no topo */
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+            margin-top: 0 !important;
+        }
+
+        /* Compactar header do Streamlit */
+        header[data-testid="stHeader"] {
+            height: 0px !important;
+            min-height: 0px !important;
+            display: none !important;
+        }
+
+        /* Remover margens excessivas entre elementos */
+        .element-container {
+            margin-bottom: 0.5rem !important;
+        }
+
+        div[data-testid="stVerticalBlock"] > div {
+            gap: 0.5rem !important;
+        }
+
+        /* Compactar espaçamento de markdown */
+        .stMarkdown {
+            margin-bottom: 0.5rem !important;
+        }
+
+        /* Ocultar elementos vazios */
+        div:empty {
+            display: none !important;
+        }
+
+        /* Compactar columns */
+        div[data-testid="column"] {
+            padding: 0.5rem !important;
+        }
+
+        /* Reduzir espaço entre tabs */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 0.5rem;
+        }
+
+        /* Compactar formulários */
+        .stForm {
+            padding: 1rem !important;
+            margin: 0.5rem 0 !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     # Header Visual Profissional
     st.markdown(
         """
