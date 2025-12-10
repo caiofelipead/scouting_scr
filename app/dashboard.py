@@ -32,10 +32,14 @@ load_custom_css()
 # --- CORREÇÃO DE CAMINHOS (CRÍTICO) ---
 try:
     current_path = Path(__file__).resolve()
-    root_path = current_path.parent.parent
-    
+    app_path = current_path.parent  # Diretório app/
+    root_path = app_path.parent      # Raiz do projeto
+
+    # Adicionar AMBOS os caminhos
     if str(root_path) not in sys.path:
         sys.path.insert(0, str(root_path))
+    if str(app_path) not in sys.path:
+        sys.path.insert(0, str(app_path))
 except Exception as e:
     st.error(f"❌ Erro ao configurar caminhos: {e}")
     st.stop()
