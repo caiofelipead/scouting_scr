@@ -47,6 +47,7 @@ except Exception as e:
 # AGORA importa os módulos locais
 try:
     from utils_fotos import get_foto_jogador, get_foto_jogador_rapido
+    from utils_logos import get_logo_clube, get_logo_liga
     from auth import check_password, mostrar_info_usuario
     from dashboard_financeiro import aba_financeira
     from database import ScoutingDatabase
@@ -695,132 +696,195 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     jogador = jogador.iloc[0]
 
-    # Layout de 2 colunas
-    col1, col2 = st.columns([1, 2])
+    # ==========================================
+    # HEADER PROFISSIONAL COM FOTO E INFO
+    # ==========================================
 
-    with col1:
-        # Buscar foto com ambos os IDs
-        tm_id = jogador.get('transfermarkt_id', None)
-        foto_path = get_foto_jogador(id_busca, transfermarkt_id=tm_id, debug=debug)
+    # Buscar foto do jogador
+    tm_id = jogador.get('transfermarkt_id', None)
+    foto_url = get_foto_jogador(id_busca, transfermarkt_id=tm_id, debug=debug)
 
-        if foto_path:
-            st.image(foto_path, width=300)
+    # Buscar logos
+    logo_clube = get_logo_clube(jogador.get('clube', ''))
+    logo_liga = get_logo_liga(jogador.get('liga_clube', ''))
+
+    # Container do header
+    col_foto, col_info = st.columns([1, 3])
+
+    with col_foto:
+        # Foto do jogador
+        if foto_url:
+            st.image(foto_url, width=250)
         else:
             st.markdown(
                 """
-            <div style='
-                width: 300px;
-                height: 300px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 120px;
-                color: white;
-            '>
-                ⚽
-            </div>
-            """,
+                <div style='
+                    width: 250px;
+                    height: 250px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 100px;
+                    color: white;
+                '>
+                    ⚽
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
 
-        st.markdown("---")
-        st.metric(
-            "Idade",
-            (
-                f"{jogador['idade_atual']} anos"
-                if pd.notna(jogador["idade_atual"])
-                else "N/A"
-            ),
-        )
-        st.metric(
-            "Altura",
-            f"{jogador['altura']} cm" if pd.notna(jogador["altura"]) else "N/A",
-        )
-        st.metric(
-            "Pé Dominante",
-            jogador["pe_dominante"] if pd.notna(jogador["pe_dominante"]) else "N/A",
-        )
-        st.metric(
-            "Nacionalidade",
-            jogador["nacionalidade"] if pd.notna(jogador["nacionalidade"]) else "N/A",
-        )
+    with col_info:
+        # Nome do jogador
+        st.markdown(f"# {jogador['nome']}")
 
-    with col2:
-        st.title(jogador["nome"])
-        st.subheader(
-            f"{jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'} • {jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}"
-        )
+        # Posição e Clube
+        posicao = jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'
+        clube = jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'
+        st.markdown(f"### {posicao} • {clube}")
 
-        st.markdown("---")
-        st.markdown("### 📋 Informações do Vínculo")
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        col_a, col_b, col_c = st.columns(3)
+        # Cards de informações básicas (inline)
+        info_col1, info_col2, info_col3, info_col4 = st.columns(4)
 
-        with col_a:
-            st.markdown("**Clube Atual**")
-            st.markdown(
-                f"🏟️ {jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'}"
-            )
+        with info_col1:
+            idade = f"{jogador['idade_atual']} anos" if pd.notna(jogador["idade_atual"]) else "N/A"
+            st.markdown(f"""
+                <div style='text-align: center; padding: 0.8rem; background: #f8f9fa; border-radius: 8px;'>
+                    <div style='font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;'>Idade</div>
+                    <div style='font-size: 1.25rem; font-weight: 600; color: #212529; margin-top: 0.25rem;'>{idade}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-        with col_b:
-            st.markdown("**Liga**")
-            st.markdown(
-                f"🏆 {jogador['liga_clube'] if pd.notna(jogador['liga_clube']) else 'N/A'}"
-            )
+        with info_col2:
+            altura = f"{jogador['altura']} cm" if pd.notna(jogador["altura"]) else "N/A"
+            st.markdown(f"""
+                <div style='text-align: center; padding: 0.8rem; background: #f8f9fa; border-radius: 8px;'>
+                    <div style='font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;'>Altura</div>
+                    <div style='font-size: 1.25rem; font-weight: 600; color: #212529; margin-top: 0.25rem;'>{altura}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-        with col_c:
-            st.markdown("**Fim de Contrato**")
-            if pd.notna(jogador["data_fim_contrato"]):
-                st.markdown(f"📅 {jogador['data_fim_contrato']}")
-            else:
-                st.markdown("📅 N/A")
+        with info_col3:
+            pe_dom = jogador["pe_dominante"] if pd.notna(jogador["pe_dominante"]) else "N/A"
+            st.markdown(f"""
+                <div style='text-align: center; padding: 0.8rem; background: #f8f9fa; border-radius: 8px;'>
+                    <div style='font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;'>Pé</div>
+                    <div style='font-size: 1.25rem; font-weight: 600; color: #212529; margin-top: 0.25rem;'>{pe_dom}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-        st.markdown("---")
-        status = (
-            jogador["status_contrato"]
-            if pd.notna(jogador["status_contrato"])
-            else "desconhecido"
-        )
+        with info_col4:
+            nac = jogador["nacionalidade"] if pd.notna(jogador["nacionalidade"]) else "N/A"
+            st.markdown(f"""
+                <div style='text-align: center; padding: 0.8rem; background: #f8f9fa; border-radius: 8px;'>
+                    <div style='font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;'>Nacionalidade</div>
+                    <div style='font-size: 1.25rem; font-weight: 600; color: #212529; margin-top: 0.25rem;'>{nac}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-        status_color = {
-            "ativo": "🟢",
-            "ultimo_ano": "🟡",
-            "ultimos_6_meses": "🔴",
-            "vencido": "⚫",
-            "livre": "⚪",
-            "desconhecido": "❓",
-        }
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        status_text = {
-            "ativo": "Contrato Ativo",
-            "ultimo_ano": "Último Ano de Contrato",
-            "ultimos_6_meses": "Vence em Menos de 6 Meses",
-            "vencido": "Contrato Vencido",
-            "livre": "Jogador Livre",
-            "desconhecido": "Status Desconhecido",
-        }
+    # ==========================================
+    # INFORMAÇÕES DE VÍNCULO COM LOGOS
+    # ==========================================
 
-        st.markdown(
-            f"### {status_color.get(status, '❓')} {status_text.get(status, 'Status Desconhecido')}"
-        )
+    st.markdown("---")
 
-        if pd.notna(jogador["data_fim_contrato"]) and status not in [
-            "vencido",
-            "livre",
-        ]:
-            try:
-                data_fim = pd.to_datetime(jogador["data_fim_contrato"], dayfirst=True)
-                dias_restantes = (data_fim - datetime.now()).days
+    vinculo_col1, vinculo_col2, vinculo_col3 = st.columns(3)
 
-                if dias_restantes > 0:
-                    st.info(f"⏱️ **{dias_restantes} dias** até o vencimento do contrato")
-                    dias_totais = 1095
-                    progresso = max(0, min(100, (dias_restantes / dias_totais) * 100))
-                    st.progress(progresso / 100)
-            except Exception:
-                pass
+    with vinculo_col1:
+        st.markdown("""
+            <div style='font-size: 0.85rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>
+                Clube Atual
+            </div>
+        """, unsafe_allow_html=True)
+
+        if logo_clube:
+            logo_col, text_col = st.columns([1, 3])
+            with logo_col:
+                st.image(logo_clube, width=50)
+            with text_col:
+                st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600; padding-top: 0.5rem;'>{clube}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>🏟️ {clube}</div>", unsafe_allow_html=True)
+
+    with vinculo_col2:
+        st.markdown("""
+            <div style='font-size: 0.85rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>
+                Liga
+            </div>
+        """, unsafe_allow_html=True)
+
+        liga = jogador['liga_clube'] if pd.notna(jogador['liga_clube']) else 'N/A'
+
+        if logo_liga:
+            logo_col, text_col = st.columns([1, 3])
+            with logo_col:
+                st.image(logo_liga, width=50)
+            with text_col:
+                st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600; padding-top: 0.5rem;'>{liga}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>🏆 {liga}</div>", unsafe_allow_html=True)
+
+    with vinculo_col3:
+        st.markdown("""
+            <div style='font-size: 0.85rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>
+                Fim de Contrato
+            </div>
+        """, unsafe_allow_html=True)
+
+        fim_contrato = jogador['data_fim_contrato'] if pd.notna(jogador["data_fim_contrato"]) else 'N/A'
+        st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>📅 {fim_contrato}</div>", unsafe_allow_html=True)
+
+    # ==========================================
+    # STATUS DO CONTRATO
+    # ==========================================
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    status = jogador.get("status_contrato", "desconhecido")
+
+    status_config = {
+        "ativo": {"icon": "🟢", "text": "Contrato Ativo", "color": "#28a745"},
+        "ultimo_ano": {"icon": "🟡", "text": "Último Ano de Contrato", "color": "#ffc107"},
+        "ultimos_6_meses": {"icon": "🔴", "text": "Vence em Menos de 6 Meses", "color": "#dc3545"},
+        "vencido": {"icon": "⚫", "text": "Contrato Vencido", "color": "#6c757d"},
+        "livre": {"icon": "⚪", "text": "Jogador Livre", "color": "#6c757d"},
+        "desconhecido": {"icon": "❓", "text": "Status Desconhecido", "color": "#6c757d"},
+    }
+
+    config = status_config.get(status, status_config["desconhecido"])
+
+    st.markdown(f"""
+        <div style='
+            padding: 1rem 1.5rem;
+            background: {config['color']}15;
+            border-left: 4px solid {config['color']};
+            border-radius: 8px;
+        '>
+            <span style='font-size: 1.25rem; font-weight: 600; color: {config['color']};'>
+                {config['icon']} {config['text']}
+            </span>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Barra de progresso do contrato
+    if pd.notna(jogador.get("data_fim_contrato")) and status not in ["vencido", "livre"]:
+        try:
+            data_fim = pd.to_datetime(jogador["data_fim_contrato"], dayfirst=True)
+            dias_restantes = (data_fim - datetime.now()).days
+
+            if dias_restantes > 0:
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.info(f"⏱️ **{dias_restantes} dias** restantes")
+                dias_totais = 1095
+                progresso = max(0, min(100, (dias_restantes / dias_totais) * 100))
+                st.progress(progresso / 100)
+        except Exception:
+            pass
 
     # ============== SEÇÃO DE AVALIAÇÕES ==============
     st.markdown("---")
