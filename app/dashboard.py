@@ -939,15 +939,15 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     fim_contrato = jogador.get('data_fim_contrato', 'N/A') if pd.notna(jogador.get('data_fim_contrato')) else 'N/A'
 
     # ==========================================
-    # ESCAPAR TODAS AS VARIÁVEIS PARA HTML
+    # ESCAPAR APENAS CONTEÚDO DE TEXTO (NÃO URLs!)
     # ==========================================
 
-    # Escapamento seguro para atributos HTML (URLs)
-    foto_url_safe = html.escape(foto_url or '', quote=True)
-    logo_clube_safe = html.escape(logo_clube or '', quote=True)
-    logo_liga_safe = html.escape(logo_liga or '', quote=True)
+    # URLs NÃO devem ser escapadas - já vêm no formato correto
+    foto_url_safe = foto_url or ''
+    logo_clube_url = logo_clube or ''
+    logo_liga_url = logo_liga or ''
 
-    # Escapamento seguro para conteúdo de texto
+    # Escapamento seguro APENAS para conteúdo de texto
     nome_safe = html.escape(nome)
     posicao_safe = html.escape(posicao)
     clube_safe = html.escape(clube)
@@ -962,25 +962,22 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     # GERAR HTML COMPONENTES
     # ==========================================
 
-    # Foto HTML (com tratamento de None e escape correto)
-    if foto_url:
-        # Corrigido: usar aspas simples para evitar conflito com backticks
-        foto_html = f'<img src="{foto_url_safe}" class="player-photo" alt="{nome_safe}" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">'
-        inicial_safe = html.escape(nome[0].upper() if nome else "⚽")
-        foto_html += f'<div class="player-photo-fallback" style="display:none;">{inicial_safe}</div>'
+    # Foto HTML (simplificado e sem backticks problemáticos)
+    inicial_safe = html.escape(nome[0].upper() if nome and len(nome) > 0 else '⚽')
+    if foto_url_safe:
+        foto_html = f'<img src="{foto_url_safe}" class="player-photo" alt="{nome_safe}"><div class="player-photo-fallback" style="display:none;">{inicial_safe}</div>'
     else:
-        inicial_safe = html.escape(nome[0].upper() if nome else '⚽')
         foto_html = f'<div class="player-photo-fallback">{inicial_safe}</div>'
 
     # Logo Clube HTML
-    if logo_clube:
-        logo_clube_html = f'<img src="{logo_clube_safe}" alt="{clube_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
+    if logo_clube_url:
+        logo_clube_html = f'<img src="{logo_clube_url}" alt="{clube_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
     else:
         logo_clube_html = '<span style="font-size: 24px; margin-right: 8px;">🛡️</span>'
 
     # Logo Liga HTML
-    if logo_liga:
-        logo_liga_html = f'<img src="{logo_liga_safe}" alt="{liga_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
+    if logo_liga_url:
+        logo_liga_html = f'<img src="{logo_liga_url}" alt="{liga_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
     else:
         logo_liga_html = '<span style="font-size: 24px; margin-right: 8px;">🏆</span>'
 
