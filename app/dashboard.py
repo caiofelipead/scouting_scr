@@ -873,12 +873,13 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         fim_contrato = jogador['data_fim_contrato'] if pd.notna(jogador["data_fim_contrato"]) else 'N/A'
         st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>📅 {fim_contrato}</div>", unsafe_allow_html=True)
 
-    # ==========================================
+# ==========================================
     # STATUS DO CONTRATO
     # ==========================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
+    # CORREÇÃO: Removemos os espaços extras no início destas linhas
     fim_contrato = jogador['data_fim_contrato'] if pd.notna(jogador["data_fim_contrato"]) else 'N/A'
     st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>📅 {fim_contrato}</div>", unsafe_allow_html=True)
 
@@ -922,7 +923,6 @@ st.markdown("<br>", unsafe_allow_html=True)
             pass
 
     # ============== SEÇÃO DE AVALIAÇÕES ==============
-    st.markdown("---")
     st.markdown("---")
 
     # Tabs para organizar avaliações
