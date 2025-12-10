@@ -662,7 +662,7 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True, coordenadas_fixas=None)
 
 
 def exibir_perfil_jogador(db, id_jogador, debug=False):
-    """Exibe perfil detalhado do jogador"""
+    """Exibe perfil detalhado do jogador com design minimalista"""
     conn = db.engine.connect()
 
     try:
@@ -671,7 +671,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         id_busca = id_jogador
 
     query = text("""
-    SELECT 
+    SELECT
         j.*,
         v.clube,
         v.liga_clube,
@@ -682,11 +682,11 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
     WHERE j.id_jogador = :id
     """)
-    
+
     # Executar com SQLAlchemy
     result = conn.execute(query, {"id": id_busca})
     jogador = pd.DataFrame(result.fetchall(), columns=result.keys())
-    
+
     if len(jogador) == 0:
         st.error(f"Jogador não encontrado! (ID buscado: {id_busca})")
         if st.button("Voltar para Lista"):
@@ -695,6 +695,35 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         return
 
     jogador = jogador.iloc[0]
+
+    # ==========================================
+    # CALCULAR STATUS DO CONTRATO (ANTES DE USAR)
+    # ==========================================
+
+    status = "desconhecido"
+    dias_restantes = None
+
+    if pd.notna(jogador.get("data_fim_contrato")):
+        try:
+            data_fim = pd.to_datetime(jogador["data_fim_contrato"], dayfirst=True)
+            dias_restantes = (data_fim - datetime.now()).days
+
+            if dias_restantes < 0:
+                status = "vencido"
+            elif dias_restantes <= 180:  # 6 meses
+                status = "ultimos_6_meses"
+            elif dias_restantes <= 365:  # 1 ano
+                status = "ultimo_ano"
+            else:
+                status = "ativo"
+        except Exception:
+            status = "desconhecido"
+    elif pd.notna(jogador.get("status_contrato")):
+        status = jogador.get("status_contrato", "desconhecido")
+
+    # Se explicitamente marcado como livre
+    if jogador.get("clube") == "Livre" or jogador.get("status_contrato") == "livre":
+        status = "livre"
 
     # ==========================================
     # CSS MINIMALISTA ESTILO APPLE/SOFASCORE
@@ -871,22 +900,25 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     nacionalidade = jogador.get('nacionalidade', 'N/A') if pd.notna(jogador.get('nacionalidade')) else 'N/A'
     fim_contrato = jogador.get('data_fim_contrato', 'N/A') if pd.notna(jogador.get('data_fim_contrato')) else 'N/A'
 
-    # Foto HTML
+    # Foto HTML (com tratamento de None)
     if foto_url:
-        foto_html = f'<img src="{foto_url}" class="player-photo" alt="{nome}">'
+        foto_html = f'<img src="{foto_url}" class="player-photo" alt="{nome}" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">'
+        foto_html += f'<div class="player-photo-fallback" style="display:none;">{nome[0].upper() if nome else "⚽"}</div>'
     else:
         inicial = nome[0].upper() if nome else '⚽'
         foto_html = f'<div class="player-photo-fallback">{inicial}</div>'
 
-    # Logo Clube HTML
+    # Logo Clube HTML (com tratamento de None)
     if logo_clube:
-        logo_clube_html = f'<img src="{logo_clube}" class="logo-img" alt="{clube}">'
+        logo_clube_html = f'<img src="{logo_clube}" class="logo-img" alt="{clube}" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">'
+        logo_clube_html += '<div class="logo-fallback" style="display:none;">🛡️</div>'
     else:
-        logo_clube_html = '<div class="logo-fallback">🏟️</div>'
+        logo_clube_html = '<div class="logo-fallback">🛡️</div>'
 
-    # Logo Liga HTML
+    # Logo Liga HTML (com tratamento de None)
     if logo_liga:
-        logo_liga_html = f'<img src="{logo_liga}" class="logo-img" alt="{liga}">'
+        logo_liga_html = f'<img src="{logo_liga}" class="logo-img" alt="{liga}" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">'
+        logo_liga_html += '<div class="logo-fallback" style="display:none;">🏆</div>'
     else:
         logo_liga_html = '<div class="logo-fallback">🏆</div>'
 
@@ -948,8 +980,6 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     # STATUS DO CONTRATO (Badge Moderno)
     # ==========================================
 
-    status = jogador.get("status_contrato", "desconhecido")
-
     status_config = {
         "ativo": {"icon": "🟢", "text": "Contrato Ativo", "color": "#155724", "bg": "#d4edda"},
         "ultimo_ano": {"icon": "🟡", "text": "Último Ano", "color": "#856404", "bg": "#fff3cd"},
@@ -968,20 +998,13 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         </div>
     """, unsafe_allow_html=True)
 
-    # Barra de progresso do contrato
-    if pd.notna(jogador.get("data_fim_contrato")) and status not in ["vencido", "livre"]:
-        try:
-            data_fim = pd.to_datetime(jogador["data_fim_contrato"], dayfirst=True)
-            dias_restantes = (data_fim - datetime.now()).days
-
-            if dias_restantes > 0:
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.info(f"⏱️ **{dias_restantes} dias** até o fim do contrato")
-                dias_totais = 1095
-                progresso = max(0, min(100, (dias_restantes / dias_totais) * 100))
-                st.progress(progresso / 100)
-        except Exception:
-            pass
+    # Barra de progresso do contrato (só se tiver dias restantes válidos)
+    if dias_restantes is not None and dias_restantes > 0:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.info(f"⏱️ **{dias_restantes} dias** até o fim do contrato")
+        dias_totais = 1095  # 3 anos
+        progresso = max(0, min(100, (dias_restantes / dias_totais) * 100))
+        st.progress(progresso / 100)
 
     # ============== SEÇÃO DE AVALIAÇÕES ==============
     st.markdown("---")
