@@ -28,29 +28,31 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     <style>
     /* Container principal do header - ROXO ESCURO */
     .player-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
         border-radius: 16px;
         padding: 32px;
         margin-bottom: 24px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
     }
 
     .player-name {
         font-size: 42px;
         font-weight: 900;
-        color: #ffffff;
+        color: #ffffff !important;
         margin-bottom: 8px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        text-shadow: 3px 3px 8px rgba(0,0,0,0.5),
+                     0 0 20px rgba(0,0,0,0.3);
         line-height: 1.2;
     }
 
     .player-position {
         font-size: 18px;
         font-weight: 600;
-        color: rgba(255,255,255,0.95) !important;
+        color: #ffffff !important;
         text-transform: uppercase;
         letter-spacing: 2px;
         margin-bottom: 16px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
     }
 
     .club-info {
@@ -153,15 +155,13 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     with col_foto:
         # Foto do jogador
         if foto_path:
-            st.markdown(f'<img src="{foto_path}" class="player-photo" width="100%">', unsafe_allow_html=True)
-        else:
-            # Placeholder com inicial do nome
+            # Cria fallback inline para caso a foto não carregue
             inicial = jogador['nome'][0] if jogador.get('nome') else "?"
-            st.markdown(f"""
+            fallback_html = f"""
             <div style='
                 width: 100%;
                 aspect-ratio: 3/4;
-                background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
+                background: linear-gradient(135deg, #4c1d95 0%, #312e81 100%);
                 border-radius: 16px;
                 display: flex;
                 align-items: center;
@@ -169,8 +169,44 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
                 font-size: 120px;
                 color: white;
                 font-weight: 900;
-                box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-                border: 4px solid rgba(255,255,255,0.1);
+                box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+                border: 4px solid rgba(255,255,255,0.2);
+            '>
+                {inicial}
+            </div>
+            """
+
+            st.markdown(f'''
+            <div style="width: 100%; position: relative;">
+                <img
+                    src="{foto_path}"
+                    class="player-photo"
+                    width="100%"
+                    style="display: block; aspect-ratio: 3/4; object-fit: cover;"
+                    onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                />
+                <div style="display: none; width: 100%; aspect-ratio: 3/4; background: linear-gradient(135deg, #4c1d95 0%, #312e81 100%); border-radius: 16px; align-items: center; justify-content: center; font-size: 120px; color: white; font-weight: 900; box-shadow: 0 12px 40px rgba(0,0,0,0.3); border: 4px solid rgba(255,255,255,0.2);">
+                    {inicial}
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+        else:
+            # Placeholder com inicial do nome
+            inicial = jogador['nome'][0] if jogador.get('nome') else "?"
+            st.markdown(f"""
+            <div style='
+                width: 100%;
+                aspect-ratio: 3/4;
+                background: linear-gradient(135deg, #4c1d95 0%, #312e81 100%);
+                border-radius: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 120px;
+                color: white;
+                font-weight: 900;
+                box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+                border: 4px solid rgba(255,255,255,0.2);
             '>
                 {inicial}
             </div>
