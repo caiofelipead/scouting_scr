@@ -1,6 +1,60 @@
 /* === TEMA MINIMALISTA - Scout Pro === */
 /* Sistema de spacing: 8px, 16px, 24px, 32px */
 
+/* REMOVE ESPAÇAMENTO NO TOPO DA PÁGINA */
+.main .block-container {
+    padding-top: 0rem !important;
+}
+
+/* Compactação geral da página (movido de dashboard.py) */
+.block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    margin-top: 0 !important;
+}
+
+/* Compactar header do Streamlit */
+header[data-testid="stHeader"] {
+    height: 0px !important;
+    min-height: 0px !important;
+    display: none !important;
+}
+
+/* Remover margens excessivas entre elementos */
+.element-container {
+    margin-bottom: 0.5rem !important;
+}
+
+div[data-testid="stVerticalBlock"] > div {
+    gap: 0.5rem !important;
+}
+
+/* Compactar espaçamento de markdown */
+.stMarkdown {
+    margin-bottom: 0.5rem !important;
+}
+
+/* Ocultar elementos vazios */
+div:empty {
+    display: none !important;
+}
+
+/* Compactar columns */
+div[data-testid="column"] {
+    padding: 0.5rem !important;
+}
+
+/* Reduzir espaço entre tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.5rem;
+}
+
+/* Compactar formulários */
+.stForm {
+    padding: 1rem !important;
+    margin: 0.5rem 0 !important;
+}
+
 /* Background principal limpo */
 .main {
     background-color: #ffffff;
@@ -93,17 +147,44 @@ div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div[data-testid
     gap: 0rem !important;
 }
 
-/* Colapsa elementos vazios do Streamlit */
+/* Colapsa elementos vazios do Streamlit - VERSÃO AGRESSIVA */
 div[data-testid="stVerticalBlock"] > div:has(> div:empty) {
     display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .element-container:empty {
     display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 div[data-testid="stElementContainer"]:empty {
     display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Remove QUALQUER elemento vazio com class="st-emotion-cache-*" */
+div[class*="st-emotion-cache-"]:empty {
+    display: none !important;
+    height: 0 !important;
+}
+
+/* Remove elementos com apenas whitespace (não funciona em todos browsers) */
+div[data-testid="stVerticalBlock"]:not(:has(*)) {
+    display: none !important;
+}
+
+/* Remove primeiros elementos vazios especificamente */
+.main > div[data-testid="stVerticalBlock"]:first-child:empty,
+.main > div[data-testid="stVerticalBlock"]:first-child:not(:has(:not(:empty))) {
+    display: none !important;
+    height: 0 !important;
 }
 
 /* Remove espaçamento extra entre elementos */
