@@ -744,7 +744,41 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         clube = jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'
         st.markdown(f"### {posicao} • {clube}")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+    vinculo_col1, vinculo_col2, vinculo_col3 = st.columns(3)
+
+    with vinculo_col1:
+        st.markdown("""
+            <div style='font-size: 0.85rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>
+                Clube Atual
+            </div>
+        """, unsafe_allow_html=True)
+
+        if logo_clube:
+            logo_col, text_col = st.columns([1, 3])
+            with logo_col:
+                st.image(logo_clube, width=50)
+            with text_col:
+                st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600; padding-top: 0.5rem;'>{clube}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>🏟️ {clube}</div>", unsafe_allow_html=True)
+
+    with vinculo_col2:
+        st.markdown("""
+            <div style='font-size: 0.85rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>
+                Liga
+            </div>
+        """, unsafe_allow_html=True)
+
+        liga = jogador['liga_clube'] if pd.notna(jogador['liga_clube']) else 'N/A'
+
+        if logo_liga:
+            logo_col, text_col = st.columns([1, 3])
+            with logo_col:
+                st.image(logo_liga, width=50)
+            with text_col:
+                st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600; padding-top: 0.5rem;'>{liga}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>🏆 {liga}</div>", unsafe_allow_html=True)
 
         # Cards de informações básicas (inline)
         info_col1, info_col2, info_col3, info_col4 = st.columns(4)
@@ -845,7 +879,8 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    status = jogador.get("status_contrato", "desconhecido")
+        fim_contrato = jogador['data_fim_contrato'] if pd.notna(jogador["data_fim_contrato"]) else 'N/A'
+        st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>📅 {fim_contrato}</div>", unsafe_allow_html=True)
 
     status_config = {
         "ativo": {"icon": "🟢", "text": "Contrato Ativo", "color": "#28a745"},
