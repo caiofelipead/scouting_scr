@@ -1,7 +1,5 @@
 """
-Perfil Visual Minimalista - Funcional e Responsivo
-==================================================
-Header e componentes simples e confiáveis para perfil de jogador
+Perfil Visual Ultra Simples - Apenas Funcionalidade
 
 Autor: Scout Pro
 Data: 2025-12-10
@@ -16,201 +14,140 @@ from transfermarkt_logos import get_logo_clube_transfermarkt, get_logo_liga_tran
 
 def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = None) -> None:
     """
-    Cria header minimalista e funcional com foto, informações básicas
+    Header profissional com melhorias visuais e máxima legibilidade
 
     Args:
         jogador: Série do pandas com dados do jogador
         foto_path: URL para a foto do jogador
     """
 
-    # CSS minimalista - apenas o essencial
+    # Container principal com gradiente sutil
     st.markdown("""
-    <style>
-    /* Container principal do header - ROXO ESCURO */
-    .player-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 16px;
-        padding: 32px;
-        margin-bottom: 24px;
-    }
-
-    .player-name-simple {
-        font-size: 32px;
-        font-weight: 700;
-        color: #ffffff;
-        margin: 0 0 8px 0;
-        line-height: 1.2;
-    }
-
-    .player-position-simple {
-        font-size: 14px;
-        font-weight: 600;
-        color: #e0e7ff;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin: 0 0 16px 0;
-    }
-
-    .info-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 16px;
-    }
-
-    .info-badge {
-        background: rgba(255, 255, 255, 0.2);
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 13px;
-        color: #ffffff;
-        white-space: nowrap;
-    }
-
-    .player-photo {
-        border-radius: 16px;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.3);
-        border: 4px solid rgba(255,255,255,0.3);
-    }
-
-    .stat-card-pro {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-        border: 1px solid rgba(102, 126, 234, 0.2);
-        transition: all 0.3s ease;
-    }
-
-    .stat-card-pro:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
-    }
-
-    .stat-label-pro {
-        font-size: 12px;
-        color: #667eea;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-weight: 600;
-        margin-bottom: 8px;
-    }
-
-    /* Responsividade */
-    @media (max-width: 768px) {
-        .player-name-simple {
-            font-size: 24px;
-        }
-        .player-header-simple {
-            padding: 16px;
-        }
-    }
-    </style>
+        <div style="
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        ">
     """, unsafe_allow_html=True)
 
-    # Container principal
-    st.markdown('<div class="player-header-simple">', unsafe_allow_html=True)
+    # Layout: foto | informações
+    col1, col2 = st.columns([1, 3])
 
-    # Layout: 2 colunas (foto pequena | info)
-    col_foto, col_info = st.columns([1, 3])
-
-    with col_foto:
-        # Foto usando st.image nativo (mais confiável)
+    with col1:
+        # Foto com border para destaque
         if foto_path:
-            try:
-                st.image(foto_path, use_container_width=True)
-            except:
-                # Fallback: mostrar inicial
-                inicial = jogador.get('nome', '?')[0]
-                st.markdown(f"""
-                <div style='
-                    width: 100%;
-                    aspect-ratio: 1;
-                    background: #4f46e5;
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 48px;
-                    color: white;
-                    font-weight: 700;
-                '>
-                    {inicial}
+            st.markdown(f"""
+                <div style="border: 3px solid rgba(255,255,255,0.3); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <img src="{foto_path}" style="width: 100%; height: auto; display: block;" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={jogador.get('nome', '?')[0]}&size=300&background=4f46e5&color=fff&bold=true&font-size=0.4';">
                 </div>
-                """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
         else:
-            # Placeholder simples
+            # Placeholder estilizado
             inicial = jogador.get('nome', '?')[0]
             st.markdown(f"""
-            <div style='
-                width: 100%;
-                aspect-ratio: 1;
-                background: #4f46e5;
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 48px;
-                color: white;
-                font-weight: 700;
-            '>
-                {inicial}
-            </div>
+                <div style="
+                    background: #4f46e5;
+                    border: 3px solid rgba(255,255,255,0.3);
+                    border-radius: 12px;
+                    padding: 40px;
+                    text-align: center;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                ">
+                    <span style="font-size: 56px; color: white; font-weight: bold;">{inicial}</span>
+                </div>
             """, unsafe_allow_html=True)
 
-    with col_info:
-        # Nome e posição
+    with col2:
+        # Nome com sombra de texto para legibilidade
         nome = jogador.get('nome', 'Jogador')
-        posicao = jogador.get('posicao', 'N/A')
+        st.markdown(f"""
+            <h1 style="
+                color: #ffffff;
+                margin: 0 0 8px 0;
+                font-size: 36px;
+                font-weight: 700;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                line-height: 1.2;
+            ">{nome}</h1>
+        """, unsafe_allow_html=True)
 
-        st.markdown(f'<h1 class="player-name-simple">{nome}</h1>', unsafe_allow_html=True)
-        st.markdown(f'<div class="player-position-simple">⚽ {posicao}</div>', unsafe_allow_html=True)
+        # Posição
+        posicao = jogador.get('posicao', 'N/A')
+        st.markdown(f"""
+            <p style="
+                color: #e0e7ff;
+                margin: 0 0 16px 0;
+                font-size: 14px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            ">⚽ {posicao}</p>
+        """, unsafe_allow_html=True)
 
         # Informações básicas em badges
-        badges_html = '<div class="info-row">'
+        info_parts = []
 
-        # Nacionalidade
         if pd.notna(jogador.get('nacionalidade')):
             bandeira = get_bandeira_pais(jogador['nacionalidade'])
-            badges_html += f'<span class="info-badge">{bandeira} {jogador["nacionalidade"]}</span>'
+            info_parts.append(f"{bandeira} {jogador['nacionalidade']}")
 
-        # Idade
         if pd.notna(jogador.get('idade_atual')):
-            badges_html += f'<span class="info-badge">🎂 {int(jogador["idade_atual"])} anos</span>'
+            info_parts.append(f"🎂 {int(jogador['idade_atual'])} anos")
 
-        # Altura
         if pd.notna(jogador.get('altura')):
-            badges_html += f'<span class="info-badge">📏 {int(jogador["altura"])} cm</span>'
+            info_parts.append(f"📏 {int(jogador['altura'])} cm")
 
-        # Pé dominante
         if pd.notna(jogador.get('pe_dominante')):
-            badges_html += f'<span class="info-badge">🦶 {jogador["pe_dominante"]}</span>'
+            info_parts.append(f"🦶 {jogador['pe_dominante']}")
 
-        badges_html += '</div>'
-        st.markdown(badges_html, unsafe_allow_html=True)
+        if info_parts:
+            badges_html = '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">'
+            for info in info_parts:
+                badges_html += f'''
+                    <span style="
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        padding: 6px 12px;
+                        border-radius: 6px;
+                        font-size: 13px;
+                        font-weight: 500;
+                        white-space: nowrap;
+                        backdrop-filter: blur(10px);
+                    ">{info}</span>
+                '''
+            badges_html += '</div>'
+            st.markdown(badges_html, unsafe_allow_html=True)
 
-        # Clube e liga
-        clube = jogador.get('clube', '')
-        liga = jogador.get('liga_clube', '')
+        # Clube e liga em card destacado
+        clube_parts = []
+        if pd.notna(jogador.get('clube')) and jogador.get('clube'):
+            clube_parts.append(f"⚽ {jogador['clube']}")
+        if pd.notna(jogador.get('liga_clube')) and jogador.get('liga_clube'):
+            clube_parts.append(f"🏆 {jogador['liga_clube']}")
 
-        if clube or liga:
-            club_text = f"<div class='club-section'>"
-            if clube:
-                club_text += f"<strong>⚽ {clube}</strong>"
-            if liga:
-                if clube:
-                    club_text += " • "
-                club_text += f"🏆 {liga}"
-            club_text += "</div>"
-            st.markdown(club_text, unsafe_allow_html=True)
+        if clube_parts:
+            clube_text = " • ".join(clube_parts)
+            st.markdown(f"""
+                <div style="
+                    background: rgba(255, 255, 255, 0.15);
+                    padding: 12px;
+                    border-radius: 8px;
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                ">
+                    <p style="color: white; font-size: 14px; margin: 0; font-weight: 500;">{clube_text}</p>
+                </div>
+            """, unsafe_allow_html=True)
 
     # Fechar container
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def criar_secao_stats_rapidas(stats: Dict) -> None:
     """
-    Cria seção de estatísticas rápidas em colunas simples
+    Estatísticas em colunas com visual aprimorado
 
     Args:
         stats: Dicionário com estatísticas {label: {value, subtitle}}
@@ -254,83 +191,92 @@ def criar_secao_stats_rapidas(stats: Dict) -> None:
     for col, (label, data) in zip(cols, stats.items()):
         with col:
             st.markdown(f"""
-            <div class='stat-card-simple'>
-                <div class='stat-label-simple'>{label}</div>
-                <div class='stat-value-simple'>{data['value']}</div>
-                <div class='stat-subtitle-simple'>{data.get('subtitle', '')}</div>
+            <div style="
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 20px;
+                text-align: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                transition: all 0.2s ease;
+            ">
+                <p style="
+                    font-size: 11px;
+                    color: #64748b;
+                    font-weight: 600;
+                    margin: 0 0 8px 0;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                ">{label}</p>
+                <p style="
+                    font-size: 32px;
+                    font-weight: 700;
+                    color: #6366f1;
+                    margin: 0;
+                    line-height: 1;
+                ">{data['value']}</p>
+                <p style="
+                    font-size: 11px;
+                    color: #94a3b8;
+                    margin: 4px 0 0 0;
+                ">{data.get('subtitle', '')}</p>
             </div>
             """, unsafe_allow_html=True)
 
 
 def criar_cards_categorias(categorias: Dict) -> None:
     """
-    Cria cards de categorias simples
+    Cards de categorias com hover e visual aprimorado
 
     Args:
         categorias: {nome: {icone, valor, descricao}}
     """
-
-    st.markdown("""
-    <style>
-    .category-card-simple {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 20px;
-        text-align: center;
-        transition: all 0.2s ease;
-    }
-
-    .category-card-simple:hover {
-        border-color: #6366f1;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
-    }
-
-    .category-icon-simple {
-        font-size: 32px;
-        margin-bottom: 8px;
-    }
-
-    .category-title-simple {
-        font-size: 13px;
-        font-weight: 600;
-        color: #475569;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-    }
-
-    .category-value-simple {
-        font-size: 24px;
-        font-weight: 700;
-        color: #6366f1;
-    }
-
-    .category-desc-simple {
-        font-size: 11px;
-        color: #94a3b8;
-        margin-top: 4px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
     cols = st.columns(len(categorias))
 
     for col, (nome, data) in zip(cols, categorias.items()):
         with col:
             st.markdown(f"""
-            <div class='category-card-simple'>
-                <div class='category-icon-simple'>{data['icone']}</div>
-                <div class='category-title-simple'>{nome}</div>
-                <div class='category-value-simple'>{data['valor']}</div>
-                <div class='category-desc-simple'>{data.get('descricao', '')}</div>
+            <div style="
+                background: #ffffff;
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 24px;
+                text-align: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                transition: all 0.2s ease;
+            ">
+                <p style="
+                    font-size: 36px;
+                    margin: 0 0 12px 0;
+                ">{data['icone']}</p>
+                <p style="
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #475569;
+                    margin: 0 0 8px 0;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                ">{nome}</p>
+                <p style="
+                    font-size: 28px;
+                    font-weight: 700;
+                    color: #6366f1;
+                    margin: 0;
+                    line-height: 1;
+                ">{data['valor']}</p>
+                <p style="
+                    font-size: 11px;
+                    color: #94a3b8;
+                    margin: 8px 0 0 0;
+                ">{data.get('descricao', '')}</p>
             </div>
             """, unsafe_allow_html=True)
 
 
 def criar_badge_status(status: str, tipo: str = "success") -> str:
     """
-    Cria badge HTML de status simples
+    Badge HTML de status - versão ultra simples
 
     Args:
         status: Texto do status
@@ -349,17 +295,4 @@ def criar_badge_status(status: str, tipo: str = "success") -> str:
 
     cor = cores.get(tipo, cores["info"])
 
-    return f"""
-    <span style='
-        background: {cor}15;
-        color: {cor};
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    '>
-        {status}
-    </span>
-    """
+    return f'<span style="background: {cor}15; color: {cor}; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase;">{status}</span>'
