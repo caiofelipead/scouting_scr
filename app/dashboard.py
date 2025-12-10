@@ -81,6 +81,20 @@ st.markdown(
     <style>
     /* === TEMA CLARO NATURAL === */
 
+    /* CSS de Limpeza Global - Remove espaços vazios do Streamlit */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 3rem !important;
+    }
+
+    div[data-testid="stVerticalBlock"] > div:empty {
+        display: none;
+    }
+
+    .element-container {
+        margin-bottom: 0.5rem !important;
+    }
+
     .main {
         padding: 0rem 1rem;
     }
