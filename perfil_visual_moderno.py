@@ -28,7 +28,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     <style>
     /* Container principal do header - ROXO ESCURO */
     .player-header {
-        background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 16px;
         padding: 32px;
         margin-bottom: 24px;
@@ -122,7 +122,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
 
     .stat-label-pro {
         font-size: 12px;
-        color: #764ba2;
+        color: #667eea;
         text-transform: uppercase;
         letter-spacing: 1px;
         font-weight: 600;
