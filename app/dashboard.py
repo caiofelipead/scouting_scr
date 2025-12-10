@@ -1389,7 +1389,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                     # === FOTO DO JOGADOR ===
                     tm_id = jogador.get('transfermarkt_id', None)
                     nome_jogador = jogador.get('nome', 'Jogador')
-                    foto_path = get_foto_jogador(
+                    foto_url = get_foto_jogador(
                         jogador['id_jogador'],
                         transfermarkt_id=tm_id,
                         nome_jogador=nome_jogador,
@@ -1401,7 +1401,7 @@ def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
                     st.markdown(
                         f"""
                         <div style="position: relative; width: 100%; padding-top: 133.33%; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                            <img src="{foto_path}"
+                            <img src="{foto_url}"
                                  style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                                  alt="{nome_jogador}">
