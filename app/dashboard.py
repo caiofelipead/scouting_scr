@@ -1,6 +1,7 @@
 import random
 import sys
 import time
+import html
 from datetime import datetime
 from pathlib import Path
 from migrate_financeiro import migrar_colunas_financeiras
@@ -937,55 +938,62 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     nacionalidade = jogador.get('nacionalidade', 'N/A') if pd.notna(jogador.get('nacionalidade')) else 'N/A'
     fim_contrato = jogador.get('data_fim_contrato', 'N/A') if pd.notna(jogador.get('data_fim_contrato')) else 'N/A'
 
-    # Foto HTML (com tratamento de None)
-    nome_safe = nome.replace('"', '&quot;').replace("'", "&apos;") if nome else ""
+    # ==========================================
+    # ESCAPAR TODAS AS VARIÁVEIS PARA HTML
+    # ==========================================
+
+    # Escapamento seguro para atributos HTML (URLs)
+    foto_url_safe = html.escape(foto_url or '', quote=True)
+    logo_clube_safe = html.escape(logo_clube or '', quote=True)
+    logo_liga_safe = html.escape(logo_liga or '', quote=True)
+
+    # Escapamento seguro para conteúdo de texto
+    nome_safe = html.escape(nome)
+    posicao_safe = html.escape(posicao)
+    clube_safe = html.escape(clube)
+    liga_safe = html.escape(liga)
+    idade_safe = html.escape(str(idade))
+    altura_safe = html.escape(str(altura))
+    pe_dom_safe = html.escape(str(pe_dom))
+    nacionalidade_safe = html.escape(str(nacionalidade))
+    fim_contrato_safe = html.escape(str(fim_contrato))
+
+    # ==========================================
+    # GERAR HTML COMPONENTES
+    # ==========================================
+
+    # Foto HTML (com tratamento de None e escape correto)
     if foto_url:
-        foto_html = f'<img src="{foto_url}" class="player-photo" alt="{nome_safe}" onerror="this.style.display=`none`; this.nextElementSibling.style.display=`flex`;">'
-        foto_html += f'<div class="player-photo-fallback" style="display:none;">{nome[0].upper() if nome else "⚽"}</div>'
+        # Corrigido: usar aspas simples para evitar conflito com backticks
+        foto_html = f'<img src="{foto_url_safe}" class="player-photo" alt="{nome_safe}" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">'
+        inicial_safe = html.escape(nome[0].upper() if nome else "⚽")
+        foto_html += f'<div class="player-photo-fallback" style="display:none;">{inicial_safe}</div>'
     else:
-        inicial = nome[0].upper() if nome else '⚽'
-        foto_html = f'<div class="player-photo-fallback">{inicial}</div>'
+        inicial_safe = html.escape(nome[0].upper() if nome else '⚽')
+        foto_html = f'<div class="player-photo-fallback">{inicial_safe}</div>'
 
-    # Logo Clube HTML (simplificado)
-    clube_safe = clube.replace('"', '&quot;').replace("'", "&apos;") if clube else ""
-    liga_safe = liga.replace('"', '&quot;').replace("'", "&apos;") if liga else ""
-
+    # Logo Clube HTML
     if logo_clube:
-        logo_clube_html = f'<img src="{logo_clube}" alt="{clube_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
+        logo_clube_html = f'<img src="{logo_clube_safe}" alt="{clube_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
     else:
         logo_clube_html = '<span style="font-size: 24px; margin-right: 8px;">🛡️</span>'
 
-    # Logo Liga HTML (simplificado)
+    # Logo Liga HTML
     if logo_liga:
-        logo_liga_html = f'<img src="{logo_liga}" alt="{liga_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
+        logo_liga_html = f'<img src="{logo_liga_safe}" alt="{liga_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
     else:
         logo_liga_html = '<span style="font-size: 24px; margin-right: 8px;">🏆</span>'
 
-    # ==========================================
-    # RENDERIZAR PERFIL COMPLETO
-    # ==========================================
-
-    # Escapar todas as variáveis de texto para HTML
-    posicao_safe = posicao.replace('<', '&lt;').replace('>', '&gt;') if posicao else 'N/A'
-    clube_display = clube.replace('<', '&lt;').replace('>', '&gt;') if clube else 'Livre'
-    idade_safe = str(idade).replace('<', '&lt;').replace('>', '&gt;')
-    altura_safe = str(altura).replace('<', '&lt;').replace('>', '&gt;')
-    pe_dom_safe = str(pe_dom).replace('<', '&lt;').replace('>', '&gt;')
-    nacionalidade_safe = str(nacionalidade).replace('<', '&lt;').replace('>', '&gt;')
-    fim_contrato_safe = str(fim_contrato).replace('<', '&lt;').replace('>', '&gt;')
-
     st.markdown(f"""
     <div class="profile-container">
-        <!-- HEADER: Foto + Nome + Posição -->
         <div class="profile-header">
             {foto_html}
             <div class="player-info">
-                <h1>{nome}</h1>
-                <p>{posicao_safe} • {clube_display}</p>
+                <h1>{nome_safe}</h1>
+                <p>{posicao_safe} • {clube_safe}</p>
             </div>
         </div>
 
-        <!-- GRID DE ESTATÍSTICAS -->
         <div class="stats-grid">
             <div class="stat-card">
                 <span class="stat-label">Idade</span>
@@ -1009,9 +1017,8 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             </div>
         </div>
 
-        <!-- BARRA CLUBE E LIGA -->
         <div class="club-league-bar">
-            {logo_clube_html} <span class="club-name">{clube_display}</span>
+            {logo_clube_html} <span class="club-name">{clube_safe}</span>
             <span class="separator">•</span>
             {logo_liga_html} <span class="club-name">{liga_safe}</span>
         </div>
