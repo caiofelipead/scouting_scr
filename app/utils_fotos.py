@@ -72,17 +72,21 @@ def extrair_url_foto_transfermarkt(tm_id, usar_scraping=True):
         usar_scraping = True
 
     # MÉTODO 2: Scraping (CONFIÁVEL mas mais lento)
+    # Apenas use se explicitamente solicitado
     if usar_scraping:
         url_pagina = f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}"
 
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
         }
 
         try:
             response = requests.get(url_pagina, headers=headers, timeout=10)
 
             if response.status_code != 200:
+                st.warning(f"⚠️ Transfermarkt retornou status {response.status_code}")
                 return None
 
             soup = BeautifulSoup(response.content, "html.parser")
@@ -108,7 +112,7 @@ def extrair_url_foto_transfermarkt(tm_id, usar_scraping=True):
                     return url_foto
 
         except Exception as e:
-            print(f"Erro no scraping: {e}")
+            st.error(f"❌ Erro ao buscar foto do Transfermarkt: {e}")
             return None
 
     return None
