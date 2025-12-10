@@ -57,9 +57,14 @@ def get_logo_clube(nome_clube):
         # Clubes Asiáticos (Tailândia, Japão, etc)
         "PT Prachuap": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/PT_Prachuap_FC_Logo.png/150px-PT_Prachuap_FC_Logo.png",
         "PT Prachuap FC": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/PT_Prachuap_FC_Logo.png/150px-PT_Prachuap_FC_Logo.png",
+        "Sukhothai": "https://upload.wikimedia.org/wikipedia/en/thumb/2/28/Sukhothai_FC_Logo.png/150px-Sukhothai_FC_Logo.png",
+        "Sukhothai FC": "https://upload.wikimedia.org/wikipedia/en/thumb/2/28/Sukhothai_FC_Logo.png/150px-Sukhothai_FC_Logo.png",
         "Buriram United": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Buriram_United_2014_Logo.png/150px-Buriram_United_2014_Logo.png",
         "Bangkok United": "https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Bangkok_United_F.C._Logo.png/150px-Bangkok_United_F.C._Logo.png",
         "Muangthong United": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Muangthong_United_FC_2017_Logo.png/150px-Muangthong_United_FC_2017_Logo.png",
+        "Chonburi FC": "https://upload.wikimedia.org/wikipedia/en/thumb/e/e6/Chonburi_FC_2022.png/150px-Chonburi_FC_2022.png",
+        "Port FC": "https://upload.wikimedia.org/wikipedia/en/thumb/5/5e/Port_FC_Logo.png/150px-Port_FC_Logo.png",
+        "Ratchaburi": "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/Ratchaburi_Mitr_Phol_FC_Logo.png/150px-Ratchaburi_Mitr_Phol_FC_Logo.png",
     }
 
     # Tentar encontrar o clube no mapeamento
