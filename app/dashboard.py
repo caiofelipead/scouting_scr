@@ -697,7 +697,159 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     jogador = jogador.iloc[0]
 
     # ==========================================
-    # HEADER PROFISSIONAL COM FOTO E INFO
+    # CSS MINIMALISTA ESTILO APPLE/SOFASCORE
+    # ==========================================
+
+    st.markdown("""
+    <style>
+        .profile-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .player-photo {
+            width: 140px;
+            height: 140px;
+            border-radius: 70px;
+            object-fit: cover;
+            border: 3px solid #f0f0f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .player-photo-fallback {
+            width: 140px;
+            height: 140px;
+            border-radius: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            color: white;
+            border: 3px solid #f0f0f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0 0 8px 0;
+            line-height: 1.2;
+        }
+
+        .player-position {
+            font-size: 18px;
+            color: #666;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 16px 12px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .club-league-bar {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            padding: 16px 0;
+            border-top: 1px solid #e9ecef;
+            margin-top: 20px;
+        }
+
+        .club-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+        }
+
+        .logo-fallback {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .club-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .separator {
+            color: #dee2e6;
+            font-size: 20px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 16px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ==========================================
+    # PREPARAR DADOS
     # ==========================================
 
     # Buscar foto do jogador
@@ -708,166 +860,111 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     logo_clube = get_logo_clube(jogador.get('clube', ''))
     logo_liga = get_logo_liga(jogador.get('liga_clube', ''))
 
-    # Container do header
-    col_foto, col_info = st.columns([1, 3])
+    # Dados do jogador
+    nome = jogador.get('nome', 'Jogador')
+    posicao = jogador.get('posicao', 'N/A') if pd.notna(jogador.get('posicao')) else 'N/A'
+    clube = jogador.get('clube', 'Livre') if pd.notna(jogador.get('clube')) else 'Livre'
+    liga = jogador.get('liga_clube', 'N/A') if pd.notna(jogador.get('liga_clube')) else 'N/A'
+    idade = f"{jogador['idade_atual']} anos" if pd.notna(jogador.get('idade_atual')) else 'N/A'
+    altura = f"{jogador['altura']} cm" if pd.notna(jogador.get('altura')) else 'N/A'
+    pe_dom = jogador.get('pe_dominante', 'N/A') if pd.notna(jogador.get('pe_dominante')) else 'N/A'
+    nacionalidade = jogador.get('nacionalidade', 'N/A') if pd.notna(jogador.get('nacionalidade')) else 'N/A'
+    fim_contrato = jogador.get('data_fim_contrato', 'N/A') if pd.notna(jogador.get('data_fim_contrato')) else 'N/A'
 
-    with col_foto:
-        # Foto do jogador
-        if foto_url:
-            st.image(foto_url, width=250)
-        else:
-            st.markdown(
-                """
-                <div style='
-                    width: 250px;
-                    height: 250px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 100px;
-                    color: white;
-                '>
-                    ⚽
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    # Foto HTML
+    if foto_url:
+        foto_html = f'<img src="{foto_url}" class="player-photo" alt="{nome}">'
+    else:
+        inicial = nome[0].upper() if nome else '⚽'
+        foto_html = f'<div class="player-photo-fallback">{inicial}</div>'
 
-    with col_info:
-        # Nome do jogador
-        st.markdown(f"# {jogador['nome']}")
+    # Logo Clube HTML
+    if logo_clube:
+        logo_clube_html = f'<img src="{logo_clube}" class="logo-img" alt="{clube}">'
+    else:
+        logo_clube_html = '<div class="logo-fallback">🏟️</div>'
 
-        # Posição e Clube
-        posicao = jogador['posicao'] if pd.notna(jogador['posicao']) else 'N/A'
-        clube = jogador['clube'] if pd.notna(jogador['clube']) else 'Livre'
-        st.markdown(f"### {posicao} • {clube}")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # Cards de informações básicas (inline)
-        info_col1, info_col2, info_col3, info_col4 = st.columns(4)
-
-        with info_col1:
-            idade = f"{jogador['idade_atual']} anos" if pd.notna(jogador["idade_atual"]) else "N/A"
-            st.markdown(f"""
-                <div style='text-align: center; padding: 0.8rem; background: #f8f9fa; border-radius: 8px;'>
-                    <div style='font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;'>Idade</div>
-                    <div style='font-size: 1.25rem; font-weight: 600; color: #212529; margin-top: 0.25rem;'>{idade}</div>
-                </div>
-            """, unsafe_allow_html=True)
-
-        with info_col2:
-            altura = f"{jogador['altura']} cm" if pd.notna(jogador["altura"]) else "N/A"
-            st.markdown(f"""
-                <div style='text-align: center; padding: 0.8rem; background: #f8f9fa; border-radius: 8px;'>
-                    <div style='font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;'>Altura</div>
-                    <div style='font-size: 1.25rem; font-weight: 600; color: #212529; margin-top: 0.25rem;'>{altura}</div>
-                </div>
-            """, unsafe_allow_html=True)
-
-        with info_col3:
-            pe_dom = jogador["pe_dominante"] if pd.notna(jogador["pe_dominante"]) else "N/A"
-            st.markdown(f"""
-                <div style='text-align: center; padding: 0.8rem; background: #f8f9fa; border-radius: 8px;'>
-                    <div style='font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;'>Pé</div>
-                    <div style='font-size: 1.25rem; font-weight: 600; color: #212529; margin-top: 0.25rem;'>{pe_dom}</div>
-                </div>
-            """, unsafe_allow_html=True)
-
-        with info_col4:
-            nac = jogador["nacionalidade"] if pd.notna(jogador["nacionalidade"]) else "N/A"
-            st.markdown(f"""
-                <div style='text-align: center; padding: 0.8rem; background: #f8f9fa; border-radius: 8px;'>
-                    <div style='font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;'>Nacionalidade</div>
-                    <div style='font-size: 1.25rem; font-weight: 600; color: #212529; margin-top: 0.25rem;'>{nac}</div>
-                </div>
-            """, unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Logo Liga HTML
+    if logo_liga:
+        logo_liga_html = f'<img src="{logo_liga}" class="logo-img" alt="{liga}">'
+    else:
+        logo_liga_html = '<div class="logo-fallback">🏆</div>'
 
     # ==========================================
-    # INFORMAÇÕES DE VÍNCULO COM LOGOS
+    # RENDERIZAR PERFIL COMPLETO
     # ==========================================
 
-    st.markdown("---")
-
-    vinculo_col1, vinculo_col2, vinculo_col3 = st.columns(3)
-
-    with vinculo_col1:
-        st.markdown("""
-            <div style='font-size: 0.85rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>
-                Clube Atual
+    st.markdown(f"""
+    <div class="profile-container">
+        <!-- HEADER: Foto + Nome + Posição -->
+        <div class="profile-header">
+            {foto_html}
+            <div class="player-info">
+                <h1 class="player-name">{nome}</h1>
+                <p class="player-position">{posicao} • {clube}</p>
             </div>
-        """, unsafe_allow_html=True)
+        </div>
 
-        if logo_clube:
-            logo_col, text_col = st.columns([1, 3])
-            with logo_col:
-                st.image(logo_clube, width=50)
-            with text_col:
-                st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600; padding-top: 0.5rem;'>{clube}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>🏟️ {clube}</div>", unsafe_allow_html=True)
-
-    with vinculo_col2:
-        st.markdown("""
-            <div style='font-size: 0.85rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>
-                Liga
+        <!-- GRID DE ESTATÍSTICAS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Idade</div>
+                <div class="stat-value">{idade}</div>
             </div>
-        """, unsafe_allow_html=True)
-
-        liga = jogador['liga_clube'] if pd.notna(jogador['liga_clube']) else 'N/A'
-
-        if logo_liga:
-            logo_col, text_col = st.columns([1, 3])
-            with logo_col:
-                st.image(logo_liga, width=50)
-            with text_col:
-                st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600; padding-top: 0.5rem;'>{liga}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>🏆 {liga}</div>", unsafe_allow_html=True)
-
-    with vinculo_col3:
-        st.markdown("""
-            <div style='font-size: 0.85rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>
-                Fim de Contrato
+            <div class="stat-card">
+                <div class="stat-label">Altura</div>
+                <div class="stat-value">{altura}</div>
             </div>
-        """, unsafe_allow_html=True)
+            <div class="stat-card">
+                <div class="stat-label">Pé</div>
+                <div class="stat-value">{pe_dom}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Nacionalidade</div>
+                <div class="stat-value">{nacionalidade}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Contrato</div>
+                <div class="stat-value">{fim_contrato}</div>
+            </div>
+        </div>
 
-        fim_contrato = jogador['data_fim_contrato'] if pd.notna(jogador["data_fim_contrato"]) else 'N/A'
-        st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>📅 {fim_contrato}</div>", unsafe_allow_html=True)
+        <!-- BARRA CLUBE E LIGA -->
+        <div class="club-league-bar">
+            <div class="club-item">
+                {logo_clube_html}
+                <span class="club-name">{clube}</span>
+            </div>
+            <span class="separator">•</span>
+            <div class="club-item">
+                {logo_liga_html}
+                <span class="club-name">{liga}</span>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ==========================================
-    # STATUS DO CONTRATO
+    # STATUS DO CONTRATO (Badge Moderno)
     # ==========================================
-
-    st.markdown("<br>", unsafe_allow_html=True)
 
     status = jogador.get("status_contrato", "desconhecido")
 
     status_config = {
-        "ativo": {"icon": "🟢", "text": "Contrato Ativo", "color": "#28a745"},
-        "ultimo_ano": {"icon": "🟡", "text": "Último Ano de Contrato", "color": "#ffc107"},
-        "ultimos_6_meses": {"icon": "🔴", "text": "Vence em Menos de 6 Meses", "color": "#dc3545"},
-        "vencido": {"icon": "⚫", "text": "Contrato Vencido", "color": "#6c757d"},
-        "livre": {"icon": "⚪", "text": "Jogador Livre", "color": "#6c757d"},
-        "desconhecido": {"icon": "❓", "text": "Status Desconhecido", "color": "#6c757d"},
+        "ativo": {"icon": "🟢", "text": "Contrato Ativo", "color": "#155724", "bg": "#d4edda"},
+        "ultimo_ano": {"icon": "🟡", "text": "Último Ano", "color": "#856404", "bg": "#fff3cd"},
+        "ultimos_6_meses": {"icon": "🔴", "text": "Vence em Breve", "color": "#721c24", "bg": "#f8d7da"},
+        "vencido": {"icon": "⚫", "text": "Vencido", "color": "#383d41", "bg": "#e2e3e5"},
+        "livre": {"icon": "⚪", "text": "Livre", "color": "#004085", "bg": "#cce5ff"},
+        "desconhecido": {"icon": "❓", "text": "Status Desconhecido", "color": "#383d41", "bg": "#e2e3e5"},
     }
 
     config = status_config.get(status, status_config["desconhecido"])
 
     st.markdown(f"""
-        <div style='
-            padding: 1rem 1.5rem;
-            background: {config['color']}15;
-            border-left: 4px solid {config['color']};
-            border-radius: 8px;
-        '>
-            <span style='font-size: 1.25rem; font-weight: 600; color: {config['color']};'>
-                {config['icon']} {config['text']}
-            </span>
+        <div class="status-badge" style="background: {config['bg']}; color: {config['color']};">
+            <span style="font-size: 18px;">{config['icon']}</span>
+            <span>{config['text']}</span>
         </div>
     """, unsafe_allow_html=True)
 
@@ -879,7 +976,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
 
             if dias_restantes > 0:
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.info(f"⏱️ **{dias_restantes} dias** restantes")
+                st.info(f"⏱️ **{dias_restantes} dias** até o fim do contrato")
                 dias_totais = 1095
                 progresso = max(0, min(100, (dias_restantes / dias_totais) * 100))
                 st.progress(progresso / 100)
