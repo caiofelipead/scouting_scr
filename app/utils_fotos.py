@@ -35,14 +35,14 @@ def extrair_id_da_url(tm_value):
 
 
 @st.cache_data(ttl=86400)  # Cache por 24 horas
-def extrair_url_foto_transfermarkt(tm_id, usar_scraping=False):
+def extrair_url_foto_transfermarkt(tm_id, usar_scraping=True):
     """
     Extrai a URL da foto do Transfermarkt
 
     Args:
         tm_id: ID numérico do Transfermarkt
         usar_scraping: Se True, faz scraping da página (mais lento mas confiável)
-                       Se False, retorna URL padrão diretamente (rápido)
+                       Se False, usa URL padrão (rápido mas pode falhar)
 
     Returns:
         URL da foto ou None
@@ -50,11 +50,26 @@ def extrair_url_foto_transfermarkt(tm_id, usar_scraping=False):
     if not tm_id:
         return None
 
-    # MÉTODO 1: URL Padrão (RÁPIDO - retorna diretamente)
+    # MÉTODO 1: URLs Padrão (RÁPIDO - tente primeiro)
     if not usar_scraping:
-        # Retorna diretamente a URL mais comum (deixa o browser validar)
-        # Isso é muito mais rápido e evita timeouts
-        return f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg?lm=1"
+        # URLs comuns do Transfermarkt (múltiplos CDNs)
+        urls_padrao = [
+            f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg",
+            f"https://tmssl.akamaized.net/images/portrait/big/{tm_id}.jpg",
+            f"https://img.a.transfermarkt.technology/portrait/medium/{tm_id}.jpg",
+            f"https://tmssl.akamaized.net/images/portrait/medium/{tm_id}.jpg",
+        ]
+
+        for url in urls_padrao:
+            try:
+                response = requests.head(url, timeout=3, allow_redirects=True)
+                if response.status_code == 200:
+                    return url
+            except:
+                continue
+
+        # Se falhar, tenta scraping
+        usar_scraping = True
 
     # MÉTODO 2: Scraping (CONFIÁVEL mas mais lento)
     # Apenas use se explicitamente solicitado
@@ -66,8 +81,8 @@ def extrair_url_foto_transfermarkt(tm_id, usar_scraping=False):
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
     }
 
-    try:
-        response = requests.get(url_pagina, headers=headers, timeout=10)
+        try:
+            response = requests.get(url_pagina, headers=headers, timeout=10)
 
         if response.status_code != 200:
             # Não mostra warning para não poluir a UI
@@ -95,9 +110,16 @@ def extrair_url_foto_transfermarkt(tm_id, usar_scraping=False):
                 url_foto = src.split("?")[0]
                 return url_foto
 
-    except Exception as e:
-        # Silenciosamente retorna None em caso de erro
-        return None
+            # Método 3: Buscar qualquer img com portrait
+            for img in soup.find_all("img"):
+                src = img.get("src", "") or img.get("data-src", "")
+                if "portrait" in src and ".jpg" in src:
+                    url_foto = src.split("?")[0]
+                    return url_foto
+
+        except Exception as e:
+            st.error(f"❌ Erro ao buscar foto do Transfermarkt: {e}")
+            return None
 
     return None
 
@@ -180,7 +202,7 @@ def exibir_foto_jogador(id_jogador, transfermarkt_id=None, nome="Jogador", width
 @st.cache_data(ttl=86400)  # Cache por 24 horas
 def get_foto_jogador_rapido(transfermarkt_id):
     """
-    Versão ultra-rápida: retorna diretamente a URL do Transfermarkt
+    Versão ultra-rápida: tenta múltiplas URLs do Transfermarkt
     Use quando performance é crítica (lista com muitos jogadores)
     """
     if not transfermarkt_id:
@@ -189,7 +211,22 @@ def get_foto_jogador_rapido(transfermarkt_id):
     tm_id = extrair_id_da_url(transfermarkt_id)
 
     if tm_id:
-        # Retorna diretamente a URL principal (browser faz o resto)
-        return f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg?lm=1"
+        # Tentar múltiplas URLs do Transfermarkt (CDN)
+        urls_tentativa = [
+            f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg",
+            f"https://img.a.transfermarkt.technology/portrait/medium/{tm_id}.jpg",
+            f"https://tmssl.akamaized.net/images/portrait/big/{tm_id}.jpg",
+        ]
+
+        for url in urls_tentativa:
+            try:
+                response = requests.head(url, timeout=2, allow_redirects=True)
+                if response.status_code == 200:
+                    return url
+            except:
+                continue
+
+        # Se nenhuma funcionar, retorna a primeira mesmo assim (browser pode carregar)
+        return urls_tentativa[0]
 
     return "https://ui-avatars.com/api/?name=?&size=200&background=667eea&color=fff&bold=true"

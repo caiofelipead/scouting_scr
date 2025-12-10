@@ -26,11 +26,11 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     # CSS minimalista - apenas o essencial
     st.markdown("""
     <style>
-    /* Sistema de spacing consistente: 8px base */
-    .player-header-simple {
-        background: #6366f1;
-        padding: 24px;
-        border-radius: 8px;
+    /* Container principal do header - ROXO ESCURO */
+    .player-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 32px;
         margin-bottom: 24px;
     }
 
@@ -67,13 +67,33 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         white-space: nowrap;
     }
 
-    .club-section {
-        background: rgba(255, 255, 255, 0.15);
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 16px;
-        color: #ffffff;
-        font-size: 14px;
+    .player-photo {
+        border-radius: 16px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        border: 4px solid rgba(255,255,255,0.3);
+    }
+
+    .stat-card-pro {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card-pro:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+    }
+
+    .stat-label-pro {
+        font-size: 12px;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+        margin-bottom: 8px;
     }
 
     /* Responsividade */
