@@ -948,8 +948,8 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     # STATUS DO CONTRATO (Badge Moderno)
     # ==========================================
 
-        fim_contrato = jogador['data_fim_contrato'] if pd.notna(jogador["data_fim_contrato"]) else 'N/A'
-        st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>📅 {fim_contrato}</div>", unsafe_allow_html=True)
+    fim_contrato = jogador['data_fim_contrato'] if pd.notna(jogador["data_fim_contrato"]) else 'N/A'
+    st.markdown(f"<div style='font-size: 1.1rem; font-weight: 600;'>📅 {fim_contrato}</div>", unsafe_allow_html=True)
 
     status_config = {
         "ativo": {"icon": "🟢", "text": "Contrato Ativo", "color": "#155724", "bg": "#d4edda"},
