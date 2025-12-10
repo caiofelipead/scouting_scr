@@ -3549,63 +3549,28 @@ def invalidar_caches():
 
 
 def main():
-    # ==========================================
-    # CSS DE COMPACTAÇÃO (PRIORIDADE MÁXIMA)
-    # ==========================================
+    # JavaScript para remover elementos vazios após carregamento
     st.markdown("""
-    <style>
-        /* Remover espaço gigante no topo */
-        .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 1rem !important;
-            margin-top: 0 !important;
-        }
+    <script>
+    window.addEventListener('load', function() {
+        // Remove elementos completamente vazios
+        document.querySelectorAll('div[data-testid="stElementContainer"]').forEach(el => {
+            if (el.children.length === 0 || (el.textContent.trim() === '' && !el.querySelector('img, video, iframe'))) {
+                el.remove();
+            }
+        });
 
-        /* Compactar header do Streamlit */
-        header[data-testid="stHeader"] {
-            height: 0px !important;
-            min-height: 0px !important;
-            display: none !important;
-        }
-
-        /* Remover margens excessivas entre elementos */
-        .element-container {
-            margin-bottom: 0.5rem !important;
-        }
-
-        div[data-testid="stVerticalBlock"] > div {
-            gap: 0.5rem !important;
-        }
-
-        /* Compactar espaçamento de markdown */
-        .stMarkdown {
-            margin-bottom: 0.5rem !important;
-        }
-
-        /* Ocultar elementos vazios */
-        div:empty {
-            display: none !important;
-        }
-
-        /* Compactar columns */
-        div[data-testid="column"] {
-            padding: 0.5rem !important;
-        }
-
-        /* Reduzir espaço entre tabs */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 0.5rem;
-        }
-
-        /* Compactar formulários */
-        .stForm {
-            padding: 1rem !important;
-            margin: 0.5rem 0 !important;
-        }
-    </style>
+        // Remove stVerticalBlock vazios
+        document.querySelectorAll('div[data-testid="stVerticalBlock"]').forEach(el => {
+            if (el.children.length === 0) {
+                el.remove();
+            }
+        });
+    });
+    </script>
     """, unsafe_allow_html=True)
 
-    # Header Visual Profissional
+    # Header Visual Profissional (CSS movido para custom.css)
     st.markdown(
         """
         <div class="header-container fade-in">
