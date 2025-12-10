@@ -50,6 +50,16 @@ def get_logo_clube(nome_clube):
         "Bayern Munich": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg/150px-FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg.png",
         "Paris Saint-Germain": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Paris_Saint-Germain_Logo_2013.svg/150px-Paris_Saint-Germain_Logo_2013.svg.png",
         "Juventus": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Juventus_FC_-_pictogram_black_%28Italy%2C_2017%29.svg/150px-Juventus_FC_-_pictogram_black_%28Italy%2C_2017%29.svg.png",
+        "Chelsea": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Chelsea_FC.svg/150px-Chelsea_FC.svg.png",
+        "Arsenal": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Arsenal_FC.svg/150px-Arsenal_FC.svg.png",
+        "Manchester United": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Manchester_United_FC_crest.svg/150px-Manchester_United_FC_crest.svg.png",
+
+        # Clubes Asiáticos (Tailândia, Japão, etc)
+        "PT Prachuap": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/PT_Prachuap_FC_Logo.png/150px-PT_Prachuap_FC_Logo.png",
+        "PT Prachuap FC": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/PT_Prachuap_FC_Logo.png/150px-PT_Prachuap_FC_Logo.png",
+        "Buriram United": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Buriram_United_2014_Logo.png/150px-Buriram_United_2014_Logo.png",
+        "Bangkok United": "https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Bangkok_United_F.C._Logo.png/150px-Bangkok_United_F.C._Logo.png",
+        "Muangthong United": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Muangthong_United_FC_2017_Logo.png/150px-Muangthong_United_FC_2017_Logo.png",
     }
 
     # Tentar encontrar o clube no mapeamento
@@ -93,6 +103,12 @@ def get_logo_liga(nome_liga):
         "Serie A (ITA)": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Serie_A_logo_2022.svg/150px-Serie_A_logo_2022.svg.png",
         "Bundesliga": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Bundesliga_logo_%282017%29.svg/150px-Bundesliga_logo_%282017%29.svg.png",
         "Ligue 1": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Ligue1.svg/150px-Ligue1.svg.png",
+
+        # Ásia
+        "Thai League": "https://upload.wikimedia.org/wikipedia/en/thumb/0/0d/Thai_League_logo.png/150px-Thai_League_logo.png",
+        "Thai League 1": "https://upload.wikimedia.org/wikipedia/en/thumb/0/0d/Thai_League_logo.png/150px-Thai_League_logo.png",
+        "J1 League": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/J.League_Logo.svg/150px-J.League_Logo.svg.png",
+        "K League 1": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/K_League_1_logo.svg/150px-K_League_1_logo.svg.png",
     }
 
     # Tentar encontrar a liga no mapeamento

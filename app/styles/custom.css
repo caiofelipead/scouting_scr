@@ -70,6 +70,29 @@ h3 {
     transform: scale(0.98);
 }
 
+/* Botão de navegação minimalista (voltar, etc) */
+.stButton > button[kind="secondary"],
+button[data-testid="baseButton-secondary"] {
+    background: transparent !important;
+    color: #475569 !important;
+    border: none !important;
+    padding: 4px 8px !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+}
+
+.stButton > button[kind="secondary"]:hover,
+button[data-testid="baseButton-secondary"]:hover {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    box-shadow: none !important;
+}
+
+/* Remove container ao redor de botões */
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+    gap: 0rem !important;
+}
+
 /* Sidebar limpa */
 [data-testid="stSidebar"] {
     background-color: #f8fafc;

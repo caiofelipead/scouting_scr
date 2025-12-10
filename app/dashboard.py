@@ -969,15 +969,21 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
     else:
         foto_html = f'<div class="player-photo-fallback">{inicial_safe}</div>'
 
-    # Logo Clube HTML
+    # Logo Clube HTML com tratamento de erro
     if logo_clube_url:
-        logo_clube_html = f'<img src="{logo_clube_url}" alt="{clube_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
+        logo_clube_html = f'''<img src="{logo_clube_url}" alt="{clube_safe}"
+            style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+            <span style="font-size: 24px; margin-right: 8px; display: none;">🛡️</span>'''
     else:
         logo_clube_html = '<span style="font-size: 24px; margin-right: 8px;">🛡️</span>'
 
-    # Logo Liga HTML
+    # Logo Liga HTML com tratamento de erro
     if logo_liga_url:
-        logo_liga_html = f'<img src="{logo_liga_url}" alt="{liga_safe}" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;">'
+        logo_liga_html = f'''<img src="{logo_liga_url}" alt="{liga_safe}"
+            style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 8px;"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+            <span style="font-size: 24px; margin-right: 8px; display: none;">🏆</span>'''
     else:
         logo_liga_html = '<span style="font-size: 24px; margin-right: 8px;">🏆</span>'
 
@@ -3638,16 +3644,15 @@ def main():
 
     # Se estiver na página de perfil
     if st.session_state.pagina == "perfil":
-        if st.button("← Voltar para Dashboard"):
+        # Botão de voltar com estilo minimalista
+        if st.button("← Voltar para Dashboard", key="voltar_perfil", type="secondary", use_container_width=False):
             st.session_state.pagina = "dashboard"
             st.session_state.jogador_selecionado = None
             st.query_params.clear()
             st.rerun()
 
-        st.markdown("---")
-        
         debug_fotos_perfil = st.sidebar.checkbox("🐛 Debug de Fotos (Perfil)", value=False, help="Ativa modo debug")
-        
+
         exibir_perfil_jogador(db, st.session_state.jogador_selecionado, debug=debug_fotos_perfil)
         return
 
