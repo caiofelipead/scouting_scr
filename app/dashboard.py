@@ -4,9 +4,9 @@ import time
 import html
 from datetime import datetime
 from pathlib import Path
-from migrate_financeiro import migrar_colunas_financeiras
-from avaliacao_massiva import criar_aba_avaliacao_massiva
-migrar_colunas_financeiras()
+# Imports movidos para dentro das funções para evitar dependência circular
+# from migrate_financeiro import migrar_colunas_financeiras
+# from avaliacao_massiva import criar_aba_avaliacao_massiva
 
 # Imports de terceiros PRIMEIRO
 import numpy as np
@@ -1372,7 +1372,6 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
                             LIMIT 1
                         ) a ON true
                         WHERE v.posicao = :posicao
-                        AND a.id_avaliacao IS NOT NULL
                     """)
 
                     result = conn.execute(query_benchmark, {"posicao": posicao})
@@ -3963,6 +3962,7 @@ def main():
 
     elif tab_selecionada == "📋 Avaliação Massiva":  # ← ADICIONAR ESTE BLOCO
         with st.spinner("Carregando avaliação massiva..."):
+            from avaliacao_massiva import criar_aba_avaliacao_massiva
             criar_aba_avaliacao_massiva(db)
 
 if __name__ == "__main__":
