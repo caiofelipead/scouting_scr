@@ -752,6 +752,14 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             padding-bottom: 0.5rem !important;
         }
 
+        /* Remove elementos vazios e espaçamentos desnecessários */
+        .element-container:empty,
+        div[data-testid="stVerticalBlock"] > div:has(> div:empty) {
+            display: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
         /* Container Principal */
         .profile-container {
             background: white;
@@ -3612,7 +3620,6 @@ def main():
     db = get_database()
 
     # Criar tabela de avaliações se não existir
-    db.criar_tabelas()
     db.criar_tabelas()
 
     # Atualizar status dos contratos automaticamente (1x por sessão)
