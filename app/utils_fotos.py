@@ -35,14 +35,14 @@ def extrair_id_da_url(tm_value):
 
 
 @st.cache_data(ttl=86400)  # Cache por 24 horas
-def extrair_url_foto_transfermarkt(tm_id, usar_scraping=False):
+def extrair_url_foto_transfermarkt(tm_id, usar_scraping=True):
     """
-    Extrai a URL da foto do Transfermarkt
+    Extrai a URL da foto do Transfermarkt com scraping melhorado
 
     Args:
         tm_id: ID numérico do Transfermarkt
-        usar_scraping: Se True, faz scraping da página (mais lento mas confiável)
-                       Se False, retorna URL padrão diretamente (rápido)
+        usar_scraping: Se True (PADRÃO), faz scraping para pegar URL real
+                       Se False, retorna URL padrão (pode não funcionar)
 
     Returns:
         URL da foto ou None
@@ -50,112 +50,109 @@ def extrair_url_foto_transfermarkt(tm_id, usar_scraping=False):
     if not tm_id:
         return None
 
-    # MÉTODO 1: URL Padrão (RÁPIDO - retorna diretamente)
-    if not usar_scraping:
-        # Retorna diretamente a URL mais comum (deixa o browser validar)
-        # Isso é muito mais rápido e evita timeouts
-        return f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg?lm=1"
+    # MÉTODO 1: SCRAPING (RECOMENDADO - pega URL real com timestamp)
+    if usar_scraping:
+        url_pagina = f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}"
 
-    # MÉTODO 2: Scraping (CONFIÁVEL mas mais lento)
-    # Apenas use se explicitamente solicitado
-    url_pagina = f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-    }
+        try:
+            response = requests.get(url_pagina, headers=headers, timeout=15)
 
-    try:
-        response = requests.get(url_pagina, headers=headers, timeout=10)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, "html.parser")
 
-        if response.status_code != 200:
-            # Não mostra warning para não poluir a UI
-            return None
+                # PRIORIDADE 1: Buscar img com class="data-header__profile-image"
+                profile_img = soup.find("img", {"class": re.compile(r"data-header__profile-image")})
+                if profile_img:
+                    src = profile_img.get("src") or profile_img.get("data-src")
+                    if src and "portrait" in src:
+                        # Pegar URL completa com timestamp
+                        url_completa = src if src.startswith("http") else f"https:{src}"
+                        return url_completa
 
-        soup = BeautifulSoup(response.content, "html.parser")
+                # PRIORIDADE 2: Buscar qualquer img com portrait/big no src
+                for img in soup.find_all("img"):
+                    src = img.get("src", "") or img.get("data-src", "")
+                    if "portrait/big" in src and tm_id in src:
+                        url_completa = src if src.startswith("http") else f"https:{src}"
+                        return url_completa
 
-        # Procurar pela tag img com a foto
-        # Método 1: Buscar no modal da foto
-        modal_img = soup.find("img", {"src": re.compile(r"portrait/(big|medium)/.*\.jpg")})
-        if modal_img and modal_img.get("src"):
-            url_foto = modal_img["src"].split("?")[0]
-            return url_foto
+                # PRIORIDADE 3: Buscar em qualquer img com portrait
+                for img in soup.find_all("img"):
+                    src = img.get("src", "") or img.get("data-src", "")
+                    if "portrait" in src and ".jpg" in src:
+                        url_completa = src if src.startswith("http") else f"https:{src}"
+                        return url_completa
 
-        # Método 2: Buscar em data-src
-        modal_img = soup.find("img", {"data-src": re.compile(r"portrait/(big|medium)/.*\.jpg")})
-        if modal_img and modal_img.get("data-src"):
-            url_foto = modal_img["data-src"].split("?")[0]
-            return url_foto
+        except requests.Timeout:
+            # Timeout: tentar URL padrão como fallback
+            pass
+        except Exception:
+            # Qualquer outro erro: tentar URL padrão
+            pass
 
-        # Método 3: Buscar qualquer img com portrait
-        for img in soup.find_all("img"):
-            src = img.get("src", "") or img.get("data-src", "")
-            if "portrait" in src and ".jpg" in src:
-                url_foto = src.split("?")[0]
-                return url_foto
+    # MÉTODO 2: URL Padrão (FALLBACK)
+    # Tenta várias variações de URL padrão
+    urls_tentar = [
+        f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg?lm=1",
+        f"https://img.a.transfermarkt.technology/portrait/medium/{tm_id}.jpg?lm=1",
+        f"https://tmssl.akamaized.net/images/portrait/big/{tm_id}.jpg?lm=1"
+    ]
 
-    except Exception as e:
-        # Silenciosamente retorna None em caso de erro
-        return None
-
-    return None
+    # Retorna primeira URL (browser tentará carregar)
+    return urls_tentar[0]
 
 
 def get_foto_jogador(id_jogador, transfermarkt_id=None, nome_jogador="Jogador", debug=False):
     """
     Retorna a URL da foto do jogador
-    
-    PRIORIDADE:
-    1. Transfermarkt (URL padrão - rápido)
-    2. Transfermarkt (Scraping - confiável)
-    3. Placeholder (fallback)
-    
+
+    ESTRATÉGIA MELHORADA:
+    1. Transfermarkt (Scraping com cache - pega URL real)
+    2. Transfermarkt (URL padrão - fallback rápido)
+    3. Placeholder UI Avatars (último recurso)
+
     Args:
         id_jogador: ID do banco de dados
         transfermarkt_id: ID ou URL do Transfermarkt
         nome_jogador: Nome para o placeholder
         debug: Mostra informações de debug
-    
+
     Returns:
-        URL da foto (string)
+        URL da foto (string) - SEMPRE retorna uma URL válida
     """
-    
-    # 1️⃣ TRANSFERMARKT
+
+    # 1️⃣ TRANSFERMARKT (com scraping)
     if transfermarkt_id:
         tm_id = extrair_id_da_url(transfermarkt_id)
-        
+
         if tm_id:
             if debug:
-                st.sidebar.write(f"🔍 **Buscando foto**")
-                st.sidebar.write(f"   ID TM: `{tm_id}`")
-            
-            # Tentar URL padrão primeiro (rápido)
-            url_foto = extrair_url_foto_transfermarkt(tm_id, usar_scraping=False)
-            
-            if url_foto:
-                if debug:
-                    st.sidebar.success(f"✅ Foto encontrada (URL padrão)")
-                    st.sidebar.code(url_foto)
-                return url_foto
-            
-            # Se falhar, tentar scraping (cache evita repetir)
+                st.sidebar.write(f"🔍 **Buscando foto do Transfermarkt**")
+                st.sidebar.write(f"   ID: `{tm_id}`")
+
+            # Tentar scraping primeiro (mais confiável, pega URL com timestamp)
             url_foto = extrair_url_foto_transfermarkt(tm_id, usar_scraping=True)
-            
+
             if url_foto:
                 if debug:
-                    st.sidebar.success(f"✅ Foto encontrada (scraping)")
+                    st.sidebar.success(f"✅ Foto encontrada!")
                     st.sidebar.code(url_foto)
                 return url_foto
-    
-    # 2️⃣ PLACEHOLDER (Fallback)
-    if debug:
-        st.sidebar.warning(f"⚠️ Foto não encontrada")
-    
-    # Placeholder com nome do jogador
+
+    # 2️⃣ PLACEHOLDER (Sempre disponível)
+    if debug and transfermarkt_id:
+        st.sidebar.warning(f"⚠️ Usando placeholder")
+
+    # Placeholder com inicial do nome
     nome_limpo = nome_jogador.replace(" ", "+")
-    placeholder_url = f"https://ui-avatars.com/api/?name={nome_limpo}&size=200&background=0D47A1&color=fff&bold=true&font-size=0.4"
-    
+    placeholder_url = f"https://ui-avatars.com/api/?name={nome_limpo}&size=300&background=6366f1&color=fff&bold=true&font-size=0.4"
+
     return placeholder_url
 
 
@@ -178,18 +175,28 @@ def exibir_foto_jogador(id_jogador, transfermarkt_id=None, nome="Jogador", width
 
 
 @st.cache_data(ttl=86400)  # Cache por 24 horas
-def get_foto_jogador_rapido(transfermarkt_id):
+def get_foto_jogador_rapido(transfermarkt_id, nome="?"):
     """
-    Versão ultra-rápida: retorna diretamente a URL do Transfermarkt
-    Use quando performance é crítica (lista com muitos jogadores)
+    Versão ultra-rápida: retorna URL do Transfermarkt sem scraping
+    Use quando performance é crítica (listas com muitos jogadores)
+
+    Args:
+        transfermarkt_id: ID ou URL do Transfermarkt
+        nome: Nome do jogador para placeholder
+
+    Returns:
+        URL da foto
     """
     if not transfermarkt_id:
-        return "https://ui-avatars.com/api/?name=?&size=200&background=667eea&color=fff&bold=true"
+        nome_limpo = nome.replace(" ", "+")
+        return f"https://ui-avatars.com/api/?name={nome_limpo}&size=200&background=6366f1&color=fff&bold=true"
 
     tm_id = extrair_id_da_url(transfermarkt_id)
 
     if tm_id:
-        # Retorna diretamente a URL principal (browser faz o resto)
+        # URL padrão (rápido, mas pode não funcionar para todos)
         return f"https://img.a.transfermarkt.technology/portrait/big/{tm_id}.jpg?lm=1"
 
-    return "https://ui-avatars.com/api/?name=?&size=200&background=667eea&color=fff&bold=true"
+    # Fallback placeholder
+    nome_limpo = nome.replace(" ", "+")
+    return f"https://ui-avatars.com/api/?name={nome_limpo}&size=200&background=6366f1&color=fff&bold=true"

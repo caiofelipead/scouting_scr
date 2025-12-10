@@ -16,48 +16,79 @@ from transfermarkt_logos import get_logo_clube_transfermarkt, get_logo_liga_tran
 
 def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = None) -> None:
     """
-    Header ultra simples - prioridade: funcionalidade e legibilidade
+    Header profissional com melhorias visuais e máxima legibilidade
 
     Args:
         jogador: Série do pandas com dados do jogador
         foto_path: URL para a foto do jogador
     """
 
-    # Container com fundo roxo simples
+    # Container principal com gradiente sutil
     st.markdown("""
-        <div style="background-color: #6366f1; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <div style="
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        ">
     """, unsafe_allow_html=True)
 
-    # Layout simples: foto | informações
+    # Layout: foto | informações
     col1, col2 = st.columns([1, 3])
 
     with col1:
-        # Foto - método mais simples possível
+        # Foto com border para destaque
         if foto_path:
-            st.image(foto_path, use_container_width=True)
+            st.markdown(f"""
+                <div style="border: 3px solid rgba(255,255,255,0.3); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <img src="{foto_path}" style="width: 100%; height: auto; display: block;" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={jogador.get('nome', '?')[0]}&size=300&background=4f46e5&color=fff&bold=true&font-size=0.4';">
+                </div>
+            """, unsafe_allow_html=True)
         else:
-            # Placeholder básico
+            # Placeholder estilizado
             inicial = jogador.get('nome', '?')[0]
             st.markdown(f"""
-                <div style="background: #4f46e5; border-radius: 8px; padding: 40px; text-align: center;">
-                    <span style="font-size: 48px; color: white; font-weight: bold;">{inicial}</span>
+                <div style="
+                    background: #4f46e5;
+                    border: 3px solid rgba(255,255,255,0.3);
+                    border-radius: 12px;
+                    padding: 40px;
+                    text-align: center;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                ">
+                    <span style="font-size: 56px; color: white; font-weight: bold;">{inicial}</span>
                 </div>
             """, unsafe_allow_html=True)
 
     with col2:
-        # Nome grande e branco
+        # Nome com sombra de texto para legibilidade
         nome = jogador.get('nome', 'Jogador')
         st.markdown(f"""
-            <h1 style="color: white; margin: 0; font-size: 32px; font-weight: bold;">{nome}</h1>
+            <h1 style="
+                color: #ffffff;
+                margin: 0 0 8px 0;
+                font-size: 36px;
+                font-weight: 700;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                line-height: 1.2;
+            ">{nome}</h1>
         """, unsafe_allow_html=True)
 
         # Posição
         posicao = jogador.get('posicao', 'N/A')
         st.markdown(f"""
-            <p style="color: #e0e7ff; margin: 5px 0 15px 0; font-size: 14px; font-weight: 600;">⚽ {posicao}</p>
+            <p style="
+                color: #e0e7ff;
+                margin: 0 0 16px 0;
+                font-size: 14px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            ">⚽ {posicao}</p>
         """, unsafe_allow_html=True)
 
-        # Informações básicas
+        # Informações básicas em badges
         info_parts = []
 
         if pd.notna(jogador.get('nacionalidade')):
@@ -74,12 +105,24 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
             info_parts.append(f"🦶 {jogador['pe_dominante']}")
 
         if info_parts:
-            info_text = " • ".join(info_parts)
-            st.markdown(f"""
-                <p style="color: white; font-size: 14px; margin: 10px 0;">{info_text}</p>
-            """, unsafe_allow_html=True)
+            badges_html = '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">'
+            for info in info_parts:
+                badges_html += f'''
+                    <span style="
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        padding: 6px 12px;
+                        border-radius: 6px;
+                        font-size: 13px;
+                        font-weight: 500;
+                        white-space: nowrap;
+                        backdrop-filter: blur(10px);
+                    ">{info}</span>
+                '''
+            badges_html += '</div>'
+            st.markdown(badges_html, unsafe_allow_html=True)
 
-        # Clube e liga
+        # Clube e liga em card destacado
         clube_parts = []
         if pd.notna(jogador.get('clube')) and jogador.get('clube'):
             clube_parts.append(f"⚽ {jogador['clube']}")
@@ -89,8 +132,14 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
         if clube_parts:
             clube_text = " • ".join(clube_parts)
             st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.15); padding: 10px; border-radius: 6px; margin-top: 10px;">
-                    <p style="color: white; font-size: 14px; margin: 0;">{clube_text}</p>
+                <div style="
+                    background: rgba(255, 255, 255, 0.15);
+                    padding: 12px;
+                    border-radius: 8px;
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                ">
+                    <p style="color: white; font-size: 14px; margin: 0; font-weight: 500;">{clube_text}</p>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -100,7 +149,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
 
 def criar_secao_stats_rapidas(stats: Dict) -> None:
     """
-    Estatísticas em colunas - versão ultra simples
+    Estatísticas em colunas com visual aprimorado
 
     Args:
         stats: Dicionário com estatísticas {label: {value, subtitle}}
@@ -111,17 +160,42 @@ def criar_secao_stats_rapidas(stats: Dict) -> None:
     for col, (label, data) in zip(cols, stats.items()):
         with col:
             st.markdown(f"""
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center;">
-                <p style="font-size: 11px; color: #64748b; font-weight: 600; margin: 0 0 8px 0; text-transform: uppercase;">{label}</p>
-                <p style="font-size: 28px; font-weight: 700; color: #1e293b; margin: 0;">{data['value']}</p>
-                <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 0 0;">{data.get('subtitle', '')}</p>
+            <div style="
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 20px;
+                text-align: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                transition: all 0.2s ease;
+            ">
+                <p style="
+                    font-size: 11px;
+                    color: #64748b;
+                    font-weight: 600;
+                    margin: 0 0 8px 0;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                ">{label}</p>
+                <p style="
+                    font-size: 32px;
+                    font-weight: 700;
+                    color: #6366f1;
+                    margin: 0;
+                    line-height: 1;
+                ">{data['value']}</p>
+                <p style="
+                    font-size: 11px;
+                    color: #94a3b8;
+                    margin: 4px 0 0 0;
+                ">{data.get('subtitle', '')}</p>
             </div>
             """, unsafe_allow_html=True)
 
 
 def criar_cards_categorias(categorias: Dict) -> None:
     """
-    Cards de categorias - versão ultra simples
+    Cards de categorias com hover e visual aprimorado
 
     Args:
         categorias: {nome: {icone, valor, descricao}}
@@ -132,11 +206,39 @@ def criar_cards_categorias(categorias: Dict) -> None:
     for col, (nome, data) in zip(cols, categorias.items()):
         with col:
             st.markdown(f"""
-            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center;">
-                <p style="font-size: 32px; margin: 0 0 8px 0;">{data['icone']}</p>
-                <p style="font-size: 13px; font-weight: 600; color: #475569; margin: 0 0 8px 0; text-transform: uppercase;">{nome}</p>
-                <p style="font-size: 24px; font-weight: 700; color: #6366f1; margin: 0;">{data['valor']}</p>
-                <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 0 0;">{data.get('descricao', '')}</p>
+            <div style="
+                background: #ffffff;
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 24px;
+                text-align: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                transition: all 0.2s ease;
+            ">
+                <p style="
+                    font-size: 36px;
+                    margin: 0 0 12px 0;
+                ">{data['icone']}</p>
+                <p style="
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #475569;
+                    margin: 0 0 8px 0;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                ">{nome}</p>
+                <p style="
+                    font-size: 28px;
+                    font-weight: 700;
+                    color: #6366f1;
+                    margin: 0;
+                    line-height: 1;
+                ">{data['valor']}</p>
+                <p style="
+                    font-size: 11px;
+                    color: #94a3b8;
+                    margin: 8px 0 0 0;
+                ">{data.get('descricao', '')}</p>
             </div>
             """, unsafe_allow_html=True)
 
