@@ -26,9 +26,9 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
     # CSS customizado para o header - Tema Claro
     st.markdown("""
     <style>
-    /* Container principal do header - QUASE PRETO */
+    /* Container principal do header - ROXO ESCURO */
     .player-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
         border-radius: 16px;
         padding: 32px;
         margin-bottom: 24px;
@@ -122,7 +122,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
 
     .stat-label-pro {
         font-size: 12px;
-        color: #667eea;
+        color: #764ba2;
         text-transform: uppercase;
         letter-spacing: 1px;
         font-weight: 600;
@@ -161,7 +161,7 @@ def criar_header_profissional(jogador: pd.Series, foto_path: Optional[str] = Non
             <div style='
                 width: 100%;
                 aspect-ratio: 3/4;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
                 border-radius: 16px;
                 display: flex;
                 align-items: center;

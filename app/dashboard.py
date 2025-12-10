@@ -111,11 +111,11 @@ st.markdown(
 
     /* Métricas melhoradas */
     div[data-testid="stMetric"] {
-        background: rgba(102, 126, 234, 0.05);
+        background: rgba(118, 75, 162, 0.05);
         padding: 1.2rem;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        border-left: 4px solid #667eea;
+        border-left: 4px solid #764ba2;
     }
 
     div[data-testid="stMetric"]:hover {
@@ -140,9 +140,9 @@ st.markdown(
     }
 
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
         color: white;
-        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 4px 8px rgba(118, 75, 162, 0.3);
     }
 
     /* Botões com gradiente */
@@ -176,7 +176,7 @@ st.markdown(
     }
 
     th {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
         color: white;
         padding: 14px 12px;
         text-align: left;
