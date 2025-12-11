@@ -1570,14 +1570,15 @@ def tab_shadow_team(db, df_jogadores):
         col_atk1, col_atk2 = st.columns(2, gap="small")
         with col_atk1:
             st.markdown("**Atacante Esquerdo**")
-            st.session_state.shadow_team["atacante_1"] = ui.select(
+            st.session_state.shadow_team["atacante_1"] = st.selectbox(
+                "Atacante Esquerdo",
                 options=jogadores_por_posicao.get("Atacante", ["Nenhum"]),
-                default_value=st.session_state.shadow_team["atacante_1"],
+                index=0,
                 key="select_atk1"
             )
         with col_atk2:
             st.markdown("**Atacante Direito**")
-            st.session_state.shadow_team["atacante_2"] = ui.select(
+            st.session_state.shadow_team["atacante_2"] = st.selectbox(
                 options=jogadores_por_posicao.get("Atacante", ["Nenhum"]),
                 default_value=st.session_state.shadow_team["atacante_2"],
                 key="select_atk2"
@@ -1591,14 +1592,14 @@ def tab_shadow_team(db, df_jogadores):
         col_mid1, col_mid2 = st.columns(2, gap="small")
         with col_mid1:
             st.markdown("**Meia Esquerdo**")
-            st.session_state.shadow_team["meia_1"] = ui.select(
+            st.session_state.shadow_team["meia_1"] = st.selectbox(
                 options=jogadores_por_posicao.get("Meia", ["Nenhum"]),
                 default_value=st.session_state.shadow_team["meia_1"],
                 key="select_mid1"
             )
         with col_mid2:
             st.markdown("**Meia Direito**")
-            st.session_state.shadow_team["meia_2"] = ui.select(
+            st.session_state.shadow_team["meia_2"] = st.selectbox(
                 options=jogadores_por_posicao.get("Meia", ["Nenhum"]),
                 default_value=st.session_state.shadow_team["meia_2"],
                 key="select_mid2"
@@ -1612,14 +1613,14 @@ def tab_shadow_team(db, df_jogadores):
         col_vol1, col_vol2 = st.columns(2, gap="small")
         with col_vol1:
             st.markdown("**Volante Esquerdo**")
-            st.session_state.shadow_team["volante_1"] = ui.select(
+            st.session_state.shadow_team["volante_1"] = st.selectbox(
                 options=jogadores_por_posicao.get("Volante", ["Nenhum"]),
                 default_value=st.session_state.shadow_team["volante_1"],
                 key="select_vol1"
             )
         with col_vol2:
             st.markdown("**Volante Direito**")
-            st.session_state.shadow_team["volante_2"] = ui.select(
+            st.session_state.shadow_team["volante_2"] = st.selectbox(
                 options=jogadores_por_posicao.get("Volante", ["Nenhum"]),
                 default_value=st.session_state.shadow_team["volante_2"],
                 key="select_vol2"
@@ -1631,28 +1632,28 @@ def tab_shadow_team(db, df_jogadores):
     col_def = st.columns([0.5, 1, 1, 1, 1, 0.5])
     with col_def[1]:
         st.markdown("**Lateral Esq.**")
-        st.session_state.shadow_team["lateral_esq"] = ui.select(
+        st.session_state.shadow_team["lateral_esq"] = st.selectbox(
             options=jogadores_por_posicao.get("Lateral", ["Nenhum"]),
             default_value=st.session_state.shadow_team["lateral_esq"],
             key="select_lat_esq"
         )
     with col_def[2]:
         st.markdown("**Zagueiro Esq.**")
-        st.session_state.shadow_team["zagueiro_esq"] = ui.select(
+        st.session_state.shadow_team["zagueiro_esq"] = st.selectbox(
             options=jogadores_por_posicao.get("Zagueiro", ["Nenhum"]),
             default_value=st.session_state.shadow_team["zagueiro_esq"],
             key="select_zag_esq"
         )
     with col_def[3]:
         st.markdown("**Zagueiro Dir.**")
-        st.session_state.shadow_team["zagueiro_dir"] = ui.select(
+        st.session_state.shadow_team["zagueiro_dir"] = st.selectbox(
             options=jogadores_por_posicao.get("Zagueiro", ["Nenhum"]),
             default_value=st.session_state.shadow_team["zagueiro_dir"],
             key="select_zag_dir"
         )
     with col_def[4]:
         st.markdown("**Lateral Dir.**")
-        st.session_state.shadow_team["lateral_dir"] = ui.select(
+        st.session_state.shadow_team["lateral_dir"] = st.selectbox(
             options=jogadores_por_posicao.get("Lateral", ["Nenhum"]),
             default_value=st.session_state.shadow_team["lateral_dir"],
             key="select_lat_dir"
@@ -1664,7 +1665,7 @@ def tab_shadow_team(db, df_jogadores):
     col1, col2, col3 = st.columns([1.5, 1, 1.5])
     with col2:
         st.markdown("**Goleiro**")
-        st.session_state.shadow_team["goleiro"] = ui.select(
+        st.session_state.shadow_team["goleiro"] = st.selectbox(
             options=jogadores_por_posicao.get("Goleiro", ["Nenhum"]),
             default_value=st.session_state.shadow_team["goleiro"],
             key="select_gol"
