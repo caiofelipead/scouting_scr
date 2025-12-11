@@ -40,10 +40,10 @@ def _cached_buscar_todos_jogadores(_engine):
 def _cached_buscar_avaliacoes(_engine, id_jogador: int):
     """Cache de 10 minutos para avaliações"""
     query = """
-    SELECT 
-        id_avaliacao, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico,
+    SELECT
+        id AS id_avaliacao, data_avaliacao, nota_potencial, nota_tatico, nota_tecnico,
         nota_fisico, nota_mental, observacoes, avaliador
-    FROM avaliacoes 
+    FROM avaliacoes
     WHERE id_jogador = :id_jogador
     ORDER BY data_avaliacao DESC
     """
@@ -230,7 +230,7 @@ class ScoutingDatabase:
                 ativo BOOLEAN DEFAULT {bool_true}
             )""",
             f"""CREATE TABLE IF NOT EXISTS avaliacoes (
-                id_avaliacao {id_type},
+                id {id_type},
                 id_jogador INTEGER REFERENCES jogadores(id_jogador) ON DELETE CASCADE,
                 data_avaliacao DATE NOT NULL,
                 nota_potencial DECIMAL(3,1),

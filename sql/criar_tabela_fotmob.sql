@@ -213,7 +213,7 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) f ON true
 
-WHERE a.id_avaliacao IS NOT NULL  -- Apenas jogadores com avaliação
+WHERE a.id IS NOT NULL  -- Apenas jogadores com avaliação
 
 ORDER BY score_combinado DESC NULLS LAST;
 
