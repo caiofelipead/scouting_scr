@@ -592,3 +592,229 @@ def criar_radar_avaliacao(notas_dict, titulo="Perfil"):
     )
 
     return fig
+
+
+def tab_ranking_refatorado(db, df_jogadores):
+    """
+    Tab de ranking usando Shadcn UI Cards
+    Substitui st.metric() por ui.card() para design moderno
+    """
+    st.markdown("### 🏆 Ranking de Jogadores por Avaliações")
+
+    @st.cache_data(ttl=600, show_spinner=False)
+    def carregar_avaliacoes(_db):
+        """Carrega média das avaliações dos últimos 6 meses por jogador"""
+        query = """
+        SELECT
+            j.id_jogador,
+            j.nome,
+            v.clube,
+            v.posicao,
+            v.liga_clube,
+            j.nacionalidade,
+            j.idade_atual,
+            ROUND(AVG(a.nota_potencial)::numeric, 1) as nota_potencial,
+            ROUND(AVG(a.nota_tatico)::numeric, 1) as nota_tatico,
+            ROUND(AVG(a.nota_tecnico)::numeric, 1) as nota_tecnico,
+            ROUND(AVG(a.nota_fisico)::numeric, 1) as nota_fisico,
+            ROUND(AVG(a.nota_mental)::numeric, 1) as nota_mental,
+            COUNT(a.id) as total_avaliacoes,
+            MAX(a.data_avaliacao) as data_avaliacao
+        FROM jogadores j
+        INNER JOIN avaliacoes a ON j.id_jogador = a.id_jogador
+        LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+        WHERE a.data_avaliacao >= CURRENT_DATE - INTERVAL '6 months'
+        GROUP BY
+            j.id_jogador,
+            j.nome,
+            v.clube,
+            v.posicao,
+            v.liga_clube,
+            j.nacionalidade,
+            j.idade_atual
+        ORDER BY AVG(a.nota_potencial) DESC
+        """
+        try:
+            with _db.engine.connect() as conn:
+                result = conn.execute(text(query))
+                df = pd.DataFrame(result.fetchall(), columns=result.keys())
+            return df
+        except Exception as e:
+            st.error(f"❌ Erro ao buscar avaliações: {e}")
+            return pd.DataFrame()
+
+    df_avaliacoes = carregar_avaliacoes(db)
+
+    if df_avaliacoes.empty:
+        st.warning("Nenhuma avaliação encontrada para montar o ranking.")
+        return
+
+    df_avaliacoes["media_geral"] = df_avaliacoes[
+        ["nota_tatico", "nota_tecnico", "nota_fisico", "nota_mental"]
+    ].mean(axis=1)
+
+    # --- FILTROS SUPERIORES ---
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        posicoes_rank = ["Todas"] + sorted(
+            df_avaliacoes["posicao"].dropna().unique().tolist()
+        )
+        posicao_rank = st.selectbox(
+            "🎯 Filtrar por Posição", posicoes_rank, key="rank_pos_ref"
+        )
+
+    with col2:
+        ordenar_rank = st.selectbox(
+            "📊 Ordenar por",
+            [
+                "Potencial",
+                "Média Geral",
+                "Tático",
+                "Técnico",
+                "Físico",
+                "Mental",
+            ],
+            key="rank_ordem_ref",
+        )
+
+    with col3:
+        nacionalidades_rank = ["Todas"] + sorted(
+            df_avaliacoes["nacionalidade"].dropna().unique().tolist()
+        )
+        nac_rank = st.selectbox(
+            "🌍 Nacionalidade", nacionalidades_rank, key="rank_nac_ref"
+        )
+
+    with col4:
+        clubes_rank = ["Todos"] + sorted(
+            df_avaliacoes["clube"].dropna().unique().tolist()
+        )
+        clube_rank = st.selectbox("⚽ Clube", clubes_rank, key="rank_clube_ref")
+
+    with col5:
+        ligas_rank = ["Todas"] + sorted(
+            df_avaliacoes["liga_clube"].dropna().unique().tolist()
+        )
+        liga_rank = st.selectbox("🏆 Liga", ligas_rank, key="rank_liga_ref")
+
+    # Aplicar filtros
+    df_rank = df_avaliacoes.copy()
+
+    if posicao_rank != "Todas":
+        df_rank = df_rank[df_rank["posicao"] == posicao_rank]
+
+    if nac_rank != "Todas":
+        df_rank = df_rank[df_rank["nacionalidade"] == nac_rank]
+
+    if clube_rank != "Todos":
+        df_rank = df_rank[df_rank["clube"] == clube_rank]
+
+    if liga_rank != "Todas":
+        df_rank = df_rank[df_rank["liga_clube"] == liga_rank]
+
+    # Mapear ordenação
+    ordem_map = {
+        "Potencial": "nota_potencial",
+        "Média Geral": "media_geral",
+        "Tático": "nota_tatico",
+        "Técnico": "nota_tecnico",
+        "Físico": "nota_fisico",
+        "Mental": "nota_mental",
+    }
+
+    # Ordenar
+    df_rank = df_rank.sort_values(
+        by=ordem_map[ordenar_rank], ascending=False
+    ).reset_index(drop=True)
+
+    # Adicionar posição no ranking
+    df_rank["rank"] = range(1, len(df_rank) + 1)
+
+    st.markdown("---")
+
+    # --- TOP 20 COM SHADCN UI ---
+    st.markdown(f"### 🏆 Top 20 Jogadores - Ordenado por {ordenar_rank}")
+
+    df_top20 = df_rank.head(20).copy()
+
+    if len(df_top20) == 0:
+        st.warning("Nenhum jogador encontrado com os filtros aplicados.")
+        return
+
+    # Exibir cada jogador do Top 20
+    for idx, jogador in enumerate(df_top20.itertuples()):
+        rank_pos = jogador.rank
+
+        # Determinar emoji
+        if rank_pos == 1:
+            emoji = "🥇"
+        elif rank_pos == 2:
+            emoji = "🥈"
+        elif rank_pos == 3:
+            emoji = "🥉"
+        else:
+            emoji = f"#{rank_pos}"
+
+        # Layout do jogador
+        col_rank, col_info, col_pot, col_media, col_tat, col_tec, col_fis, col_men = st.columns(
+            [0.5, 2, 1, 1, 1, 1, 1, 1]
+        )
+
+        with col_rank:
+            st.markdown(f"## {emoji}")
+
+        with col_info:
+            st.markdown(f"**{jogador.nome}**")
+            st.caption(f"{jogador.posicao} | {jogador.clube}")
+
+        # Substituir st.metric() por ui.card()
+        with col_pot:
+            ui.card(
+                title="Potencial",
+                content=f"{jogador.nota_potencial:.1f}",
+                description="/5.0",
+                key=f"rank_pot_{jogador.id_jogador}"
+            ).render()
+
+        with col_media:
+            ui.card(
+                title="Média",
+                content=f"{jogador.media_geral:.1f}",
+                description="/5.0",
+                key=f"rank_media_{jogador.id_jogador}"
+            ).render()
+
+        with col_tat:
+            ui.card(
+                title="Tático",
+                content=f"{jogador.nota_tatico:.1f}",
+                description="/5.0",
+                key=f"rank_tat_{jogador.id_jogador}"
+            ).render()
+
+        with col_tec:
+            ui.card(
+                title="Técnico",
+                content=f"{jogador.nota_tecnico:.1f}",
+                description="/5.0",
+                key=f"rank_tec_{jogador.id_jogador}"
+            ).render()
+
+        with col_fis:
+            ui.card(
+                title="Físico",
+                content=f"{jogador.nota_fisico:.1f}",
+                description="/5.0",
+                key=f"rank_fis_{jogador.id_jogador}"
+            ).render()
+
+        with col_men:
+            ui.card(
+                title="Mental",
+                content=f"{jogador.nota_mental:.1f}",
+                description="/5.0",
+                key=f"rank_men_{jogador.id_jogador}"
+            ).render()
+
+        st.markdown("---")

@@ -1,0 +1,182 @@
+/* === TEMA MINIMALISTA - Scout Pro (Versão Simplificada para Shadcn UI) === */
+/*
+ * CSS reduzido para trabalhar em conjunto com streamlit-shadcn-ui
+ * Remove redundâncias já que componentes Shadcn têm seus próprios estilos
+ */
+
+/* ESPAÇAMENTO E LAYOUT BÁSICO */
+.main .block-container {
+    padding-top: 0rem !important;
+    padding-bottom: 1rem !important;
+    margin-top: 0 !important;
+    max-width: 100%;
+}
+
+/* Ocultar header do Streamlit */
+header[data-testid="stHeader"] {
+    height: 0px !important;
+    min-height: 0px !important;
+    display: none !important;
+}
+
+/* LIMPEZA DE ELEMENTOS VAZIOS */
+div:empty,
+.element-container:empty,
+div[data-testid="stElementContainer"]:empty,
+div[data-testid="stVerticalBlock"] > div:has(> div:empty) {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Remove elementos vazios com emotion-cache */
+div[class*="st-emotion-cache-"]:empty {
+    display: none !important;
+    height: 0 !important;
+}
+
+/* SPACING CONSISTENTE */
+.element-container {
+    margin-bottom: 0.5rem !important;
+}
+
+div[data-testid="stVerticalBlock"] > div {
+    gap: 0.5rem !important;
+}
+
+.stMarkdown {
+    margin-bottom: 0.5rem !important;
+}
+
+/* CORES E TIPOGRAFIA BÁSICA */
+.main {
+    background-color: #ffffff;
+    padding: 16px;
+}
+
+h1, h2, h3 {
+    color: #1e293b !important;
+}
+
+h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* BOTÕES SECUNDÁRIOS (Voltar, etc) - Minimalistas */
+.stButton > button[kind="secondary"],
+button[data-testid="baseButton-secondary"] {
+    background: transparent !important;
+    color: #475569 !important;
+    border: none !important;
+    padding: 4px 8px !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+}
+
+.stButton > button[kind="secondary"]:hover,
+button[data-testid="baseButton-secondary"]:hover {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+}
+
+/* SIDEBAR LIMPA */
+[data-testid="stSidebar"] {
+    background-color: #f8fafc;
+    padding: 16px;
+}
+
+/* TABELAS E DATAFRAMES */
+.dataframe {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    font-size: 13px;
+}
+
+.dataframe th {
+    background-color: #f8fafc !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 8px !important;
+}
+
+.dataframe td {
+    padding: 8px !important;
+}
+
+/* INPUT FIELDS */
+.stTextInput input,
+.stSelectbox select,
+.stNumberInput input,
+.stTextArea textarea {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.stTextInput input:focus,
+.stSelectbox select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    outline: none;
+}
+
+/* ALERTAS */
+.stAlert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    border-left-width: 4px;
+}
+
+/* LINKS */
+a {
+    color: #6366f1;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* IMAGENS RESPONSIVAS */
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 768px) {
+    .main {
+        padding: 8px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    h2 {
+        font-size: 18px;
+    }
+
+    h3 {
+        font-size: 16px;
+    }
+}
