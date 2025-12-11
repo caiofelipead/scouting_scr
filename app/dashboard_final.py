@@ -750,6 +750,754 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True, coordenadas_fixas=None)
     )
 
 
+def exibir_perfil_jogador_final(db, id_jogador, debug=False):
+    """
+    VERSÃO FINAL CORRIGIDA: Perfil com grid HTML compacto
+    Remove cards gigantes do Shadcn UI e usa layout Bento Grid
+    """
+    conn = db.engine.connect()
+
+    try:
+        id_busca = int(id_jogador)
+    except Exception:
+        id_busca = id_jogador
+
+    query = text("""
+    SELECT
+        j.*,
+        v.clube,
+        v.liga_clube,
+        v.posicao,
+        v.data_fim_contrato,
+        v.status_contrato
+    FROM jogadores j
+    LEFT JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+    WHERE j.id_jogador = :id
+    """)
+
+    result = conn.execute(query, {"id": id_busca})
+    jogador = pd.DataFrame(result.fetchall(), columns=result.keys())
+
+    if len(jogador) == 0:
+        st.error(f"Jogador não encontrado! (ID buscado: {id_busca})")
+        if st.button("Voltar para Lista", key="btn_voltar_erro_final"):
+            st.session_state.pagina = "dashboard"
+            st.rerun()
+        return
+
+    jogador = jogador.iloc[0]
+
+    # ==========================================
+    # CALCULAR STATUS DO CONTRATO
+    # ==========================================
+    status = "desconhecido"
+    dias_restantes = None
+
+    if pd.notna(jogador.get("data_fim_contrato")):
+        try:
+            data_fim = pd.to_datetime(jogador["data_fim_contrato"], dayfirst=True)
+            dias_restantes = (data_fim - datetime.now()).days
+
+            if dias_restantes < 0:
+                status = "vencido"
+            elif dias_restantes <= 180:
+                status = "ultimos_6_meses"
+            elif dias_restantes <= 365:
+                status = "ultimo_ano"
+            else:
+                status = "ativo"
+        except Exception:
+            status = "desconhecido"
+    elif pd.notna(jogador.get("status_contrato")):
+        status = jogador.get("status_contrato", "desconhecido")
+
+    if jogador.get("clube") == "Livre" or jogador.get("status_contrato") == "livre":
+        status = "livre"
+
+    # ==========================================
+    # CSS PARA GRID COMPACTO
+    # ==========================================
+    st.markdown("""
+    <style>
+        /* Compactação Extra para Perfil */
+        .block-container {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+
+        /* Remove elementos vazios e espaçamentos desnecessários */
+        .element-container:empty,
+        div[data-testid="stVerticalBlock"] > div:has(> div:empty) {
+            display: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* Grid de Estatísticas - BENTO GRID COMPACTO */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #212529;
+            display: block;
+        }
+
+        /* Compactar separadores hr */
+        hr {
+            margin: 1rem 0 !important;
+        }
+
+        /* Compactar elementos st.info, st.success, etc */
+        .stAlert {
+            padding: 0.5rem 1rem !important;
+            margin: 0.5rem 0 !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ==========================================
+    # PREPARAR DADOS
+    # ==========================================
+    nome = jogador.get('nome', 'Jogador')
+    posicao = jogador.get('posicao', 'N/A') if pd.notna(jogador.get('posicao')) else 'N/A'
+    clube = jogador.get('clube', 'Livre') if pd.notna(jogador.get('clube')) else 'Livre'
+    liga = jogador.get('liga_clube', 'N/A') if pd.notna(jogador.get('liga_clube')) else 'N/A'
+    idade = jogador.get('idade_atual', 'N/A')
+    altura = jogador.get('altura', 'N/A')
+    pe_dom = jogador.get('pe_dominante', 'N/A') if pd.notna(jogador.get('pe_dominante')) else 'N/A'
+    nacionalidade = jogador.get('nacionalidade', 'N/A') if pd.notna(jogador.get('nacionalidade')) else 'N/A'
+    fim_contrato = jogador.get('data_fim_contrato', 'N/A') if pd.notna(jogador.get('data_fim_contrato')) else 'N/A'
+
+    # Buscar foto
+    tm_id = jogador.get('transfermarkt_id', None)
+    foto_url = get_foto_jogador(id_busca, transfermarkt_id=tm_id, debug=debug)
+
+    # Buscar logos com fallback
+    logo_clube_url = get_logo_fallback(clube, "clube")
+    logo_liga_url = get_logo_fallback(liga, "liga")
+
+    # ==========================================
+    # HEADER COM FOTO E INFO BÁSICA
+    # ==========================================
+    col_foto, col_info = st.columns([1, 3])
+
+    with col_foto:
+        if foto_url:
+            st.markdown(f"""
+            <img src="{foto_url}"
+                 style="width: 180px; height: 180px; border-radius: 90px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div style="width: 180px; height: 180px; border-radius: 90px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        display: none; align-items: center; justify-content: center;
+                        font-size: 72px; color: white; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                {nome[0].upper() if nome else "?"}
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            inicial = nome[0].upper() if nome else "?"
+            st.markdown(f"""
+            <div style="width: 180px; height: 180px; border-radius: 90px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        display: flex; align-items: center; justify-content: center;
+                        font-size: 72px; color: white; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                {inicial}
+            </div>
+            """, unsafe_allow_html=True)
+
+    with col_info:
+        st.title(nome)
+        st.markdown(f"**{posicao}** • {clube}")
+
+        # Status do contrato com badge
+        status_badge_config = {
+            "ativo": ("Contrato Ativo", "#155724", "#d4edda"),
+            "ultimo_ano": ("Último Ano", "#856404", "#fff3cd"),
+            "ultimos_6_meses": ("Vence em Breve", "#721c24", "#f8d7da"),
+            "vencido": ("Vencido", "#383d41", "#e2e3e5"),
+            "livre": ("Livre", "#004085", "#cce5ff"),
+            "desconhecido": ("Status Desconhecido", "#383d41", "#e2e3e5"),
+        }
+
+        badge_text, badge_color, badge_bg = status_badge_config.get(status, ("Desconhecido", "#383d41", "#e2e3e5"))
+        st.markdown(f"""
+        <div style="display: inline-block; padding: 8px 16px; border-radius: 8px;
+                    background: {badge_bg}; color: {badge_color};
+                    font-weight: 600; margin-top: 8px;">
+            {badge_text}
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Barra de progresso do contrato
+        if dias_restantes is not None and dias_restantes > 0:
+            st.info(f"⏱️ **{dias_restantes} dias** até o fim do contrato")
+
+    st.markdown("---")
+
+    # ==========================================
+    # GRID COMPACTO DE MÉTRICAS (HTML - NÃO SHADCN)
+    # ==========================================
+    st.markdown("### 📊 Informações do Jogador")
+
+    # Grid HTML compacto tipo Bento Grid
+    st.markdown(f"""
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Idade</span>
+            <span class="stat-value">{idade}</span>
+            <span class="stat-label" style="font-size: 10px; margin-top: 4px;">anos</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Altura</span>
+            <span class="stat-value">{altura}</span>
+            <span class="stat-label" style="font-size: 10px; margin-top: 4px;">cm</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Pé</span>
+            <span class="stat-value">{pe_dom}</span>
+            <span class="stat-label" style="font-size: 10px; margin-top: 4px;">dominante</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Nacionalidade</span>
+            <span class="stat-value">{nacionalidade}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Contrato</span>
+            <span class="stat-value" style="font-size: 14px;">{fim_contrato}</span>
+            <span class="stat-label" style="font-size: 10px; margin-top: 4px;">vencimento</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ==========================================
+    # CLUBE E LIGA COM LOGOS E FALLBACK
+    # ==========================================
+    st.markdown("---")
+
+    col_clube, col_liga = st.columns(2)
+
+    with col_clube:
+        html_logo_clube = criar_html_imagem_com_fallback(
+            logo_clube_url, clube, "🛡️", width=48, height=48
+        )
+        st.markdown(f"{html_logo_clube}<strong>{clube}</strong>", unsafe_allow_html=True)
+
+    with col_liga:
+        html_logo_liga = criar_html_imagem_com_fallback(
+            logo_liga_url, liga, "🏆", width=48, height=48
+        )
+        st.markdown(f"{html_logo_liga}<strong>{liga}</strong>", unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # ============== SEÇÃO DE AVALIAÇÕES ==============
+    # Tabs para organizar avaliações
+    tab_avaliacao, tab_historico, tab_evolucao, tab_analise_avancada = st.tabs(
+        ["📝 Nova Avaliação", "📊 Histórico", "📈 Evolução", "🎯 Análise Avançada"]
+    )
+
+    with tab_avaliacao:
+        st.markdown("### 📝 Registrar Nova Avaliação")
+        st.markdown("Avalie o jogador nas dimensões principais:")
+
+        col1, col2 = st.columns([2, 1])
+
+        with col1:
+            # Formulário de avaliação
+            with st.form("form_avaliacao"):
+                data_avaliacao = st.date_input(
+                    "Data da Avaliação", value=datetime.now(), format="DD/MM/YYYY"
+                )
+
+                # NOTA DE POTENCIAL EM DESTAQUE
+                st.markdown("---")
+                st.markdown("#### ⭐ Avaliação Geral de Potencial")
+                nota_potencial = st.slider(
+                    "Potencial do Jogador",
+                    min_value=1.0,
+                    max_value=5.0,
+                    value=3.0,
+                    step=0.5,
+                    help="Avaliação geral do potencial do atleta considerando projeção futura e capacidade de desenvolvimento",
+                )
+
+                st.markdown("---")
+                st.markdown("#### 📊 Notas por Dimensão (1 a 5)")
+                col_a, col_b = st.columns(2)
+
+                with col_a:
+                    nota_tatico = st.slider(
+                        "⚙️ Tático",
+                        min_value=1.0,
+                        max_value=5.0,
+                        value=3.0,
+                        step=0.5,
+                        help="Posicionamento, leitura de jogo, decisões táticas",
+                    )
+
+                    nota_tecnico = st.slider(
+                        "⚽ Técnico",
+                        min_value=1.0,
+                        max_value=5.0,
+                        value=3.0,
+                        step=0.5,
+                        help="Domínio, passe, finalização, controle de bola",
+                    )
+
+                with col_b:
+                    nota_fisico = st.slider(
+                        "💪 Físico",
+                        min_value=1.0,
+                        max_value=5.0,
+                        value=3.0,
+                        step=0.5,
+                        help="Velocidade, força, resistência, explosão",
+                    )
+
+                    nota_mental = st.slider(
+                        "🧠 Mental",
+                        min_value=1.0,
+                        max_value=5.0,
+                        value=3.0,
+                        step=0.5,
+                        help="Concentração, liderança, inteligência emocional",
+                    )
+
+                observacoes = st.text_area(
+                    "Observações",
+                    placeholder="Adicione comentários sobre a avaliação, pontos fortes, áreas de desenvolvimento...",
+                    height=100,
+                )
+
+                avaliador = st.text_input(
+                    "Avaliador", placeholder="Seu nome (opcional)"
+                )
+
+                submitted = st.form_submit_button(
+                    "💾 Salvar Avaliação", use_container_width=True, type="primary"
+                )
+
+                if submitted:
+                    try:
+                        db.salvar_avaliacao(
+                            id_jogador=id_busca,
+                            data_avaliacao=data_avaliacao.strftime("%Y-%m-%d"),
+                            nota_potencial=nota_potencial,
+                            nota_tatico=nota_tatico,
+                            nota_tecnico=nota_tecnico,
+                            nota_fisico=nota_fisico,
+                            nota_mental=nota_mental,
+                            observacoes=observacoes,
+                            avaliador=avaliador,
+                        )
+                        st.success("✅ Avaliação salva com sucesso!")
+                        st.balloons()
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Erro ao salvar avaliação: {str(e)}")
+
+        with col2:
+            st.markdown("#### 📊 Preview do Radar")
+            notas_preview = {
+                "Tático": 3.0,
+                "Técnico": 3.0,
+                "Físico": 3.0,
+                "Mental": 3.0,
+            }
+            fig_preview = criar_radar_avaliacao(notas_preview, "Preview")
+            st.plotly_chart(fig_preview, use_container_width=True)
+
+            # Mostrar potencial em destaque
+            st.markdown("---")
+            st.metric("⭐ Potencial", f"{3.0:.1f}", help="Avaliação geral de potencial")
+
+    with tab_historico:
+        st.markdown("### 📊 Histórico de Avaliações")
+
+        # Buscar avaliações do jogador
+        avaliacoes = db.get_avaliacoes_jogador(id_busca)
+
+        if len(avaliacoes) > 0:
+            # Última avaliação em destaque
+            ultima = avaliacoes.iloc[0]
+
+            st.markdown("#### 🎯 Última Avaliação")
+
+            col1, col2 = st.columns([1, 2])
+
+            with col1:
+                # Potencial em destaque
+                if pd.notna(ultima.get("nota_potencial")):
+                    st.markdown("---")
+                    st.markdown(f"### ⭐ Potencial: {ultima['nota_potencial']:.1f}/5.0")
+                    st.progress(ultima["nota_potencial"] / 5.0)
+                    st.markdown("---")
+
+                st.markdown(
+                    f"""
+                **Data:** {pd.to_datetime(ultima['data_avaliacao']).strftime('%d/%m/%Y') if pd.notna(ultima['data_avaliacao']) else 'N/A'}
+                **Avaliador:** {ultima['avaliador'] if pd.notna(ultima.get('avaliador')) and ultima['avaliador'] else 'Não informado'}
+                """
+                )
+
+                # Métricas
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if pd.notna(ultima.get("nota_tatico")):
+                        st.metric("Tático", f"{ultima['nota_tatico']:.1f}")
+                    if pd.notna(ultima.get("nota_tecnico")):
+                        st.metric("Técnico", f"{ultima['nota_tecnico']:.1f}")
+                with col_b:
+                    if pd.notna(ultima.get("nota_fisico")):
+                        st.metric("Físico", f"{ultima['nota_fisico']:.1f}")
+                    if pd.notna(ultima.get("nota_mental")):
+                        st.metric("Mental", f"{ultima['nota_mental']:.1f}")
+
+                if pd.notna(ultima.get("observacoes")) and ultima["observacoes"]:
+                    st.markdown("---")
+                    st.markdown("**Observações:**")
+                    st.info(ultima["observacoes"])
+
+            with col2:
+                # Radar chart da última avaliação
+                notas_dict = {}
+                if pd.notna(ultima.get("nota_tatico")):
+                    notas_dict["Tático"] = ultima["nota_tatico"]
+                if pd.notna(ultima.get("nota_tecnico")):
+                    notas_dict["Técnico"] = ultima["nota_tecnico"]
+                if pd.notna(ultima.get("nota_fisico")):
+                    notas_dict["Físico"] = ultima["nota_fisico"]
+                if pd.notna(ultima.get("nota_mental")):
+                    notas_dict["Mental"] = ultima["nota_mental"]
+
+                if notas_dict:
+                    fig_radar = criar_radar_avaliacao(notas_dict, "Perfil Atual")
+                    st.plotly_chart(fig_radar, use_container_width=True)
+
+            # Histórico completo
+            st.markdown("---")
+            st.markdown("#### 📜 Todas as Avaliações")
+
+            # Preparar DataFrame para exibição
+            df_display = avaliacoes.copy()
+
+            # Selecionar apenas colunas que existem
+            colunas_display = []
+            colunas_desejadas = {
+                "data_avaliacao": "Data",
+                "nota_potencial": "Potencial",
+                "nota_tatico": "Tático",
+                "nota_tecnico": "Técnico",
+                "nota_fisico": "Físico",
+                "nota_mental": "Mental",
+                "avaliador": "Avaliador",
+            }
+
+            for col_original, col_nova in colunas_desejadas.items():
+                if col_original in df_display.columns:
+                    colunas_display.append(col_original)
+
+            if colunas_display:
+                df_display = df_display[colunas_display]
+                df_display = df_display.rename(columns=colunas_desejadas)
+                st.dataframe(df_display, use_container_width=True, hide_index=True)
+        else:
+            st.info("📝 Nenhuma avaliação registrada para este jogador ainda.")
+            st.markdown(
+                "👆 Use a aba **'Nova Avaliação'** para adicionar a primeira avaliação!"
+            )
+
+    with tab_evolucao:
+        st.markdown("### 📈 Evolução das Avaliações")
+
+        avaliacoes = db.get_avaliacoes_jogador(id_busca)
+
+        if len(avaliacoes) > 1:
+            # Gráfico de evolução
+            fig_evolucao = criar_grafico_evolucao(avaliacoes)
+            if fig_evolucao:
+                st.plotly_chart(fig_evolucao, use_container_width=True)
+
+            # Estatísticas de evolução
+            st.markdown("---")
+            st.markdown("#### 📊 Estatísticas")
+
+            col1, col2, col3, col4, col5 = st.columns(5)
+
+            categorias = {
+                "nota_tatico": ("Tático", col1),
+                "nota_tecnico": ("Técnico", col2),
+                "nota_fisico": ("Físico", col3),
+                "nota_mental": ("Mental", col4),
+            }
+
+            for col_nome, (label, col) in categorias.items():
+                if col_nome in avaliacoes.columns:
+                    notas = avaliacoes[col_nome].dropna()
+                    if len(notas) > 0:
+                        with col:
+                            media = notas.mean()
+                            delta = (
+                                notas.iloc[0] - notas.iloc[-1] if len(notas) > 1 else 0
+                            )
+                            st.metric(
+                                label,
+                                f"{media:.1f}",
+                                delta=f"{delta:+.1f}" if delta != 0 else None,
+                            )
+        elif len(avaliacoes) == 1:
+            st.info(
+                "📊 É necessário ter pelo menos 2 avaliações para visualizar a evolução."
+            )
+        else:
+            st.info("📝 Nenhuma avaliação registrada ainda.")
+
+    with tab_analise_avancada:
+        st.markdown("### 🎯 Análise Avançada de Performance")
+        st.markdown("Visualizações modernas inspiradas em plataformas profissionais de scouting")
+
+        # Buscar avaliações do jogador
+        avaliacoes = db.get_avaliacoes_jogador(id_busca)
+
+        if len(avaliacoes) > 0:
+            # Última avaliação
+            ultima = avaliacoes.iloc[0]
+
+            # Preparar dados do jogador
+            jogador_stats = {
+                'nome': jogador['nome'],
+                'nota_tatico': ultima.get('nota_tatico', 0),
+                'nota_tecnico': ultima.get('nota_tecnico', 0),
+                'nota_fisico': ultima.get('nota_fisico', 0),
+                'nota_mental': ultima.get('nota_mental', 0),
+                'nota_potencial': ultima.get('nota_potencial', 0),
+                'media_geral': (
+                    ultima.get('nota_tatico', 0) +
+                    ultima.get('nota_tecnico', 0) +
+                    ultima.get('nota_fisico', 0) +
+                    ultima.get('nota_mental', 0)
+                ) / 4.0
+            }
+
+            # === SEÇÃO 1: CARDS DE ESTATÍSTICAS ===
+            st.markdown("#### 📊 Métricas Principais")
+
+            # Buscar benchmark da posição para calcular percentis
+            posicao = jogador.get('posicao')
+            benchmark_df = None
+
+            if posicao and pd.notna(posicao):
+                try:
+                    # Query para buscar todos jogadores da mesma posição com avaliações
+                    query_benchmark = text("""
+                        SELECT
+                            j.id_jogador,
+                            j.nome,
+                            a.nota_tatico,
+                            a.nota_tecnico,
+                            a.nota_fisico,
+                            a.nota_mental,
+                            a.nota_potencial,
+                            (a.nota_tatico + a.nota_tecnico + a.nota_fisico + a.nota_mental) / 4.0 as media_geral
+                        FROM jogadores j
+                        INNER JOIN vinculos_clubes v ON j.id_jogador = v.id_jogador
+                        INNER JOIN LATERAL (
+                            SELECT * FROM avaliacoes
+                            WHERE id_jogador = j.id_jogador
+                            ORDER BY data_avaliacao DESC
+                            LIMIT 1
+                        ) a ON true
+                        WHERE v.posicao = :posicao
+                    """)
+
+                    result = conn.execute(query_benchmark, {"posicao": posicao})
+                    benchmark_df = pd.DataFrame(result.fetchall(), columns=result.keys())
+
+                except Exception as e:
+                    st.warning(f"⚠️ Não foi possível carregar benchmark: {e}")
+
+            # Renderizar cards
+            cards_html = criar_grid_cards_estatisticas(jogador_stats, benchmark_df)
+            st.markdown(cards_html, unsafe_allow_html=True)
+
+            st.markdown("---")
+
+            # === SEÇÃO 2: GRÁFICO DE PERCENTIL ===
+            if benchmark_df is not None and len(benchmark_df) > 1:
+                st.markdown("#### 📊 Análise de Percentil")
+                st.markdown(f"Comparação com {len(benchmark_df)} jogadores da posição **{posicao}**")
+
+                col1, col2 = st.columns([2, 1])
+
+                with col1:
+                    fig_percentil = criar_grafico_percentil(
+                        jogador_stats,
+                        benchmark_df,
+                        dimensoes=['nota_tatico', 'nota_tecnico', 'nota_fisico', 'nota_mental', 'nota_potencial']
+                    )
+                    st.plotly_chart(fig_percentil, use_container_width=True)
+
+                with col2:
+                    st.markdown("##### 📈 Interpretação")
+                    st.markdown("""
+                    **Percentil** indica a porcentagem de jogadores que estão *abaixo* do desempenho do atleta.
+
+                    - 🟢 **90%+**: Elite (Top 10%)
+                    - 🔵 **75-89%**: Muito Bom (Top 25%)
+                    - 🟡 **50-74%**: Acima da Média
+                    - 🔴 **<50%**: Abaixo da Média
+
+                    Use esta análise para identificar pontos fortes e áreas de desenvolvimento.
+                    """)
+
+                st.markdown("---")
+
+                # === SEÇÃO 3: SCATTER PLOT COMPARATIVO ===
+                st.markdown("#### 🎯 Análise Bidimensional")
+                st.markdown("Compare duas dimensões simultaneamente para identificar perfis de jogadores")
+
+                col_x, col_y = st.columns(2)
+
+                with col_x:
+                    dim_x = st.selectbox(
+                        "Eixo X (Horizontal)",
+                        options=['nota_tecnico', 'nota_tatico', 'nota_fisico', 'nota_mental', 'nota_potencial'],
+                        format_func=lambda x: x.replace('nota_', '').replace('_', ' ').title(),
+                        index=0
+                    )
+
+                with col_y:
+                    dim_y = st.selectbox(
+                        "Eixo Y (Vertical)",
+                        options=['nota_fisico', 'nota_tatico', 'nota_tecnico', 'nota_mental', 'nota_potencial'],
+                        format_func=lambda x: x.replace('nota_', '').replace('_', ' ').title(),
+                        index=0
+                    )
+
+                if dim_x != dim_y:
+                    fig_scatter = criar_scatter_plot_comparativo(
+                        benchmark_df,
+                        dim_x=dim_x,
+                        dim_y=dim_y,
+                        highlight_jogadores=[jogador['nome']],
+                        posicao_filtro=posicao
+                    )
+                    st.plotly_chart(fig_scatter, use_container_width=True)
+                else:
+                    st.warning("⚠️ Selecione dimensões diferentes para o eixo X e Y")
+
+                st.markdown("---")
+
+                # === SEÇÃO 4: HEATMAP DE PERFORMANCE ===
+                st.markdown("#### 🔥 Heatmap Comparativo")
+                st.markdown(f"Comparação visual com os top jogadores da posição **{posicao}**")
+
+                # Filtrar jogador + top 14 da posição
+                benchmark_sorted = benchmark_df.sort_values('media_geral', ascending=False)
+
+                # Garantir que o jogador atual está incluído
+                outros_jogadores = benchmark_sorted[benchmark_sorted['nome'] != jogador['nome']].head(14)
+                jogador_row = benchmark_sorted[benchmark_sorted['nome'] == jogador['nome']]
+
+                df_heatmap = pd.concat([jogador_row, outros_jogadores], ignore_index=True)
+
+                fig_heatmap = criar_heatmap_performance(
+                    df_heatmap,
+                    dimensoes=['nota_tatico', 'nota_tecnico', 'nota_fisico', 'nota_mental', 'nota_potencial'],
+                    max_jogadores=15
+                )
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+
+            else:
+                st.info("📊 Benchmark não disponível. É necessário ter mais jogadores avaliados na mesma posição para análises comparativas.")
+
+                # Mostrar apenas os cards
+                st.markdown("#### 📈 Perfil Individual")
+                st.markdown("Avaliações do jogador (sem comparação)")
+
+                # Gráfico de barras simples
+                fig_barras = criar_barras_gradiente(
+                    pd.DataFrame([jogador_stats]),
+                    metrica='media_geral',
+                    top_n=1,
+                    titulo=f"Perfil de {jogador['nome']}"
+                )
+                st.plotly_chart(fig_barras, use_container_width=True)
+
+        else:
+            st.info("📝 Nenhuma avaliação registrada ainda. Adicione avaliações na aba 'Nova Avaliação' para ver análises avançadas.")
+
+    # Informações adicionais
+    st.markdown("---")
+    st.markdown("### 📊 Informações Adicionais")
+
+    col_i, col_ii = st.columns(2)
+
+    with col_i:
+        st.markdown("**Ano de Nascimento**")
+        st.markdown(
+            f"🎂 {jogador['ano_nascimento'] if pd.notna(jogador['ano_nascimento']) else 'N/A'}"
+        )
+
+    with col_ii:
+        st.markdown("**ID do Jogador**")
+        st.markdown(f"🔢 {jogador['id_jogador']}")
+
+    if pd.notna(jogador.get("transfermarkt_id")):
+        st.markdown("---")
+        # Extrair ID numérico se for URL
+        tm_id = str(jogador["transfermarkt_id"])
+        import re
+
+        match = re.search(r"/spieler/(\d+)", tm_id)
+        if match:
+            tm_id = match.group(1)
+
+        st.link_button(
+            "📊 Ver no Transfermarkt",
+            f"https://www.transfermarkt.com.br/player/profil/spieler/{tm_id}",
+            use_container_width=True,
+        )
+
+    # Botão de voltar
+    st.markdown("---")
+    if st.button("← Voltar para Dashboard", key="btn_voltar_final", type="secondary"):
+        st.session_state.pagina = "dashboard"
+        st.rerun()
+
+
 def exibir_perfil_jogador_legacy(db, id_jogador, debug=False):
     """Exibe perfil detalhado do jogador com design minimalista (VERSÃO ANTIGA - MANTIDA COMO FALLBACK)"""
     conn = db.engine.connect()
@@ -3698,7 +4446,7 @@ def main():
 
         debug_fotos_perfil = st.sidebar.checkbox("🐛 Debug de Fotos (Perfil)", value=False, help="Ativa modo debug")
 
-        exibir_perfil_jogador_refatorado(db, st.session_state.jogador_selecionado, debug=debug_fotos_perfil)
+        exibir_perfil_jogador_final(db, st.session_state.jogador_selecionado, debug=debug_fotos_perfil)
         return
 
     # Dashboard principal continua aqui
