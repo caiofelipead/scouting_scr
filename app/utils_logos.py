@@ -33,6 +33,12 @@ def get_logo_clube(nome_clube):
         "Vasco": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/CRVascodaGama.svg/150px-CRVascodaGama.svg.png",
         "Bahia": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/ECBahia.svg/150px-ECBahia.svg.png",
         "Fortaleza": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/FortalezaEsporteClube.svg/150px-FortalezaEsporteClube.svg.png",
+        "Cuiabá": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Cuiaba_Esporte_Clube_logo.svg/150px-Cuiaba_Esporte_Clube_logo.svg.png",
+        "Goiás": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Goi%C3%A1s_Esporte_Clube.svg/150px-Goi%C3%A1s_Esporte_Clube.svg.png",
+        "Coritiba": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Coritiba_2011.svg/150px-Coritiba_2011.svg.png",
+        "Sport Recife": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Sport_Club_do_Recife.svg/150px-Sport_Club_do_Recife.svg.png",
+        "América-MG": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Am%C3%A9rica_Futebol_Clube_%28MG%29_-_Escudo.svg/150px-Am%C3%A9rica_Futebol_Clube_%28MG%29_-_Escudo.svg.png",
+        "Vitória": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Esporte_Clube_Vit%C3%B3ria_logo.svg/150px-Esporte_Clube_Vit%C3%B3ria_logo.svg.png",
 
         # Clubes Argentinos
         "Boca Juniors": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/CABJ_Escudo_Boca_Juniors.svg/150px-CABJ_Escudo_Boca_Juniors.svg.png",
@@ -96,6 +102,8 @@ def get_logo_liga(nome_liga):
         "Brasileir\u00e3o S\u00e9rie B": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Brasileiro_2023.png/150px-Brasileiro_2023.png",
         "Brasileir\u00e3o": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Brasileiro_2023.png/150px-Brasileiro_2023.png",
         "Serie A": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Brasileiro_2023.png/150px-Brasileiro_2023.png",
+        "Serie B": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Brasileiro_2023.png/150px-Brasileiro_2023.png",
+        "S\u00e9rie B": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Brasileiro_2023.png/150px-Brasileiro_2023.png",
 
         # Argentina
         "Liga Profesional": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Logo_LPF.svg/150px-Logo_LPF.svg.png",
