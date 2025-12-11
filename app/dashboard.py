@@ -51,6 +51,10 @@ try:
     from utils_logos import get_logo_clube, get_logo_liga
     from auth import check_password, mostrar_info_usuario
     from dashboard_financeiro import aba_financeira
+    from dashboard_refatorado import (
+        exibir_perfil_jogador_refatorado,
+        exibir_lista_com_fotos_refatorado
+    )
     from database import ScoutingDatabase
     from visualizacoes_avancadas import (
         criar_grafico_percentil,
@@ -676,8 +680,8 @@ def plotar_mapa_elenco(df_jogadores, mostrar_nomes=True, coordenadas_fixas=None)
     )
 
 
-def exibir_perfil_jogador(db, id_jogador, debug=False):
-    """Exibe perfil detalhado do jogador com design minimalista"""
+def exibir_perfil_jogador_legacy(db, id_jogador, debug=False):
+    """Exibe perfil detalhado do jogador com design minimalista (VERSÃO ANTIGA - MANTIDA COMO FALLBACK)"""
     conn = db.engine.connect()
 
     try:
@@ -1532,8 +1536,8 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
         )
 
 
-def exibir_lista_com_fotos(df_display, db, debug=False, sufixo_key="padrao"):
-    """Exibe lista de jogadores com fotos em formato de cards - OTIMIZADO"""
+def exibir_lista_com_fotos_legacy(df_display, db, debug=False, sufixo_key="padrao"):
+    """Exibe lista de jogadores com fotos em formato de cards - OTIMIZADO (VERSÃO ANTIGA - MANTIDA COMO FALLBACK)"""
     st.markdown("### Jogadores")
     
     # Remover duplicatas e resetar index
@@ -3624,7 +3628,7 @@ def main():
 
         debug_fotos_perfil = st.sidebar.checkbox("🐛 Debug de Fotos (Perfil)", value=False, help="Ativa modo debug")
 
-        exibir_perfil_jogador(db, st.session_state.jogador_selecionado, debug=debug_fotos_perfil)
+        exibir_perfil_jogador_refatorado(db, st.session_state.jogador_selecionado, debug=debug_fotos_perfil)
         return
 
     # Dashboard principal continua aqui
@@ -3808,7 +3812,7 @@ def main():
             
             if len(df_filtrado) > 0:
                 st.markdown("#### 🎯 Primeiros Jogadores")
-                exibir_lista_com_fotos(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key="overview")
+                exibir_lista_com_fotos_refatorado(df_filtrado.head(10), db, debug=debug_fotos, sufixo_key="overview")
                 
                 if len(df_filtrado) > 10:
                     st.info(f"Mostrando os primeiros 10 de {len(df_filtrado)} jogadores. Use as outras tabs para explorar mais.")
@@ -3828,9 +3832,9 @@ def main():
                 )
                 
                 st.markdown("---")
-                
+
                 if view_mode == "📸 Cards com Fotos":
-                    exibir_lista_com_fotos(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
+                    exibir_lista_com_fotos_refatorado(df_filtrado, db, debug=debug_fotos, sufixo_key="lista_completa")
                 
                 else:  # Tabela
                     df_display = df_filtrado.copy()
