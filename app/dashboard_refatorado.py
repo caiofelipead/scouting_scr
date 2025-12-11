@@ -4,13 +4,65 @@ Design minimalista e moderno estilo Vercel/Linear
 """
 
 import streamlit as st
-import streamlit_shadcn_ui as ui
 import pandas as pd
 from datetime import datetime
 from sqlalchemy import text
 import plotly.graph_objects as go
 from utils_fotos import get_foto_jogador
 from utils_logos import get_logo_clube, get_logo_liga
+
+# Importar streamlit-shadcn-ui com fallback
+try:
+    import streamlit_shadcn_ui as ui
+    SHADCN_AVAILABLE = True
+except ImportError:
+    SHADCN_AVAILABLE = False
+    st.warning("""
+    ⚠️ **streamlit-shadcn-ui não instalado!**
+
+    Para usar a nova UI modernizada, instale a biblioteca:
+    ```bash
+    pip install --upgrade setuptools wheel
+    pip install streamlit-shadcn-ui
+    ```
+
+    Usando fallback para componentes nativos do Streamlit...
+    """)
+
+    # Mock UI object para fallback
+    class MockUI:
+        """Mock para quando streamlit-shadcn-ui não está disponível"""
+
+        class MockCard:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+            def render(self):
+                st.metric(self.kwargs.get('title', ''), self.kwargs.get('content', ''))
+
+            def __enter__(self):
+                # Retorna um container do Streamlit para simular contexto
+                return st.container()
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+
+        def card(self, **kwargs):
+            return self.MockCard(**kwargs)
+
+        def badges(self, badge_list, **kwargs):
+            for text, variant in badge_list:
+                color = {"default": "blue", "secondary": "gray", "destructive": "red"}.get(variant, "blue")
+                st.markdown(f':{color}[{text}]')
+
+        def tabs(self, options, default_value, **kwargs):
+            return st.selectbox("Navegação", options, index=options.index(default_value) if default_value in options else 0)
+
+        def button(self, text, variant="default", **kwargs):
+            button_type = "primary" if variant == "default" else "secondary"
+            return st.button(text, **{k: v for k, v in kwargs.items() if k != 'variant'}, type=button_type)
+
+    ui = MockUI()
 
 
 def exibir_perfil_jogador_refatorado(db, id_jogador, debug=False):
