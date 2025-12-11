@@ -877,7 +877,7 @@ def exibir_perfil_jogador(db, id_jogador, debug=False):
             ui.badges(badge_list=badge_list, key=f"badges_tags_{id_busca}")
         else:
             st.caption("Nenhuma tag aplicada.")
-    
+
     elif selected_tab == tab_labels[3]:  # Histórico
         st.markdown("### Histórico de Avaliações")
         historico = db.get_historico_avaliacoes(id_busca)
@@ -955,6 +955,7 @@ def exibir_lista_com_fotos(df, db, debug=False, sufixo_key=""):
                     
                     if badges:
                         ui.badges(badge_list=badges, key=f"badges_{sufixo_key}_{jogador['id_jogador']}")
+
                     
                     st.markdown("---")
                     
