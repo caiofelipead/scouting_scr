@@ -1,0 +1,39 @@
+# ============================================
+# BACKEND REQUIREMENTS - Scout Pro API
+# ============================================
+
+# FastAPI e Servidor
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Banco de Dados
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Validação e Configuração
+pydantic==2.5.3
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# Segurança e Autenticação
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+bcrypt==4.1.2
+
+# Utilitários
+python-dateutil==2.8.2
+email-validator==2.1.0
+
+# Desenvolvimento
+pytest==7.4.4
+pytest-asyncio==0.23.3
+httpx==0.26.0
+
+# ============================================
+# NOTAS:
+# - Use Python 3.11+
+# - Para instalar: pip install -r requirements.txt
+# - Para produção, fixar versões específicas
+# ============================================
