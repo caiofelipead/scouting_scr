@@ -55,4 +55,5 @@ RUN mkdir -p logs backups data fotos
 EXPOSE 8000
 
 # Comando final de execução - FastAPI com Uvicorn
-CMD uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Usando formato JSON para melhor handling de sinais OS (recomendação Railway)
+CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
