@@ -1,3 +1,10 @@
+# ============================================
+# DOCKERFILE - SCOUT PRO BACKEND (FastAPI)
+# ============================================
+# Multi-stage build para otimizar tamanho da imagem
+# Usa Python 3.10 slim com FastAPI + Uvicorn
+# ============================================
+
 # ----------------------------------------------------
 # 1️⃣ Fase de build — instala dependências com cache
 # ----------------------------------------------------
@@ -44,8 +51,8 @@ COPY . .
 # Cria diretórios necessários
 RUN mkdir -p logs backups data fotos
 
-# Expor a porta padrão Streamlit
-EXPOSE 8501
+# Expor a porta padrão FastAPI
+EXPOSE 8000
 
-# Comando final de execução
-CMD sh -c 'streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port="${PORT:-8501}"'
+# Comando final de execução - FastAPI com Uvicorn
+CMD uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}
