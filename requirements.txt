@@ -1,5 +1,6 @@
 # ============================================
-# BACKEND REQUIREMENTS - Scout Pro API
+# SCOUT PRO - UNIFIED REQUIREMENTS
+# Backend (FastAPI) + Frontend (Streamlit)
 # ============================================
 
 # FastAPI e Servidor
@@ -32,6 +33,35 @@ pytest-asyncio==0.23.3
 httpx==0.26.0
 
 # ============================================
-# IMPORTANTE: Este requirements.txt está na RAIZ
-# para que o Railway/Nixpacks detecte automaticamente
+# STREAMLIT APP DEPENDENCIES
+# ============================================
+
+# Streamlit Framework
+streamlit>=1.28.0
+
+# Data Processing & Analysis
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization
+plotly>=5.17.0
+mplsoccer>=1.3.0
+
+# Web Scraping & HTTP
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+lxml>=4.9.0
+
+# Google Sheets Integration
+gspread>=5.11.0
+oauth2client>=4.1.3
+
+# Excel Support
+openpyxl>=3.1.0
+
+# ============================================
+# DEPLOYMENT NOTES:
+# - Use Python 3.11+
+# - Railway: installs from backend/requirements.txt
+# - Streamlit Cloud: installs from this file
 # ============================================
