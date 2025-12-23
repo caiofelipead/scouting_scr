@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 
 from .core.config import settings
 from .core.database import engine, Base
-from .api.v1.endpoints import auth, jogadores, avaliacoes, wishlist
+from .api.v1.endpoints import auth, jogadores, avaliacoes, wishlist, scraping, sync
 
 
 @asynccontextmanager
@@ -72,6 +72,12 @@ app.include_router(avaliacoes.router, prefix="/api/v1")
 
 # Wishlist
 app.include_router(wishlist.router, prefix="/api/v1")
+
+# Scraping
+app.include_router(scraping.router, prefix="/api/v1/scraping", tags=["Scraping"])
+
+# Sync
+app.include_router(sync.router, prefix="/api/v1/sync", tags=["Sync"])
 
 
 # ============================================

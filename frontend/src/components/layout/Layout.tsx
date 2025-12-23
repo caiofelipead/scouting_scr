@@ -9,6 +9,7 @@ import {
   Users,
   Star,
   FileText,
+  Settings as SettingsIcon,
   Menu,
   X,
   LogOut,
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Jogadores", href: "/jogadores", icon: Users },
   { name: "Avaliações", href: "/avaliacoes", icon: FileText },
   { name: "Wishlist", href: "/wishlist", icon: Star },
+  { name: "Configurações", href: "/settings", icon: SettingsIcon },
 ];
 
 export default function Layout() {
