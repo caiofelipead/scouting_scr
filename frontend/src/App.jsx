@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Jogadores from './pages/Jogadores'
 import Avaliacoes from './pages/Avaliacoes'
 import Wishlist from './pages/Wishlist'
+import Settings from './pages/Settings'
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuthStore()
@@ -35,6 +36,7 @@ function App() {
         <Route path="jogadores" element={<Jogadores />} />
         <Route path="avaliacoes" element={<Avaliacoes />} />
         <Route path="wishlist" element={<Wishlist />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   )

@@ -2,7 +2,7 @@
  * API Service - Jogadores
  * Funções para consumo dos endpoints de jogadores
  */
-import { api } from "../lib/axios";
+import api from "../lib/axios";
 import type {
   Jogador,
   JogadorWithDetails,
