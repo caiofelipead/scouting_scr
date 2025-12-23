@@ -6,6 +6,9 @@ import Dashboard from './pages/Dashboard'
 import Jogadores from './pages/Jogadores'
 import Avaliacoes from './pages/Avaliacoes'
 import Wishlist from './pages/Wishlist'
+import Comparador from './pages/Comparador'
+import ShadowTeam from './pages/ShadowTeam'
+import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 
 function ProtectedRoute({ children }) {
@@ -36,6 +39,9 @@ function App() {
         <Route path="jogadores" element={<Jogadores />} />
         <Route path="avaliacoes" element={<Avaliacoes />} />
         <Route path="wishlist" element={<Wishlist />} />
+        <Route path="comparador" element={<Comparador />} />
+        <Route path="shadow-team" element={<ShadowTeam />} />
+        <Route path="analytics" element={<Analytics />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>

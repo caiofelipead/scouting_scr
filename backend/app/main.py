@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 
 from .core.config import settings
 from .core.database import engine, Base
-from .api.v1.endpoints import auth, jogadores, avaliacoes, wishlist, scraping, sync
+from .api.v1.endpoints import auth, jogadores, avaliacoes, wishlist, scraping, sync, shadow_teams
 
 
 @asynccontextmanager
@@ -78,6 +78,9 @@ app.include_router(scraping.router, prefix="/api/v1/scraping", tags=["Scraping"]
 
 # Sync
 app.include_router(sync.router, prefix="/api/v1/sync", tags=["Sync"])
+
+# Shadow Teams
+app.include_router(shadow_teams.router, prefix="/api/v1/shadow-teams", tags=["Shadow Teams"])
 
 
 # ============================================
