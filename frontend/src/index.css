@@ -2,6 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Print CSS - Optimized for A4 paper
+ * Hides sidebar and non-essential elements when printing
+ */
+@media print {
+  /* Hide navigation and controls */
+  aside,
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Remove left padding from main content */
+  main {
+    padding-left: 0 !important;
+  }
+
+  /* Optimize page breaks */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .page-break-avoid {
+    page-break-inside: avoid;
+  }
+
+  /* Ensure cards and sections stay together */
+  .card,
+  section {
+    page-break-inside: avoid;
+  }
+
+  /* Remove shadows for cleaner print */
+  .shadow,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  /* Ensure text is black */
+  body {
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* Ensure charts print correctly */
+  canvas,
+  img,
+  svg {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Optimize table printing */
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;
