@@ -9,6 +9,9 @@ import {
   Users,
   Star,
   FileText,
+  GitCompare,
+  Shield,
+  TrendingUp,
   Settings as SettingsIcon,
   Menu,
   X,
@@ -24,6 +27,9 @@ const navigation = [
   { name: "Jogadores", href: "/jogadores", icon: Users },
   { name: "Avaliações", href: "/avaliacoes", icon: FileText },
   { name: "Wishlist", href: "/wishlist", icon: Star },
+  { name: "Comparador", href: "/comparador", icon: GitCompare },
+  { name: "Shadow Team", href: "/shadow-team", icon: Shield },
+  { name: "Analytics", href: "/analytics", icon: TrendingUp },
   { name: "Configurações", href: "/settings", icon: SettingsIcon },
 ];
 
