@@ -1,0 +1,56 @@
+services:
+  # Backend FastAPI
+  - type: web
+    name: scout-pro-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: scout-pro-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+        sync: false
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      - key: CORS_ORIGINS
+        value: https://scout-pro-frontend.onrender.com,http://localhost:3000
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: scout-pro-redis
+          property: connectionString
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # Frontend React
+  - type: web
+    name: scout-pro-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: VITE_API_URL
+        value: https://scout-pro-backend.onrender.com
+    autoDeploy: true
+
+  # Redis Cache
+  - type: redis
+    name: scout-pro-redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+databases:
+  - name: scout-pro-db
+    databaseName: scout_pro
+    user: scoutpro
+    plan: starter
