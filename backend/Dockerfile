@@ -29,9 +29,10 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Health check (uses PORT env variable)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+  CMD python -c "import requests, os; requests.get(f'http://localhost:{os.getenv(\"PORT\", \"8000\")}/health')" || exit 1
 
 # Run with uvicorn using multiple workers
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Use PORT env variable from Railway, fallback to 8000
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 4
